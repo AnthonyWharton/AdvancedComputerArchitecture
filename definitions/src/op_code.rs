@@ -1,3 +1,4 @@
+#[derive(PartialEq)]
 pub enum OpCode {
     // Arithmentic Operations
     ADD,
@@ -11,6 +12,8 @@ pub enum OpCode {
     AND,
     ORR,
     XOR,
+    LSH,
+    RSH,
 
     // Loading
     LDR,
@@ -32,38 +35,40 @@ pub enum OpCode {
 }
 
 impl OpCode {
-    pub fn as_str(&self) -> &str {
-        match self {
-            OpCode::ADD => "ADD",
-            OpCode::SUB => "SUB",
-            OpCode::MUL => "MUL",
-            OpCode::DIV => "DIV",
-            OpCode::MOD => "MOD",
+    pub fn as_str(&self) -> String {
+        match &self {
+            OpCode::ADD => String::from("ADD"),
+            OpCode::SUB => String::from("SUB"),
+            OpCode::MUL => String::from("MUL"),
+            OpCode::DIV => String::from("DIV"),
+            OpCode::MOD => String::from("MOD"),
             
-            OpCode::NOT => "NOT",
-            OpCode::AND => "AND",
-            OpCode::ORR => "ORR",
-            OpCode::XOR => "XOR",
+            OpCode::NOT => String::from("NOT"),
+            OpCode::AND => String::from("AND"),
+            OpCode::ORR => String::from("ORR"),
+            OpCode::XOR => String::from("XOR"),
+            OpCode::LSH => String::from("LSH"),
+            OpCode::RSH => String::from("RSH"),
 
-            OpCode::LDR => "LDR",
-            OpCode::SET => "SET",
-            OpCode::RND => "RND",
-            OpCode::PSH => "PSH",
-            OpCode::POP => "POP",
+            OpCode::LDR => String::from("LDR"),
+            OpCode::SET => String::from("SET"),
+            OpCode::RND => String::from("RND"),
+            OpCode::PSH => String::from("PSH"),
+            OpCode::POP => String::from("POP"),
 
-            OpCode::BRU => "BRU",
-            OpCode::BRZ => "BNZ",
-            OpCode::BRN => "BRN",
-            OpCode::BRP => "BRP",
-            OpCode::FUN => "FUN",
-            OpCode::RET => "RET",
+            OpCode::BRU => String::from("BRU"),
+            OpCode::BRZ => String::from("BNZ"),
+            OpCode::BRN => String::from("BRN"),
+            OpCode::BRP => String::from("BRP"),
+            OpCode::FUN => String::from("FUN"),
+            OpCode::RET => String::from("RET"),
 
-            OpCode::HCF => "HCF"
+            OpCode::HCF => String::from("HCF")
         }
     }
 
     pub fn as_i8(&self) -> i8 {
-        match self {
+        match &self {
             OpCode::ADD => 0x00,
             OpCode::SUB => 0x01,
             OpCode::MUL => 0x02,
@@ -74,6 +79,8 @@ impl OpCode {
             OpCode::AND => 0x06,
             OpCode::ORR => 0x07,
             OpCode::XOR => 0x08,
+            OpCode::LSH => 0x08,
+            OpCode::RSH => 0x08,
 
             OpCode::LDR => 0x09,
             OpCode::SET => 0x0a,
