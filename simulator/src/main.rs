@@ -1,16 +1,10 @@
 extern crate definitions;
+extern crate elf;
 
-use definitions::op_code::OpCode;
+use elf::File;
 
 fn main() { 
-    let val = OpCode::ADD;
-
-    if let OpCode::ADD = val {
-        println!("Woohoo!");
-    }
-    
-    if OpCode::ADD == val {
-        println!("Woohoo too! {} {}", val.as_str(), val.as_i8());
-    }
+    let file = File::new();
+    println!("File: {}", file.ehdr.machine);
 }
 
