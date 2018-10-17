@@ -5,3 +5,4 @@ authors = ["Anthony Wharton <a.wharton.2015@bristol.ac.uk>"]
 
 [dependencies]
 definitions = { path = "../definitions" }
+elf = "0.0.10"
