@@ -2,8 +2,8 @@ use std::env;
 
 #[derive(Debug)]
 pub struct Config {
-    assembly_file: String,
-    output_file:   Option<String>,
+    pub assembly_file: String,
+    pub output_file:   Option<String>,
 }
 
 impl Config {
