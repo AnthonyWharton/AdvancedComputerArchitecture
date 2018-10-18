@@ -7,39 +7,20 @@ OBJDUMP=riscv64-linux-gnu-objdump
 # Standard C Flags, including those to force the ABI/ISA specification
 CFLAGS=-mabi=ilp32 -march=rv32im -nostdlib -s -static -O0
 # Flags for the linker to not include the build ID binary
-LINKERFLAGS=-Wl,--build-id=none
-# Flags to disable all optimisations in the GCC for RISC V
-DISABLE_C_OPTIMISATIONS=-fno-aggressive-loop-optimizations -fno-auto-inc-dec \
-			-fno-dce -fno-delete-null-pointer-checks -fno-dse    \
-			-fno-early-inlining -fno-fp-int-builtin-inexact      \
-			-fno-function-cse -fno-gcse-lm -fno-inline           \
-			-fno-inline-atomics -fno-ira-hoist-pressure          \
-			-fno-ira-share-save-slots -fno-ira-share-spill-slots \
-			-fno-ivopts -fno-jump-tables -fno-lifetime-dse       \
-			-fno-math-errno -fno-peephole -fno-plt               \
-			-fno-prefetch-loop-arrays -fno-printf-return-value   \
-			-fno-reg-struct-return -fno-rename-registers         \
-			-fno-sched-critical-path-heuristic                   \
-			-fno-sched-dep-count-heuristic                       \
-			-fno-sched-group-heuristic -fno-sched-interblock     \
-			-fno-sched-last-insn-heuristic                       \
-			-fno-sched-rank-heuristic -fno-sched-spec            \
-			-fno-sched-spec-insn-heuristic                       \
-			-fno-sched-stalled-insns-dep -fno-schedule-fusion    \
-			-fno-short-enums -fno-shrink-wrap-separate           \
-			-fno-signed-zeros -fno-split-ivs-in-unroller         \
-			-fno-ssa-backprop -fno-stdarg-opt                    \
-			-fno-strict-volatile-bitfields -fno-trapping-math    \
-			-fno-tree-cselim -fno-tree-forwprop                  \
-			-fno-tree-loop-if-convert -fno-tree-loop-im          \
-			-fno-tree-loop-ivcanon -fno-tree-loop-optimize       \
-			-fno-tree-phiprop -fno-tree-reassoc                  \
-			-fno-tree-scev-cprop -fno-var-tracking               \
-			-fno-var-tracking-assignments -fno-web
+LFLAGS=-Wl,--build-id=none
+# Dynamically works out the enabled optimisations for our C environment and
+# disables them.
+# Removes some edge cases that break building (double negatives and c++ flags)
+DISABLE_C_OPTIMISATIONS=$(shell                                           \
+			  $(CC) $(CFLAGS) $(LFLAGS) -Q --help=optimizers |\
+			  grep enabled                                   |\
+			  sed -r 's/ *-f([a-zA-Z-]*) .*/-fno-\1/'        |\
+			  grep -v 'no-no\|rtti'                          |\
+			  tr '\n' ' '                                    )
 
 # Builds the program
 build: main.c
-	$(CC) $(CFLAGS) $(DISABLE_C_OPTIMISATIONS) $(LINKERFLAGS) main.c
+	$(CC) $(CFLAGS) $(DISABLE_C_OPTIMISATIONS) $(LFLAGS) main.c
 
 # Disassembles the output file
 disassemble: *.out
