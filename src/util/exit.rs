@@ -24,3 +24,4 @@ fn exit(code: i32, message: &str) -> ! {
     }
     process::exit(code);
 }
+
