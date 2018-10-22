@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+use std::fmt;
 
 use instruction::Decodable;
 use instruction::Format;
@@ -92,27 +92,27 @@ pub enum FunctCode {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-//// Implementations
+//// IMPLEMENTATIONS
 
-//////////////////////////////////////////////////////////////////////// Format
+////////////////////////////////////////////////////////////////////// BaseCode
 
-impl From<BaseCode> for Format {
-    /// Provides an Instruction Format given the `BaseCode` of an instruction.
-    fn from(code: BaseCode) -> Format {
-        match code {
-            BaseCode::OP                           => Format::R,
-            BaseCode::JALR   | BaseCode::LOAD    |
-            BaseCode::OPIMM  | BaseCode::MISCMEM |
-            BaseCode::SYSTEM                       => Format::I,
-            BaseCode::STORE                        => Format::S,
-            BaseCode::BRANCH                       => Format::B,
-            BaseCode::LUI    | BaseCode::AUIPC     => Format::U,
-            BaseCode::JAL                          => Format::J,
+impl fmt::Display for BaseCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            BaseCode::LOAD    => f.pad("LOAD"),
+            BaseCode::MISCMEM => f.pad("MISCMEM"),
+            BaseCode::OPIMM   => f.pad("OPIMM"),
+            BaseCode::AUIPC   => f.pad("AUIPC"),
+            BaseCode::STORE   => f.pad("STORE"),
+            BaseCode::OP      => f.pad("OP"),
+            BaseCode::LUI     => f.pad("LUI"),
+            BaseCode::BRANCH  => f.pad("BRANCH"),
+            BaseCode::JALR    => f.pad("JALR"),
+            BaseCode::JAL     => f.pad("JAL"),
+            BaseCode::SYSTEM  => f.pad("SYSTEM"),
         }
     }
 }
-
-////////////////////////////////////////////////////////////////////// BaseCode
 
 impl From<FunctCode> for BaseCode {
     /// Finds the associated BaseCode for a given function code.
@@ -207,7 +207,66 @@ impl BaseCode {
     }
 }
 
-////////////////////////////////////////////////////////////////////// Function
+///////////////////////////////////////////////////////////////////// FunctCode
+
+impl fmt::Display for FunctCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            FunctCode::JALR   => f.pad("JALR"),
+            FunctCode::BEQ    => f.pad("BEQ"),
+            FunctCode::BNE    => f.pad("BNE"),
+            FunctCode::BLT    => f.pad("BLT"),
+            FunctCode::BGE    => f.pad("BGE"),
+            FunctCode::BLTU   => f.pad("BLTU"),
+            FunctCode::BGEU   => f.pad("BGEU"),
+            FunctCode::LB     => f.pad("LB"),
+            FunctCode::LH     => f.pad("LH"),
+            FunctCode::LW     => f.pad("LW"),
+            FunctCode::LBU    => f.pad("LBU"),
+            FunctCode::LHU    => f.pad("LHU"),
+            FunctCode::SB     => f.pad("SB"),
+            FunctCode::SH     => f.pad("SH"),
+            FunctCode::SW     => f.pad("SW"),
+            FunctCode::ADDI   => f.pad("ADDI"),
+            FunctCode::SLTI   => f.pad("SLTI"),
+            FunctCode::SLTIU  => f.pad("SLTIU"),
+            FunctCode::XORI   => f.pad("XORI"),
+            FunctCode::ORI    => f.pad("ORI"),
+            FunctCode::ANDI   => f.pad("ANDI"),
+            FunctCode::SLLI   => f.pad("SLLI"),
+            FunctCode::SRLI   => f.pad("SRLI"),
+            FunctCode::SRAI   => f.pad("SRAI"),
+            FunctCode::ADD    => f.pad("ADD"),
+            FunctCode::SUB    => f.pad("SUB"),
+            FunctCode::SLL    => f.pad("SLL"),
+            FunctCode::SLT    => f.pad("SLT"),
+            FunctCode::SLTU   => f.pad("SLTU"),
+            FunctCode::XOR    => f.pad("XOR"),
+            FunctCode::SRL    => f.pad("SRL"),
+            FunctCode::SRA    => f.pad("SRA"),
+            FunctCode::OR     => f.pad("OR"),
+            FunctCode::AND    => f.pad("AND"),
+            FunctCode::FENCE  => f.pad("FENCE"),
+            FunctCode::FENCEI => f.pad("FENCEI"),
+            FunctCode::ECALL  => f.pad("ECALL"),
+            FunctCode::EBREAK => f.pad("EBREAK"),
+            FunctCode::CSRRW  => f.pad("CSRRW"),
+            FunctCode::CSRRS  => f.pad("CSRRS"),
+            FunctCode::CSRRC  => f.pad("CSRRC"),
+            FunctCode::CSRRWI => f.pad("CSRRWI"),
+            FunctCode::CSRRSI => f.pad("CSRRSI"),
+            FunctCode::CSRRCI => f.pad("CSRRCI"),
+            FunctCode::MUL    => f.pad("MUL"),
+            FunctCode::MULH   => f.pad("MULH"),
+            FunctCode::MULHSU => f.pad("MULHSU"),
+            FunctCode::MULHU  => f.pad("MULHU"),
+            FunctCode::DIV    => f.pad("DIV"),
+            FunctCode::DIVU   => f.pad("DIVU"),
+            FunctCode::REM    => f.pad("REM"),
+            FunctCode::REMU   => f.pad("REMU"),
+        }
+    }
+}
 
 impl Decodable for FunctCode {
     fn from_instruction(instruction: u32) -> Option<FunctCode> {

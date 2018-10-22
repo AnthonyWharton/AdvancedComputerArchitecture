@@ -10,5 +10,6 @@ mod instruction;
 fn main() { 
     let file = File::new();
     println!("File: {}", file.ehdr.machine);
+    println!("Test1: -{:>6}-", instruction::op_code::BaseCode::JAL)
 }
 
