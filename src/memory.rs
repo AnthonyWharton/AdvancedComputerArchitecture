@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use std::fmt;
+use std::fmt::Display;
 
 use elf::File;
 use elf::ParseError;
@@ -10,7 +11,7 @@ use util::exit::Exit::FileLoadError;
 //// TYPES
 
 /// Type alias for the data structure that holds main memory
-type Memory = HashMap<u32, u32>;
+type Memory = [u32; 1000000];
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
@@ -36,6 +37,11 @@ pub fn load_elf(config: &Config) -> Memory {
     println!("MAIN_HEADER: {}", file.ehdr);
     println!("PROG_HEADERS: {:?}", file.phdrs);
     println!("SECT_HEADERS: {:?}", file.sections);
-    Memory::with_capacity(1048576)
+    let mut mem: Memory = [0; 1000000];
+    mem[0] = 0x10;
+    mem[1] = 0x20;
+    mem[2] = 0x30;
+    println!("Vec Len {} - {:#08x?}", mem.len(), &mem[0..10]);
+    mem
 }
 
