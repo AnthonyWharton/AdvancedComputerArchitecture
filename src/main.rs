@@ -9,6 +9,9 @@ use util::exit::Exit;
 /// logic, parsing etc.
 mod instruction;
 
+/// Definitions for the main memory data structure.
+mod memory;
+
 /// Miscellaneous Utilities and Helpers
 mod util;
 
@@ -19,7 +22,7 @@ fn main() {
         Err(e) => Exit::ArgumentError.exit(Some(e)),
     };
 
-
     println!("Read Config: {:?}", config);
+    memory::load_elf(&config);
 }
 
