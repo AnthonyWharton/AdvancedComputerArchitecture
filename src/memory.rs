@@ -1,8 +1,6 @@
-use std::fmt;
-use std::fmt::Display;
-
 use elf::File;
 use elf::ParseError;
+use elf::types::*;
 
 use util::config::Config;
 use util::exit::Exit::FileLoadError;
@@ -11,13 +9,16 @@ use util::exit::Exit::FileLoadError;
 //// TYPES
 
 /// Type alias for the data structure that holds main memory
-type Memory = [u32; 1000000];
+type Memory = Box<Vec<u8>>;
+
+/// Type alias for an individual word in the machine.
+type Word = u32;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
 /// Loads the elf file into a Memory data structure.
-/// TODO: Change this to load into some yet-to-be-defined state struct (as 
+/// TODO: Change this to load into some yet-to-be-defined state struct (as
 /// there will be registers and other gubbins to initialise).
 pub fn load_elf(config: &Config) -> Memory {
     let file = match File::open_path(&config.elf_file) {
@@ -34,14 +35,40 @@ pub fn load_elf(config: &Config) -> Memory {
         },
     };
 
-    println!("MAIN_HEADER: {}", file.ehdr);
-    println!("PROG_HEADERS: {:?}", file.phdrs);
-    println!("SECT_HEADERS: {:?}", file.sections);
-    let mut mem: Memory = [0; 1000000];
-    mem[0] = 0x10;
-    mem[1] = 0x20;
-    mem[2] = 0x30;
-    println!("Vec Len {} - {:#08x?}", mem.len(), &mem[0..10]);
+    println!("ELF_FILE_HEADER:\n{:#?}\n", file.ehdr);
+    verify_header(&file.ehdr);
+    println!("PROGRAM_HEADERS:\n{:#?}\n", file.phdrs);
+
+    println!("SECTION_HEADERS:\n");
+    for s in file.sections.iter() {
+        println!("{:#?}", s.shdr);
+    }
+
+    let mut mem: Memory = Box::new(vec!(0; 12));
+
     mem
+}
+
+/// Verifies the given ELF file header, and quits the simulator if invalid. If
+/// this function returns, it can be assumed that the header is good to go!
+fn verify_header(header: &FileHeader) {
+    if header.class != ELFCLASS32 { 
+        FileLoadError.exit(Some("Found 64 bit ELF file, expected 32 bit."));
+    }
+    if header.data != ELFDATA2LSB {
+        FileLoadError.exit(Some("Found Big Endian ELF file, expected Little Endian."));
+    }
+    if header.version != EV_CURRENT {
+        FileLoadError.exit(Some("Incompatible ELF file version, expected 1.")); 
+    }
+    if header.osabi != ELFOSABI_SYSV {
+        FileLoadError.exit(Some("Incompatible OS ABI in ELF file header, expected Unix - System V."));
+    }
+    if header.elftype != ET_EXEC { 
+        FileLoadError.exit(Some("Incompatible object file type in ELF file header, expected EXEC."));
+    }
+    if header.machine != Machine(0xf3) {
+        FileLoadError.exit(Some("Incompatible ISA in ELF file header, expected RISC-V."));
+    }
 }
 

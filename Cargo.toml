@@ -4,4 +4,5 @@ version = "0.1.0"
 authors = ["Anthony Wharton <a.wharton.2015@bristol.ac.uk>"]
 
 [dependencies]
+byteorder = "1.2.6"
 elf = "0.0.10"

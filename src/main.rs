@@ -1,3 +1,4 @@
+extern crate byteorder;
 extern crate elf;
 
 use std::env;
