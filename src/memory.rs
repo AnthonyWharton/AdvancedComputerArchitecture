@@ -16,7 +16,7 @@ const INIT_MEMORY_SIZE: usize = 1_000_000; // 1 Megabyte
 //// TYPES
 
 /// Type alias for an individual word in the machine.
-pub type Word = u32;
+pub type Word = i32;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
@@ -63,7 +63,7 @@ impl Memory {
 
         // Read 4 bytes to make a word
         let mut rdr = &self.0[index..];
-        (rdr.read_u32::<LittleEndian>().unwrap(), index % 4 == 0)
+        (rdr.read_i32::<LittleEndian>().unwrap(), index % 4 == 0)
     }
 
     /// Writes a word to `Memory` at a given index, returning and
@@ -77,7 +77,7 @@ impl Memory {
 
         // Write 4 bytes at the given index
         let mut wtr = &mut self.0[index..];
-        wtr.write_u32::<LittleEndian>(word).unwrap();
+        wtr.write_i32::<LittleEndian>(word).unwrap();
         index % 4 == 0
     }
 }

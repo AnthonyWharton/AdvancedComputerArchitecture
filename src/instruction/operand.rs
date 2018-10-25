@@ -286,3 +286,12 @@ fn imm_ex_3(i: Word, a: u8, b: u8) -> Word {
     i & (((0b1 << 1+b-a) - 1) << a)
 }
 
+/// Sign extends the given `word` from the given `msb` onwards. 
+fn sign_extend_from_msb(word: Word, msb: u8) -> Word {
+    if ((word >> msb) & 0b1) == 0b1 {
+        word | (((1 << (32 - msb)) - 1) << msb)
+    } else {
+        word
+    }
+}
+
