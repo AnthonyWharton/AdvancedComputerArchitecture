@@ -1,7 +1,7 @@
 use std::fmt;
 
-use instruction::Decodable;
 use instruction::Format;
+use memory::Word;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// ENUMS
@@ -27,16 +27,16 @@ pub enum BaseCode {
     SYSTEM,
 }
 
-/// An enum of all the different function opcodes that are provided by 
-/// `rv32im`. 
+/// An enum of all the different operations that are provided by `rv32im`.
 ///
-///  - These correspond to the assembly op codes for all instruction
-///    types that have a function code. 
-///  - These are not necessarily from one contiguous bit-range within the
-///    instruction, as function codes may be spread across multiple parts of 
-///    the instruction.
+/// These can be parse from a mixture of the `BaseCode` and/or the function
+/// code(s) within the instruction. Therefore, these are not necessarily
+/// derived from one contiguous bit-range within the instruction.
 #[derive(Copy, Clone, PartialEq)]
-pub enum FunctCode {
+pub enum Operation {
+    LUI,
+    AUIPC,
+    JAL,
     JALR,
     BEQ,
     BNE,
@@ -92,6 +92,18 @@ pub enum FunctCode {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+//// TRAITS
+
+/// Trait for objects that can decode an instruction into an internal
+/// representation.
+pub trait Decodable {
+    /// Decodes a full instruction word, into an internal representation.
+    /// Returns None on a failure.
+    fn from_instruction(instruction: Word) -> Option<Self> where
+        Self: Sized;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
 
 ////////////////////////////////////////////////////////////////////// BaseCode
@@ -114,68 +126,71 @@ impl fmt::Display for BaseCode {
     }
 }
 
-impl From<FunctCode> for BaseCode {
-    /// Finds the associated BaseCode for a given function code.
-    fn from(funct_code: FunctCode) -> BaseCode {
-        match funct_code {
-            FunctCode::JALR   => BaseCode::JALR,
-            FunctCode::BEQ    => BaseCode::BRANCH,
-            FunctCode::BNE    => BaseCode::BRANCH,
-            FunctCode::BLT    => BaseCode::BRANCH,
-            FunctCode::BGE    => BaseCode::BRANCH,
-            FunctCode::BLTU   => BaseCode::BRANCH,
-            FunctCode::BGEU   => BaseCode::BRANCH,
-            FunctCode::LB     => BaseCode::LOAD,
-            FunctCode::LH     => BaseCode::LOAD,
-            FunctCode::LW     => BaseCode::LOAD,
-            FunctCode::LBU    => BaseCode::LOAD,
-            FunctCode::LHU    => BaseCode::LOAD,
-            FunctCode::SB     => BaseCode::STORE,
-            FunctCode::SH     => BaseCode::STORE,
-            FunctCode::SW     => BaseCode::STORE,
-            FunctCode::ADDI   => BaseCode::OPIMM,
-            FunctCode::SLTI   => BaseCode::OPIMM,
-            FunctCode::SLTIU  => BaseCode::OPIMM,
-            FunctCode::XORI   => BaseCode::OPIMM,
-            FunctCode::ORI    => BaseCode::OPIMM,
-            FunctCode::ANDI   => BaseCode::OPIMM,
-            FunctCode::SLLI   => BaseCode::OPIMM,
-            FunctCode::SRLI   => BaseCode::OPIMM,
-            FunctCode::SRAI   => BaseCode::OPIMM,
-            FunctCode::ADD    => BaseCode::OP,
-            FunctCode::SUB    => BaseCode::OP,
-            FunctCode::SLL    => BaseCode::OP,
-            FunctCode::SLT    => BaseCode::OP,
-            FunctCode::SLTU   => BaseCode::OP,
-            FunctCode::XOR    => BaseCode::OP,
-            FunctCode::SRL    => BaseCode::OP,
-            FunctCode::SRA    => BaseCode::OP,
-            FunctCode::OR     => BaseCode::OP,
-            FunctCode::AND    => BaseCode::OP,
-            FunctCode::FENCE  => BaseCode::MISCMEM,
-            FunctCode::FENCEI => BaseCode::MISCMEM,
-            FunctCode::ECALL  => BaseCode::SYSTEM,
-            FunctCode::EBREAK => BaseCode::SYSTEM,
-            FunctCode::CSRRW  => BaseCode::SYSTEM,
-            FunctCode::CSRRS  => BaseCode::SYSTEM,
-            FunctCode::CSRRC  => BaseCode::SYSTEM,
-            FunctCode::CSRRWI => BaseCode::SYSTEM,
-            FunctCode::CSRRSI => BaseCode::SYSTEM,
-            FunctCode::CSRRCI => BaseCode::SYSTEM,
-            FunctCode::MUL    => BaseCode::OP,
-            FunctCode::MULH   => BaseCode::OP,
-            FunctCode::MULHSU => BaseCode::OP,
-            FunctCode::MULHU  => BaseCode::OP,
-            FunctCode::DIV    => BaseCode::OP,
-            FunctCode::DIVU   => BaseCode::OP,
-            FunctCode::REM    => BaseCode::OP,
-            FunctCode::REMU   => BaseCode::OP,
+impl From<Operation> for BaseCode {
+    /// Finds the associated BaseCode for a given operation.
+    fn from(operation: Operation) -> BaseCode {
+        match operation {
+            Operation::LUI    => BaseCode::LUI,
+            Operation::AUIPC  => BaseCode::AUIPC,
+            Operation::JAL    => BaseCode::JAL,
+            Operation::JALR   => BaseCode::JALR,
+            Operation::BEQ    => BaseCode::BRANCH,
+            Operation::BNE    => BaseCode::BRANCH,
+            Operation::BLT    => BaseCode::BRANCH,
+            Operation::BGE    => BaseCode::BRANCH,
+            Operation::BLTU   => BaseCode::BRANCH,
+            Operation::BGEU   => BaseCode::BRANCH,
+            Operation::LB     => BaseCode::LOAD,
+            Operation::LH     => BaseCode::LOAD,
+            Operation::LW     => BaseCode::LOAD,
+            Operation::LBU    => BaseCode::LOAD,
+            Operation::LHU    => BaseCode::LOAD,
+            Operation::SB     => BaseCode::STORE,
+            Operation::SH     => BaseCode::STORE,
+            Operation::SW     => BaseCode::STORE,
+            Operation::ADDI   => BaseCode::OPIMM,
+            Operation::SLTI   => BaseCode::OPIMM,
+            Operation::SLTIU  => BaseCode::OPIMM,
+            Operation::XORI   => BaseCode::OPIMM,
+            Operation::ORI    => BaseCode::OPIMM,
+            Operation::ANDI   => BaseCode::OPIMM,
+            Operation::SLLI   => BaseCode::OPIMM,
+            Operation::SRLI   => BaseCode::OPIMM,
+            Operation::SRAI   => BaseCode::OPIMM,
+            Operation::ADD    => BaseCode::OP,
+            Operation::SUB    => BaseCode::OP,
+            Operation::SLL    => BaseCode::OP,
+            Operation::SLT    => BaseCode::OP,
+            Operation::SLTU   => BaseCode::OP,
+            Operation::XOR    => BaseCode::OP,
+            Operation::SRL    => BaseCode::OP,
+            Operation::SRA    => BaseCode::OP,
+            Operation::OR     => BaseCode::OP,
+            Operation::AND    => BaseCode::OP,
+            Operation::FENCE  => BaseCode::MISCMEM,
+            Operation::FENCEI => BaseCode::MISCMEM,
+            Operation::ECALL  => BaseCode::SYSTEM,
+            Operation::EBREAK => BaseCode::SYSTEM,
+            Operation::CSRRW  => BaseCode::SYSTEM,
+            Operation::CSRRS  => BaseCode::SYSTEM,
+            Operation::CSRRC  => BaseCode::SYSTEM,
+            Operation::CSRRWI => BaseCode::SYSTEM,
+            Operation::CSRRSI => BaseCode::SYSTEM,
+            Operation::CSRRCI => BaseCode::SYSTEM,
+            Operation::MUL    => BaseCode::OP,
+            Operation::MULH   => BaseCode::OP,
+            Operation::MULHSU => BaseCode::OP,
+            Operation::MULHU  => BaseCode::OP,
+            Operation::DIV    => BaseCode::OP,
+            Operation::DIVU   => BaseCode::OP,
+            Operation::REM    => BaseCode::OP,
+            Operation::REMU   => BaseCode::OP,
         }
     }
 }
 
 impl Decodable for BaseCode {
-    fn from_instruction(instruction: u32) -> Option<BaseCode> {
+    fn from_instruction(instruction: Word) -> Option<BaseCode> {
         match instruction & 0x7f {
             0x03 => Some(BaseCode::LOAD),
             0x0f => Some(BaseCode::MISCMEM),
@@ -194,82 +209,122 @@ impl Decodable for BaseCode {
 }
 
 impl BaseCode {
-    /// Checks if the instruction format of this `BaseCode` has a function code
-    /// included within it.
-    pub fn has_funct_code(self) -> bool {
-        Format::from(self).has_funct_code()
+    /// Checks if the instruction format has a destination register encoded
+    /// within it, as per the `rv32im` specification.
+    pub fn has_rd(&self) -> bool {
+        match Format::from(*self) {
+            Format::S |
+            Format::B => false,
+            _         => true
+        }
     }
 
-    /// Checks if the instruction format of this `BaseCode` has a `funct7`
-    /// section.
-    pub fn has_funct7(self) -> bool {
-        Format::from(self).has_funct7()
+    /// Checks if the instruction format has a source (1) register encoded
+    /// within it, as per the `rv32im` specification.
+    pub fn has_rs1(&self) -> bool {
+        match Format::from(*self) {
+            Format::U |
+            Format::J => false,
+            _         => true
+        }
+    }
+
+    /// Checks if the instruction format has a source (2) register encoded
+    /// within it, as per the `rv32im` specification.
+    pub fn has_rs2(&self) -> bool {
+        match Format::from(*self) {
+            Format::I |
+            Format::U |
+            Format::J => false,
+            _         => true
+        }
+    }
+
+    /// Checks if the instruction format has a function code included within
+    /// it, as per the `rv32im` specification.
+    fn has_funct_code(&self) -> bool {
+        match Format::from(*self) {
+            Format::U | Format::J => false,
+            _                     => true,
+        }
+    }
+
+    /// Checks if the instruction format has a `funct7` encoded within it, as
+    /// per the `rv32im` specification.
+    fn has_funct7(&self) -> bool {
+        match Format::from(*self) {
+            Format::R => true,
+            _         => false,
+        }
     }
 }
 
 ///////////////////////////////////////////////////////////////////// FunctCode
 
-impl fmt::Display for FunctCode {
+impl fmt::Display for Operation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            FunctCode::JALR   => f.pad("JALR"),
-            FunctCode::BEQ    => f.pad("BEQ"),
-            FunctCode::BNE    => f.pad("BNE"),
-            FunctCode::BLT    => f.pad("BLT"),
-            FunctCode::BGE    => f.pad("BGE"),
-            FunctCode::BLTU   => f.pad("BLTU"),
-            FunctCode::BGEU   => f.pad("BGEU"),
-            FunctCode::LB     => f.pad("LB"),
-            FunctCode::LH     => f.pad("LH"),
-            FunctCode::LW     => f.pad("LW"),
-            FunctCode::LBU    => f.pad("LBU"),
-            FunctCode::LHU    => f.pad("LHU"),
-            FunctCode::SB     => f.pad("SB"),
-            FunctCode::SH     => f.pad("SH"),
-            FunctCode::SW     => f.pad("SW"),
-            FunctCode::ADDI   => f.pad("ADDI"),
-            FunctCode::SLTI   => f.pad("SLTI"),
-            FunctCode::SLTIU  => f.pad("SLTIU"),
-            FunctCode::XORI   => f.pad("XORI"),
-            FunctCode::ORI    => f.pad("ORI"),
-            FunctCode::ANDI   => f.pad("ANDI"),
-            FunctCode::SLLI   => f.pad("SLLI"),
-            FunctCode::SRLI   => f.pad("SRLI"),
-            FunctCode::SRAI   => f.pad("SRAI"),
-            FunctCode::ADD    => f.pad("ADD"),
-            FunctCode::SUB    => f.pad("SUB"),
-            FunctCode::SLL    => f.pad("SLL"),
-            FunctCode::SLT    => f.pad("SLT"),
-            FunctCode::SLTU   => f.pad("SLTU"),
-            FunctCode::XOR    => f.pad("XOR"),
-            FunctCode::SRL    => f.pad("SRL"),
-            FunctCode::SRA    => f.pad("SRA"),
-            FunctCode::OR     => f.pad("OR"),
-            FunctCode::AND    => f.pad("AND"),
-            FunctCode::FENCE  => f.pad("FENCE"),
-            FunctCode::FENCEI => f.pad("FENCEI"),
-            FunctCode::ECALL  => f.pad("ECALL"),
-            FunctCode::EBREAK => f.pad("EBREAK"),
-            FunctCode::CSRRW  => f.pad("CSRRW"),
-            FunctCode::CSRRS  => f.pad("CSRRS"),
-            FunctCode::CSRRC  => f.pad("CSRRC"),
-            FunctCode::CSRRWI => f.pad("CSRRWI"),
-            FunctCode::CSRRSI => f.pad("CSRRSI"),
-            FunctCode::CSRRCI => f.pad("CSRRCI"),
-            FunctCode::MUL    => f.pad("MUL"),
-            FunctCode::MULH   => f.pad("MULH"),
-            FunctCode::MULHSU => f.pad("MULHSU"),
-            FunctCode::MULHU  => f.pad("MULHU"),
-            FunctCode::DIV    => f.pad("DIV"),
-            FunctCode::DIVU   => f.pad("DIVU"),
-            FunctCode::REM    => f.pad("REM"),
-            FunctCode::REMU   => f.pad("REMU"),
+            Operation::LUI    => f.pad("lui"),
+            Operation::AUIPC  => f.pad("auipc"),
+            Operation::JAL    => f.pad("jal"),
+            Operation::JALR   => f.pad("jalr"),
+            Operation::BEQ    => f.pad("beq"),
+            Operation::BNE    => f.pad("bne"),
+            Operation::BLT    => f.pad("blt"),
+            Operation::BGE    => f.pad("bge"),
+            Operation::BLTU   => f.pad("bltu"),
+            Operation::BGEU   => f.pad("bgeu"),
+            Operation::LB     => f.pad("lb"),
+            Operation::LH     => f.pad("lh"),
+            Operation::LW     => f.pad("lw"),
+            Operation::LBU    => f.pad("lbu"),
+            Operation::LHU    => f.pad("lhu"),
+            Operation::SB     => f.pad("sb"),
+            Operation::SH     => f.pad("sh"),
+            Operation::SW     => f.pad("sw"),
+            Operation::ADDI   => f.pad("addi"),
+            Operation::SLTI   => f.pad("slti"),
+            Operation::SLTIU  => f.pad("sltiu"),
+            Operation::XORI   => f.pad("xori"),
+            Operation::ORI    => f.pad("ori"),
+            Operation::ANDI   => f.pad("andi"),
+            Operation::SLLI   => f.pad("slli"),
+            Operation::SRLI   => f.pad("srli"),
+            Operation::SRAI   => f.pad("srai"),
+            Operation::ADD    => f.pad("add"),
+            Operation::SUB    => f.pad("sub"),
+            Operation::SLL    => f.pad("sll"),
+            Operation::SLT    => f.pad("slt"),
+            Operation::SLTU   => f.pad("sltu"),
+            Operation::XOR    => f.pad("xor"),
+            Operation::SRL    => f.pad("srl"),
+            Operation::SRA    => f.pad("sra"),
+            Operation::OR     => f.pad("or"),
+            Operation::AND    => f.pad("and"),
+            Operation::FENCE  => f.pad("fence"),
+            Operation::FENCEI => f.pad("fencei"),
+            Operation::ECALL  => f.pad("ecall"),
+            Operation::EBREAK => f.pad("ebreak"),
+            Operation::CSRRW  => f.pad("csrrw"),
+            Operation::CSRRS  => f.pad("csrrs"),
+            Operation::CSRRC  => f.pad("csrrc"),
+            Operation::CSRRWI => f.pad("csrrwi"),
+            Operation::CSRRSI => f.pad("csrrsi"),
+            Operation::CSRRCI => f.pad("csrrci"),
+            Operation::MUL    => f.pad("mul"),
+            Operation::MULH   => f.pad("mulh"),
+            Operation::MULHSU => f.pad("mulhsu"),
+            Operation::MULHU  => f.pad("mulhu"),
+            Operation::DIV    => f.pad("div"),
+            Operation::DIVU   => f.pad("divu"),
+            Operation::REM    => f.pad("rem"),
+            Operation::REMU   => f.pad("remu"),
         }
     }
 }
 
-impl Decodable for FunctCode {
-    fn from_instruction(instruction: u32) -> Option<FunctCode> {
+impl Decodable for Operation {
+    fn from_instruction(instruction: Word) -> Option<Operation> {
         // To match Function Code, we first need the base code
         let base_code = match BaseCode::from_instruction(instruction) {
             Some(b) => b,
@@ -277,123 +332,128 @@ impl Decodable for FunctCode {
         };
         // Parse out funct3, or return none (funct3 required)
         let funct3 = match base_code.has_funct_code() {
-            true  => (instruction >> 12) & 0x7,
+            true  => (instruction >> 12) & 0b111,
             false => return None,
         };
         // Parse out funct7, if required.
         let funct7 = match base_code.has_funct7() {
-            true  => instruction >> 25,
+            true  => (instruction >> 25) & 0b1111111,
             false => 0, // Not required
         };
         // Match on the base code and funct 3, dealing with ambiguities by
         // checking special cases.
         match base_code {
-            BaseCode::LOAD => 
+            BaseCode::LOAD =>
                 match funct3 {
-                    0x0 => Some(FunctCode::LB),
-                    0x1 => Some(FunctCode::LH),
-                    0x2 => Some(FunctCode::LW),
-                    0x4 => Some(FunctCode::LBU),
-                    0x5 => Some(FunctCode::LHU),
+                    0x0 => Some(Operation::LB),
+                    0x1 => Some(Operation::LH),
+                    0x2 => Some(Operation::LW),
+                    0x4 => Some(Operation::LBU),
+                    0x5 => Some(Operation::LHU),
                     _   => None, // Unrecognised funct 3
                 },
-            BaseCode::MISCMEM => 
+            BaseCode::MISCMEM =>
                 match funct3 {
-                    0x0 => Some(FunctCode::FENCE),
-                    0x1 => Some(FunctCode::FENCEI),
+                    0x0 => Some(Operation::FENCE),
+                    0x1 => Some(Operation::FENCEI),
                     _   => None, // Unrecognised funct 3
                 },
-            BaseCode::OPIMM => 
+            BaseCode::OPIMM =>
                 match funct3 {
-                    0x0 => Some(FunctCode::ADDI),
-                    0x2 => Some(FunctCode::SLTI),
-                    0x3 => Some(FunctCode::SLTIU),
-                    0x4 => Some(FunctCode::XORI),
-                    0x6 => Some(FunctCode::ORI),
-                    0x7 => Some(FunctCode::ANDI),
-                    0x1 => Some(FunctCode::SLLI),
+                    0x0 => Some(Operation::ADDI),
+                    0x2 => Some(Operation::SLTI),
+                    0x3 => Some(Operation::SLTIU),
+                    0x4 => Some(Operation::XORI),
+                    0x6 => Some(Operation::ORI),
+                    0x7 => Some(Operation::ANDI),
+                    0x1 => Some(Operation::SLLI),
                     0x5 => // Ambiguous Case; Match on func7
                         match funct7 {
-                            0x00 => Some(FunctCode::SRLI),
-                            0x20 => Some(FunctCode::SRAI),
+                            0x00 => Some(Operation::SRLI),
+                            0x20 => Some(Operation::SRAI),
                             _    => None // Unrecognised funct7
                         },
                     _   => None, // Unrecognised funct 3
                 },
-            BaseCode::STORE => 
+            BaseCode::AUIPC =>
+                Some(Operation::AUIPC),
+            BaseCode::STORE =>
                 match funct3 {
-                    0x0 => Some(FunctCode::SB),
-                    0x1 => Some(FunctCode::SH),
-                    0x2 => Some(FunctCode::SW),
+                    0x0 => Some(Operation::SB),
+                    0x1 => Some(Operation::SH),
+                    0x2 => Some(Operation::SW),
                     _   => None, // Unrecognised funct 3
                 },
-            BaseCode::OP => 
+            BaseCode::OP =>
                 match funct7 {
                     0x00 =>
                         match funct3 {
-                            0x0 => Some(FunctCode::ADD),
-                            0x1 => Some(FunctCode::SLL),
-                            0x2 => Some(FunctCode::SLT),
-                            0x3 => Some(FunctCode::SLTU),
-                            0x4 => Some(FunctCode::XOR),
-                            0x5 => Some(FunctCode::SRL),
-                            0x6 => Some(FunctCode::OR),
-                            0x7 => Some(FunctCode::AND),
+                            0x0 => Some(Operation::ADD),
+                            0x1 => Some(Operation::SLL),
+                            0x2 => Some(Operation::SLT),
+                            0x3 => Some(Operation::SLTU),
+                            0x4 => Some(Operation::XOR),
+                            0x5 => Some(Operation::SRL),
+                            0x6 => Some(Operation::OR),
+                            0x7 => Some(Operation::AND),
                             _   => None, // Unrecognised funct3
                         },
                     0x20 =>
                         match funct3 {
-                            0x0 => Some(FunctCode::SUB),
-                            0x5 => Some(FunctCode::SRA),
+                            0x0 => Some(Operation::SUB),
+                            0x5 => Some(Operation::SRA),
                             _   => None, // Unrecognised funct3
                         },
                     0x01 =>
                         match funct3 {
-                            0x0 => Some(FunctCode::MUL),
-                            0x1 => Some(FunctCode::MULH),
-                            0x2 => Some(FunctCode::MULHSU),
-                            0x3 => Some(FunctCode::MULHU),
-                            0x4 => Some(FunctCode::DIV),
-                            0x5 => Some(FunctCode::DIVU),
-                            0x6 => Some(FunctCode::REM),
-                            0x7 => Some(FunctCode::REMU),
+                            0x0 => Some(Operation::MUL),
+                            0x1 => Some(Operation::MULH),
+                            0x2 => Some(Operation::MULHSU),
+                            0x3 => Some(Operation::MULHU),
+                            0x4 => Some(Operation::DIV),
+                            0x5 => Some(Operation::DIVU),
+                            0x6 => Some(Operation::REM),
+                            0x7 => Some(Operation::REMU),
                             _   => None // Unrecognised funct3
                         },
                     _ => None // Unrecognised funct7
-                    
+
                 },
-            BaseCode::BRANCH => 
+            BaseCode::LUI =>
+                Some(Operation::LUI),
+            BaseCode::BRANCH =>
                 match funct3 {
-                    0x0 => Some(FunctCode::BEQ),
-                    0x1 => Some(FunctCode::BNE),
-                    0x4 => Some(FunctCode::BLT),
-                    0x5 => Some(FunctCode::BGE),
-                    0x6 => Some(FunctCode::BLTU),
-                    0x7 => Some(FunctCode::BGEU),
+                    0x0 => Some(Operation::BEQ),
+                    0x1 => Some(Operation::BNE),
+                    0x4 => Some(Operation::BLT),
+                    0x5 => Some(Operation::BGE),
+                    0x6 => Some(Operation::BLTU),
+                    0x7 => Some(Operation::BGEU),
                     _   => None, // Unrecognised funct 3
                 },
-            BaseCode::JALR => 
+            BaseCode::JALR =>
                 match funct3 {
-                    0x0 => Some(FunctCode::JALR),
+                    0x0 => Some(Operation::JALR),
                     _   => None, // Unrecognised funct 3
                 },
-            BaseCode::SYSTEM => 
+            BaseCode::JAL =>
+                Some(Operation::JAL),
+            BaseCode::SYSTEM =>
                 match funct3 {
                     0x0 => // Ambiguous Case (PRIV); Match on funct12
                         match instruction >> 20 {
-                            0x0 => Some(FunctCode::ECALL),
-                            0x1 => Some(FunctCode::EBREAK),
+                            0x0 => Some(Operation::ECALL),
+                            0x1 => Some(Operation::EBREAK),
                             _   => None, // Unrecognised funct12
                         },
-                    0x1 => Some(FunctCode::CSRRW),
-                    0x2 => Some(FunctCode::CSRRS),
-                    0x3 => Some(FunctCode::CSRRC),
-                    0x5 => Some(FunctCode::CSRRWI),
-                    0x6 => Some(FunctCode::CSRRSI),
-                    0x7 => Some(FunctCode::CSRRCI),
+                    0x1 => Some(Operation::CSRRW),
+                    0x2 => Some(Operation::CSRRS),
+                    0x3 => Some(Operation::CSRRC),
+                    0x5 => Some(Operation::CSRRWI),
+                    0x6 => Some(Operation::CSRRSI),
+                    0x7 => Some(Operation::CSRRCI),
                     _   => None, // Unrecognised funct3
                 },
-            _ => None, // Unrecognised base code
         }
     }
 }

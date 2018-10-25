@@ -1,7 +1,14 @@
 use std::fmt;
 
+use memory::Word;
+use self::op_code::{BaseCode, Operation};
+use self::operand::Register;
+
 /// All things related to a `rv32im` opcodes.
 pub mod op_code;
+
+/// All things related to a `rv32im` operand, i.e. the registers or immediate.
+pub mod operand;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// ENUMS
@@ -19,15 +26,14 @@ pub enum Format {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-//// TRAITS
+//// STRUCTS
 
-/// Trait for objects that can decode an instruction into an internal
-/// representation.
-pub trait Decodable {
-    /// Decodes a full instruction word, into an internal representation.
-    /// Returns None on a failure.
-    fn from_instruction(instruction: u32) -> Option<Self> where
-        Self: Sized;
+pub struct Instruction {
+    op:  Operation,
+    rd:  Option<Register>,
+    rs1: Option<Register>,
+    rs2: Option<Register>,
+    imm: Option<Word>,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -50,7 +56,7 @@ impl fmt::Display for Format {
 
 impl From<op_code::BaseCode> for Format {
     /// Provides an Instruction Format given the `BaseCode` of an instruction.
-    fn from(code: op_code::BaseCode) -> Format {
+    fn from(code: BaseCode) -> Format {
         match code {
             op_code::BaseCode::OP      => Format::R,
             op_code::BaseCode::JALR    |
@@ -67,22 +73,5 @@ impl From<op_code::BaseCode> for Format {
     }
 }
 
-impl Format {
-    /// Checks if the instruction format has a function code included within
-    /// it, as per the `rv32im` specification.
-    pub fn has_funct_code(&self) -> bool {
-        match self {
-            Format::U | Format::J => false,
-            _                     => true,
-        }
-    }
-
-    /// Checks if the instruction format has a `funct7` section.
-    pub fn has_funct7(&self) -> bool {
-        match self {
-            Format::R => true,
-            _         => false,
-        }
-    }
-}
+/////////////////////////////////////////////////////////////////// Instruction
 
