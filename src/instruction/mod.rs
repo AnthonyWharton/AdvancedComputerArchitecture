@@ -1,8 +1,8 @@
-use std::fmt;
+use std::fmt::{Display, Formatter, Result};
 
 use memory::Word;
-use self::op_code::{BaseCode, Operation};
-use self::operand::Register;
+use self::op_code::{BaseCode, Decodable, Operation};
+use self::operand::{Register, RegisterOperand, extract_immediate};
 
 /// All things related to a `rv32im` opcodes.
 pub mod op_code;
@@ -41,8 +41,8 @@ pub struct Instruction {
 
 //////////////////////////////////////////////////////////////////////// Format
 
-impl fmt::Display for Format {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl Display for Format {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
             Format::R => f.pad("R"),
             Format::I => f.pad("I"),
@@ -74,4 +74,32 @@ impl From<op_code::BaseCode> for Format {
 }
 
 /////////////////////////////////////////////////////////////////// Instruction
+
+impl Display for Instruction {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "{}", self.op)?;
+        if self.rd.is_some()  { write!(f, " {:#}", self.rd.as_ref().unwrap())? };
+        if self.rs1.is_some() { write!(f, " {:#}", self.rs1.as_ref().unwrap())? };
+        if self.rs2.is_some() { write!(f, " {:#}", self.rs2.as_ref().unwrap())? };
+        if self.imm.is_some() { write!(f, " {}", self.imm.unwrap())? };
+        Ok(())
+    }
+}
+
+impl Instruction {
+    /// Decodes a RISC V binary instruction word from the `rv32im`
+    /// specification. Returns None if there instruction failed to decode.
+    pub fn decode(instruction: Word) -> Option<Instruction> {
+        Some(Instruction {
+            op:  match Operation::from_instruction(instruction) {
+                Some(o) => o,
+                None    => return None,
+            },
+            rd:  Register::extract_register(RegisterOperand::RD,  instruction),
+            rs1: Register::extract_register(RegisterOperand::RS1, instruction),
+            rs2: Register::extract_register(RegisterOperand::RS2, instruction),
+            imm: extract_immediate(instruction),
+        })
+    }
+}
 

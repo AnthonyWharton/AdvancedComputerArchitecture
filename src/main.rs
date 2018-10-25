@@ -3,6 +3,7 @@ extern crate elf;
 
 use std::env;
 
+use instruction::Instruction;
 use util::config::Config;
 use util::exit::Exit;
 
@@ -24,6 +25,8 @@ fn main() {
     };
 
     println!("Read Config: {:?}", config);
-    memory::load_elf(&config);
+    let _memory = memory::load_elf(&config);
+    let test   = Instruction::decode(0x02010413);
+    println!("Test Instruction: {}", test.unwrap());
 }
 

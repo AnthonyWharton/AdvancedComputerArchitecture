@@ -247,7 +247,7 @@ pub fn extract_immediate(instruction: Word) -> Option<Word> {
 /// |              true            |      `[b+4:b+0]`     |          `[4:0]`         |
 /// |             false            |    `[b+4:b+1,b+0]`   |        `[4:1,11]`        |
 fn imm_ex_1(i: Word, b: u8, cont: bool) -> Word {
-    let mut imm = (i >> b) & 0b11111;
+    let imm = (i >> b) & 0b11111;
     if !cont {
         ((imm & 0b1) << 11) | (imm & 0b11110)
     } else {
@@ -266,7 +266,7 @@ fn imm_ex_1(i: Word, b: u8, cont: bool) -> Word {
 ///
 /// _Where `e >= 11`. For all values `e <= 11`, `e` is left as `11`._
 fn imm_ex_2(i: Word, e: u8) -> Word {
-    let mut imm = (i >> 20) & 0b111111100000;
+    let imm = (i >> 20) & 0b111111100000;
     if e > 11 {
         ((imm & 0b10000000000) << (e - 10)) | (imm & 0b011111100000)
     } else {
