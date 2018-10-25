@@ -24,7 +24,7 @@ build: main.c
 
 # Disassembles the output file
 disassemble: *.out
-	${OBJDUMP} -D -z $?
+	${OBJDUMP} -D -M no-aliases -z $?
 
 # Cleans the output files
 clean: *.out
