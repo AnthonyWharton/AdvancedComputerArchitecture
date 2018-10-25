@@ -15,11 +15,10 @@ const INIT_MEMORY_SIZE: usize = 1_000_000; // 1 Megabyte
 //// TYPES
 
 /// Type alias for the data structure that holds main memory
-// type Memory = Box<Vec<u8>>;
-type Memory = Vec<u8>;
+pub type Memory = Vec<u8>;
 
 /// Type alias for an individual word in the machine.
-type Word = u32;
+pub type Word = u32;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
