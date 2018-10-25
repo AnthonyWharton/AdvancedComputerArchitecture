@@ -1,6 +1,7 @@
-use elf::File;
-use elf::Section;
-use elf::ParseError;
+use std::ops::{Deref, DerefMut};
+
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use elf::{File, Section, ParseError};
 use elf::types::*;
 
 use util::config::Config;
@@ -14,11 +15,72 @@ const INIT_MEMORY_SIZE: usize = 1_000_000; // 1 Megabyte
 ///////////////////////////////////////////////////////////////////////////////
 //// TYPES
 
-/// Type alias for the data structure that holds main memory
-pub type Memory = Vec<u8>;
-
 /// Type alias for an individual word in the machine.
 pub type Word = u32;
+
+///////////////////////////////////////////////////////////////////////////////
+//// STRUCTS
+
+/// Smart Pointer on a vector of bytes to store the memory for the simulator.
+/// See the implemented methods for extra functionality.
+pub struct Memory(Vec<u8>);
+
+///////////////////////////////////////////////////////////////////////////////
+//// IMPLEMENTATIONS
+
+/// Allows for direct access to the memory data structure nested within the
+/// `Memory` struct.
+impl Deref for Memory {
+    type Target = Vec<u8>;
+    fn deref(&self) -> &Vec<u8> {
+        &self.0
+    }
+}
+
+/// Allows for direct mutable access to the memory data structure nested within
+/// the `Memory` struct.
+impl DerefMut for Memory {
+    fn deref_mut(&mut self) -> &mut Vec<u8> {
+        &mut self.0
+    }
+}
+
+impl Memory {
+    /// Creates a new `Memory` struct of given capacity with a 0-initialised
+    /// byte-data.
+    pub fn create_empty(capacity: usize) -> Memory {
+        Memory(vec!(0u8; capacity))
+    }
+
+    /// Reads a word from `Memory` at a given index, returning the word and
+    /// whether or not a misaligned access was used.
+    pub fn read_word(&mut self, index: usize) -> (Word, bool) {
+        // Check if memory data structure is large enough, if not extend
+        let (diff, sufficient) = (index + 3).overflowing_sub(self.len());
+        if !sufficient {
+            self.0.append(&mut vec!(0; diff));
+        }
+
+        // Read 4 bytes to make a word
+        let mut rdr = &self.0[index..];
+        (rdr.read_u32::<LittleEndian>().unwrap(), index % 4 == 0)
+    }
+
+    /// Writes a word to `Memory` at a given index, returning and
+    /// whether or not a misaligned access was used.
+    pub fn write_word(&mut self, index: usize, word: Word) -> bool {
+        // Check if memory data structure is large enough, if not extend
+        let (diff, sufficient) = (index + 3).overflowing_sub(self.len());
+        if !sufficient {
+            self.0.append(&mut vec!(0; diff));
+        }
+
+        // Write 4 bytes at the given index
+        let mut wtr = &mut self.0[index..];
+        wtr.write_u32::<LittleEndian>(word).unwrap();
+        index % 4 == 0
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
@@ -48,8 +110,7 @@ pub fn load_elf(config: &Config) -> Memory {
     }
 
     // Initialise and load in memory
-    // let mut mem: Memory = Box::new(vec!(0u8; INIT_MEMORY_SIZE));
-    let mut mem: Memory = vec!(0u8; INIT_MEMORY_SIZE);
+    let mut mem: Memory = Memory::create_empty(INIT_MEMORY_SIZE);
     for s in file.sections.iter() {
         load_section(&mut mem, s);
     }
