@@ -3,13 +3,12 @@ extern crate elf;
 
 use std::env;
 
-use instruction::Instruction;
+use isa::Instruction;
 use util::config::Config;
 use util::exit::Exit;
 
-/// Everything to do with simulator binary instructions; definitions,
-/// logic, parsing etc.
-mod instruction;
+/// Everything to do isa instructions; definitions and binary logic/parsing etc.
+mod isa;
 
 /// Definitions for the main memory data structure.
 mod memory;

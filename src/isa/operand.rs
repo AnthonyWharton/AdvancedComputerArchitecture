@@ -1,8 +1,8 @@
 use std::fmt;
 
 use memory::Word;
-use instruction::Format;
-use instruction::op_code::{BaseCode, Decodable};
+use isa::Format;
+use isa::op_code::{BaseCode, Decodable};
 
 ///////////////////////////////////////////////////////////////////////////////
 //// CONST/STATIC
