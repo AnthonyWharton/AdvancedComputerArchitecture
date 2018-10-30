@@ -224,15 +224,16 @@ pub fn extract_immediate(instruction: Word) -> Option<Word> {
     match Format::from(base_code) {
         Format::R => None,
         Format::I =>
-            Some(imm_ex_1(i, 20,  true) | imm_ex_2(i, 11)                      ),
+            Some(sign_extend_from_msb(11, imm_ex_1(i, 20,  true) | imm_ex_2(i, 11))),
         Format::S =>
-            Some(imm_ex_1(i,  7,  true) | imm_ex_2(i, 11)                      ),
+            Some(sign_extend_from_msb(11, imm_ex_1(i,  7,  true) | imm_ex_2(i, 11))),
         Format::B =>
-            Some(imm_ex_1(i,  7, false) | imm_ex_2(i, 12)                      ),
+            Some(sign_extend_from_msb(12, imm_ex_1(i,  7, false) | imm_ex_2(i, 12))),
         Format::U =>
-            Some(                                           imm_ex_3(i, 12, 31)),
+            Some(imm_ex_3(i, 12, 31)),
         Format::J =>
-            Some(imm_ex_1(i, 20, false) | imm_ex_2(i, 20) | imm_ex_3(i, 12, 19)),
+            Some(sign_extend_from_msb(20, imm_ex_1(i, 20, false) | imm_ex_2(i, 20) |
+                                          imm_ex_3(i, 12, 19))),
     }
 }
 
@@ -285,8 +286,8 @@ fn imm_ex_3(i: Word, a: u8, b: u8) -> Word {
     i & (((0b1 << 1+b-a) - 1) << a)
 }
 
-/// Sign extends the given `word` from the given `msb` onwards. 
-fn sign_extend_from_msb(word: Word, msb: u8) -> Word {
+/// Sign extends the given `word` from the given `msb` onwards.
+fn sign_extend_from_msb(msb: u8, word: Word) -> Word {
     if ((word >> msb) & 0b1) == 0b1 {
         word | (((1 << (32 - msb)) - 1) << msb)
     } else {

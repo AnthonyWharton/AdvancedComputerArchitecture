@@ -1,12 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use elf::{File, Section, ParseError};
-use elf::types::*;
+use elf::Section;
 
 use isa::Word;
-use util::config::Config;
-use util::exit::Exit::{FileLoadError, ElfError};
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS

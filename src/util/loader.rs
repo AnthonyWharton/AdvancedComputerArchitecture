@@ -1,8 +1,6 @@
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use elf::{File, Section, ParseError};
+use elf::{File, ParseError};
 use elf::types::*;
 
-use isa::Word;
 use simulator::memory::Memory;
 use util::config::Config;
 use util::exit::Exit::{FileLoadError, ElfError};
