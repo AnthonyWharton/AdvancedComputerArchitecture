@@ -3,6 +3,9 @@ use std::fmt::{Display, Formatter, Result};
 use isa::op_code::{BaseCode, Decodable, Operation};
 use isa::operand::{Register, RegisterOperand, extract_immediate};
 
+///////////////////////////////////////////////////////////////////////////////
+//// EXTERNAL MODULES
+
 /// All things related to a `rv32im` opcodes.
 pub mod op_code;
 
