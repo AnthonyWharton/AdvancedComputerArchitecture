@@ -1,14 +1,19 @@
 use std::fmt::{Display, Formatter, Result};
 
-use memory::Word;
-use self::op_code::{BaseCode, Decodable, Operation};
-use self::operand::{Register, RegisterOperand, extract_immediate};
+use isa::op_code::{BaseCode, Decodable, Operation};
+use isa::operand::{Register, RegisterOperand, extract_immediate};
 
 /// All things related to a `rv32im` opcodes.
 pub mod op_code;
 
 /// All things related to a `rv32im` operand, i.e. the registers or immediate.
 pub mod operand;
+
+///////////////////////////////////////////////////////////////////////////////
+//// TYPES
+
+/// Type alias for an individual signed word in the machine.
+pub type Word = i32;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// ENUMS

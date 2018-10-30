@@ -1,7 +1,6 @@
 use std::fmt;
 
-use memory::Word;
-use isa::Format;
+use isa::{Format, Word};
 use isa::op_code::{BaseCode, Decodable};
 
 ///////////////////////////////////////////////////////////////////////////////
