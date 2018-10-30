@@ -22,10 +22,7 @@ fn main() {
         Ok(c)  => c,
         Err(e) => Exit::ArgumentError.exit(Some(e)),
     };
-
-    println!("Read Config: {:?}", config);
-    let _memory = util::loader::load_elf(&config);
-    let test   = Instruction::decode(0x02010413);
-    println!("Test Instruction: {}", test.unwrap());
+    simulator::run_simulator(config);
+    println!("Goodbye!");
 }
 
