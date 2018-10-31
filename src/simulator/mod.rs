@@ -1,5 +1,8 @@
 use std::io;
 
+use termion::event::Key;
+
+use display::input::{InputHandler, EXIT_KEYS};
 use util::config::Config;
 use util::loader::load_elf;
 use self::state::State;
@@ -23,10 +26,17 @@ pub fn run_simulator(config: Config) {
         memory,
     };
 
+    let input = InputHandler::new();
+
     // Buffer not used, just to pause for user input
     let mut buf = String::new();
     loop {
-        println!("Done thing.");
-        io::stdin().read_line(&mut buf);
+        match input.next() {
+            Ok(key) => match key {
+                k if EXIT_KEYS.contains(&k) => break,
+                _ => println!("Done thing.\r"),
+            }
+            Err(_)  => {}
+        }
     }
 }

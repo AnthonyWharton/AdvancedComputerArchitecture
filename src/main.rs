@@ -1,11 +1,15 @@
 extern crate byteorder;
 extern crate elf;
+extern crate tui;
+extern crate termion;
 
 use std::env;
 
-use isa::Instruction;
 use util::config::Config;
 use util::exit::Exit;
+
+/// Simulator printout display logic.
+mod display;
 
 /// Everything to do isa instructions; definitions and binary logic/parsing etc.
 mod isa;
@@ -22,7 +26,9 @@ fn main() {
         Ok(c)  => c,
         Err(e) => Exit::ArgumentError.exit(Some(e)),
     };
+    let mut terminal = display::initialize()
+                                .expect("Failed to startup fancy UI.");
     simulator::run_simulator(config);
-    println!("Goodbye!");
+    println!("Goodbye!\r");
 }
 
