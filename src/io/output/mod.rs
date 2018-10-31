@@ -11,6 +11,12 @@ use super::{IoEvent, SimulatorEvent};
 use super::input::{InputHandler, EXIT_KEYS};
 
 ///////////////////////////////////////////////////////////////////////////////
+//// EXTERNAL MODULES
+
+/// For dealing with state output updates.
+mod state;
+
+///////////////////////////////////////////////////////////////////////////////
 //// TYPES
 
 type Terminal = TuiTerminal<TermionBackend<RawTerminal<Stdout>>>;
@@ -71,7 +77,7 @@ pub fn display_thread(
             Ok(e) => match e {
                 IoEvent::Exit => break,
                 IoEvent::DoneThing => println!("Done thing.\r"),
-                IoEvent::UpdateState(_s) => {},
+                IoEvent::UpdateState(s) => state::simple_draw_state(s),
             },
             Err(TryRecvError::Disconnected) => 
                 Exit::IoThreadError.exit(Some("Simulator thread missing, assumed dead.")),

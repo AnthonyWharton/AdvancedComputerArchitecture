@@ -5,6 +5,7 @@ extern crate termion;
 
 use std::env;
 
+use io::IoThread;
 use util::config::Config;
 use util::exit::Exit;
 
@@ -28,11 +29,12 @@ mod util;
 
 /// Main entry point, not much else to say.
 fn main() {
+    let io: IoThread = IoThread::new();
     let config = match Config::new(env::args()) {
         Ok(c)  => c,
         Err(e) => Exit::ArgumentError.exit(Some(e)),
     };
-    simulator::run_simulator(config);
+    simulator::run_simulator(io, config);
     println!("Goodbye!\r");
 }
 

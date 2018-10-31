@@ -22,10 +22,9 @@ pub mod state;
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
-pub fn run_simulator(config: Config) {
-    let _state = load_elf(&config);
-
-    let io: IoThread = IoThread::new();
+pub fn run_simulator(io: IoThread, config: Config) {
+    let state = load_elf(&config);
+    io.tx.send(IoEvent::UpdateState(state)).unwrap();
 
     let mut count = 0;
     loop {
