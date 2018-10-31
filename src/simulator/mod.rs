@@ -6,7 +6,6 @@ use io::{IoEvent, IoThread, SimulatorEvent};
 use util::config::Config;
 use util::loader::load_elf;
 use util::exit::Exit;
-use self::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES
@@ -24,11 +23,7 @@ pub mod state;
 //// FUNCTIONS
 
 pub fn run_simulator(config: Config) {
-    let memory = load_elf(&config);
-    let _state  = State {
-        register: vec!(0i32, 33),
-        memory,
-    };
+    let _state = load_elf(&config);
 
     let io: IoThread = IoThread::new();
 
