@@ -3,6 +3,7 @@ use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 
 use tui::Terminal as TuiTerminal;
 use tui::backend::TermionBackend;
+use tui::layout::Rect;
 use termion::raw::{IntoRawMode, RawTerminal};
 
 use util::exit::Exit;
@@ -15,13 +16,21 @@ use super::input::{InputHandler, EXIT_KEYS};
 type Terminal = TuiTerminal<TermionBackend<RawTerminal<Stdout>>>;
 
 ///////////////////////////////////////////////////////////////////////////////
+//// STRUCTS
+
+pub struct TuiApp {
+    input_handler: InputHandler,
+    size: Rect,
+}
+
+///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
 /// Connstructs a new raw terminal for TUI/Terminon usage.
 fn new_terminal() -> Result<Terminal, Error> {
-    let stdout  = stdout().into_raw_mode()?;
-    let backend = TermionBackend::new(stdout);
-    let mut terminal = TuiTerminal::new(backend)?;
+    let stdout   = stdout().into_raw_mode()?;
+    let backend  = TermionBackend::new(stdout);
+    let terminal = TuiTerminal::new(backend)?;
     Ok(terminal)
 }
 
@@ -32,12 +41,21 @@ pub fn display_thread(
     rx: Receiver<IoEvent>
 ) {
     // Initalise
-    let mut _terminal = new_terminal().expect("Could not start fancy UI.");
-    let input_handler = InputHandler::new();
+    let mut terminal = new_terminal().expect("Could not start fancy UI.");
+    let mut app = TuiApp {
+        input_handler: InputHandler::new(),
+        size: Rect::default(),
+    };
        
     loop {
+        let size = terminal.size().unwrap();
+        if size != app.size {
+            terminal.resize(size).unwrap();
+            app.size = size;
+        }
+
         // Deal with input
-        match input_handler.next() {
+        match app.input_handler.next() {
             Ok(key) => match key {
                 k if EXIT_KEYS.contains(&k) => break,
                 _ => {},

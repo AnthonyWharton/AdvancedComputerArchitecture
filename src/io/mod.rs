@@ -17,6 +17,7 @@ pub mod output;
 //// ENUMS
 
 /// Events destined for the IO thread.
+#[allow(dead_code)]
 pub enum IoEvent {
     Exit,
     DoneThing,
@@ -33,7 +34,9 @@ pub enum SimulatorEvent {
 
 /// Wrapper class around the IO thread, which deals with user input and output.
 ///
-/// The `tx_update` field can be used to send DisplayEvent's to the 
+///  - The `tx` field can be used to send `IoEvent`'s to the IO Thread.
+///  - The `rx` field should be used with `try_recv` to receive 
+///    `SimulatorEvent`'s.
 pub struct IoThread {
     pub tx: mpsc::Sender<IoEvent>,
     pub rx: mpsc::Receiver<SimulatorEvent>,

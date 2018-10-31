@@ -37,11 +37,11 @@ pub fn run_simulator(config: Config) {
         // Simulation
         if let Err(SendError(_)) = io.tx.send(IoEvent::DoneThing) { break; }
         count += 1;
-        if count > 20 {
+        if count > 100 {
             io.tx.send(IoEvent::Exit).is_ok();
             break;
         }
-        sleep(Duration::from_millis(500));
+        sleep(Duration::from_millis(50));
 
         // Handle IO thread events
         match io.rx.try_recv(){
