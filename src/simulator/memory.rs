@@ -32,6 +32,7 @@ impl DerefMut for Memory {
     }
 }
 
+#[allow(dead_code)]
 impl Memory {
     /// Creates a new `Memory` struct of given capacity with a 0-initialised
     /// byte-data.

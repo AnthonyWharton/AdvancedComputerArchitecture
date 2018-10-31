@@ -94,6 +94,7 @@ impl Display for Instruction {
     }
 }
 
+#[allow(dead_code)]
 impl Instruction {
     /// Decodes a RISC V binary instruction word from the `rv32im`
     /// specification. Returns None if there instruction failed to decode.

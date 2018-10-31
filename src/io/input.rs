@@ -1,7 +1,6 @@
 use std::io;
 use std::sync::mpsc;
 use std::thread;
-use std::time::Duration;
 
 use termion::event::Key;
 use termion::input::TermRead;
@@ -14,10 +13,7 @@ pub const EXIT_KEYS: [Key; 2] = [Key::Esc, Key::Char('q')];
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
 
-pub struct InputHandler {
-    rx:           mpsc::Receiver<Key>,
-    input_handle: thread::JoinHandle<()>,
-}
+pub struct InputHandler(mpsc::Receiver<Key>);
 
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
@@ -25,18 +21,13 @@ pub struct InputHandler {
 impl InputHandler {
     pub fn new() -> InputHandler {
         let (tx, rx) = mpsc::channel();
-        let input_handle = {
-            let tx = tx.clone();
-            thread::spawn(move || handle_input(tx))
-        };
-        InputHandler {
-            rx,
-            input_handle,
-        }
+        let tx = tx.clone();
+        thread::spawn(move || handle_input(tx));
+        InputHandler(rx)
     }
 
-    pub fn next(&self) -> Result<Key, mpsc::RecvTimeoutError> {
-        self.rx.recv_timeout(Duration::from_millis(10))
+    pub fn next(&self) -> Result<Key, mpsc::TryRecvError> {
+        self.0.try_recv()
     }
 }
 

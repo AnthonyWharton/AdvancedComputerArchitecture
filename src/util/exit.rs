@@ -4,6 +4,7 @@ pub enum Exit {
     ArgumentError,
     FileLoadError,
     ElfError,
+    IoThreadError,
 }
 
 impl Exit {
@@ -12,6 +13,7 @@ impl Exit {
             Exit::ArgumentError => exit(1, message.unwrap_or("Argument Error!")),
             Exit::FileLoadError => exit(2, message.unwrap_or("File Load Error!")),
             Exit::ElfError      => exit(3, message.unwrap_or("Elf File Error!")),
+            Exit::IoThreadError => exit(4, message.unwrap_or("IO Thread Error!")),
         }
     }
 }

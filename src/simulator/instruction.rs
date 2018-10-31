@@ -1,5 +1,6 @@
 use isa::Instruction;
 
-fn exec(inst: Instruction) {
+#[allow(dead_code)]
+fn exec(_inst: Instruction) {
 
 }
