@@ -83,6 +83,19 @@ impl From<op_code::BaseCode> for Format {
 
 /////////////////////////////////////////////////////////////////// Instruction
 
+impl Default for Instruction {
+    /// Returns a `nop`.
+    fn default() -> Instruction {
+        Instruction {
+            op: Operation::ADDI,
+            rd:  Some(Register::X0),
+            rs1: Some(Register::X0),
+            rs2: None,
+            imm: Some(0),
+        }
+    }
+}
+
 impl Display for Instruction {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "{}", self.op)?;
@@ -94,7 +107,6 @@ impl Display for Instruction {
     }
 }
 
-#[allow(dead_code)]
 impl Instruction {
     /// Decodes a RISC V binary instruction word from the `rv32im`
     /// specification. Returns None if there instruction failed to decode.

@@ -52,7 +52,9 @@ pub fn display_thread(
         input_handler: InputHandler::new(),
         size: Rect::default(),
     };
-       
+
+    terminal.hide_cursor().unwrap();
+
     loop {
         let size = terminal.size().unwrap();
         if size != app.size {

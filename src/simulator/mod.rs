@@ -1,8 +1,9 @@
 use std::sync::mpsc::{SendError, TryRecvError};
-use std::time::Duration;
-use std::thread::sleep;
+use std::thread;
 
 use io::{IoEvent, IoThread, SimulatorEvent};
+use isa::{Instruction, Word};
+use isa::operand::Register;
 use util::config::Config;
 use util::loader::load_elf;
 use util::exit::Exit;
@@ -22,20 +23,34 @@ pub mod state;
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
+/// Main entry point for the simulation.
+///
+/// Requires an IoThread for sending events to be output to the display, as
+/// well as for receiving any calls to close the simulation.
 pub fn run_simulator(io: IoThread, config: Config) {
-    let state = load_elf(&config);
-    io.tx.send(IoEvent::UpdateState(state)).unwrap();
+    let r = load_elf(&config);
+    let mut state  = r.0;
+    let mut memory = r.1;
 
-    let mut count = 0;
+    let mut inst_raw: Word = 0;
+    let mut inst: Instruction = Instruction::default();
+    let mut _aligned = true;
     loop {
-        // Simulation
-        if let Err(SendError(_)) = io.tx.send(IoEvent::DoneThing) { break; }
-        count += 1;
-        if count > 100 {
-            io.tx.send(IoEvent::Exit).is_ok();
-            break;
-        }
-        sleep(Duration::from_millis(50));
+        // FETCH STAGE
+        let r = memory.read_word(state.register[Register::PC as usize] as usize);
+        inst_raw = r.0;
+        _aligned = r.1;
+
+        // DECODE STAGE
+        inst = match Instruction::decode(inst_raw) {
+            Some(i) => i,
+            None => { panic!("Failed to decode instruction.") },
+        };
+
+        // EXECUTE STAGE
+        instruction::exec(&inst, &state, &memory);
+        io.tx.send(IoEvent::UpdateState(state)).unwrap();
+        thread::sleep_ms(1000);
 
         // Handle IO thread events
         match io.rx.try_recv(){

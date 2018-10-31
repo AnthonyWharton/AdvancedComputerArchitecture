@@ -1,6 +1,7 @@
 use isa::Instruction;
+use super::memory::Memory;
+use super::state::State;
 
-#[allow(dead_code)]
-fn exec(_inst: Instruction) {
-
+pub fn exec(inst: &Instruction, state: &State, memory: &Memory) {
+    //nop
 }

@@ -4,6 +4,7 @@ use elf::types::{Machine, FileHeader, ProgramHeader, ELFCLASS32, ELFDATA2LSB,
 
 use isa::Word;
 use isa::operand::Register;
+use simulator::memory::Memory;
 use simulator::state::State;
 use util::config::Config;
 use util::exit::Exit::{FileLoadError, ElfError};
@@ -17,7 +18,7 @@ pub const INIT_MEMORY_SIZE: usize = 1_000_000; // 1 Megabyte
 //// FUNCTIONS
 
 /// Loads the elf file into a Memory data structure.
-pub fn load_elf(config: &Config) -> State {
+pub fn load_elf(config: &Config) -> (State, Memory) {
     let file: File = match File::open_path(&config.elf_file) {
         Ok(f)  => f,
         Err(e) => match e {
@@ -38,18 +39,19 @@ pub fn load_elf(config: &Config) -> State {
         verify_prog_header(h);
     }
 
-    // Declare state 
-    let mut state = State::default();
+    // Declare state and memory
+    let mut state  = State::default();
+    let mut memory = Memory::create_empty(INIT_MEMORY_SIZE);
 
     // Initialise and load in memory
     for s in file.sections.iter() {
-        state.memory.load_elf_section(s);
+        memory.load_elf_section(s);
     }
 
     // Load in initial program counter
     state.register[Register::PC as usize] = file.ehdr.entry as Word;
 
-    state
+    (state, memory)
 }
 
 /// Verifies the given ELF file header is compatible with the simulator, and 
