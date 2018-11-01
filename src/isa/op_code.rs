@@ -248,12 +248,12 @@ impl BaseCode {
         }
     }
 
-    /// Checks if the instruction format has a `funct7` encoded within it, as
-    /// per the `rv32im` specification.
-    fn has_funct7(&self) -> bool {
+    /// Checks if the instruction format **might** have a `funct7` encoded
+    /// within it, as per the `rv32im` specification.
+    fn may_have_funct7(&self) -> bool {
         match Format::from(*self) {
-            Format::R => true,
-            _         => false,
+            Format::R | Format::I => true,
+            _                     => false,
         }
     }
 }
@@ -335,7 +335,7 @@ impl Decodable for Operation {
             false => return None,
         };
         // Parse out funct7, if required.
-        let funct7 = match base_code.has_funct7() {
+        let funct7 = match base_code.may_have_funct7() {
             true  => (instruction >> 25) & 0b1111111,
             false => 0, // Not required
         };
