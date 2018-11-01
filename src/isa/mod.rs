@@ -45,6 +45,8 @@ pub enum Format {
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
 
+/// Struct to encapsulate a decoded instruction.
+#[derive(Copy, Clone, PartialEq)]
 pub struct Instruction {
     pub op:  Operation,
     pub rd:  Option<Register>,

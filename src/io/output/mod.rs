@@ -79,6 +79,7 @@ pub fn display_thread(
             Ok(e) => match e {
                 IoEvent::Exit => break,
                 IoEvent::DoneThing => println!("Done thing.\r"),
+                IoEvent::UpdateInstruction(i) => println!("Running: {}\r", i),
                 IoEvent::UpdateState(s) => state::simple_draw_state(s),
             },
             Err(TryRecvError::Disconnected) => 

@@ -1,6 +1,7 @@
 use std::sync::mpsc;
 use std::thread;
 
+use isa::Instruction;
 use simulator::state::State;
 use self::output::display_thread;
 
@@ -21,6 +22,7 @@ pub mod output;
 pub enum IoEvent {
     Exit,
     DoneThing,
+    UpdateInstruction(Instruction),
     UpdateState(State),
 }
 

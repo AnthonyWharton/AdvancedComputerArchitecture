@@ -44,6 +44,7 @@ pub fn run_simulator(io: IoThread, config: Config) {
             Some(i) => i,
             None => { panic!("Failed to decode instruction.") },
         };
+        io.tx.send(IoEvent::UpdateInstruction(inst)).unwrap();
 
         // EXECUTE STAGE
         instruction::exec(&inst, &mut state, &mut memory);
