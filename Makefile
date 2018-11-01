@@ -48,5 +48,6 @@ rust-remove: env
 	rustup self uninstall -y
 
 env:
-	source ~/.cargo/env &> /dev/null
+	echo "Sorry this cannot be done automatically, PLEASE RUN:"
+	echo "source ~/.cargo/env"
 
