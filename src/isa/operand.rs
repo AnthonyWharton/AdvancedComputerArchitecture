@@ -21,7 +21,7 @@ pub enum RegisterOperand {
 
 /// The ID's of all the registers that are user accesible by executing
 /// programs in the `rv32im` specification.
-#[derive(Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum Register {
     X0  =  0,
     X1  =  1,
