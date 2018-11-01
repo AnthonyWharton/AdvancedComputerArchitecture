@@ -19,12 +19,37 @@ pub fn set_panic_hook() {
                  i.location().unwrap().line(),
                  i.location().unwrap().column());
         print_backtrace();
-        if process::Command::new("reset").output().is_err() {
-            print!("Failed to clean raw terminal, try `stty sane` or ");
-            print!("`echo -e \"\033c\"` to fix your terminal. ");
-            print!("If those don't work, good luck!\r");
-        }
+        attempt_cleanup_raw_terminal();
     }));
+}
+
+fn attempt_cleanup_raw_terminal() {
+    let mut status = 0;
+    match process::Command::new("setterm").arg("-reset").output() {
+        Ok(o) => status += if o.status.success() { 0 } else { 1 },
+        _     => status += 1,
+    };
+    match process::Command::new("reset").output() {
+        Ok(o) => status += if o.status.success() { 0 } else { 1 },
+        _     => status += 1,
+    }
+    match process::Command::new("stty").arg("sane").output() {
+        Ok(o) => status += if o.status.success() { 0 } else { 1 },
+        _     => status += 1,
+    }
+    if status != 0 {
+        print!("!!!!!!!!! <WARNING> !!!!!!!!!\n\r");
+        print!("May have failed to clean raw terminal configuration. If ");
+        print!("your terminal is broken/has no cursor, try all/some of:\n\r");
+        print!("  - `reset`\n\r");
+        print!("  - `stty sane`\n\r");
+        print!("  - `setterm --reset\n\r");
+        print!("  - `echo -e \"\\033c\"\n\r` ");
+        print!("...to /hopefully/ fix your terminal.\n\r");
+        print!("If those don't work, good luck! (I recommend restarting ");
+        print!("your terminal)... And sorry!\n\r");
+        print!("!!!!!!!!! </WARNING> !!!!!!!!\n\r");
+    }
 }
 
 /// Essentially a clone of the backtrace library `Debug::fmt` implementation,
