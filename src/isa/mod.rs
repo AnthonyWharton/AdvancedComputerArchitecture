@@ -18,6 +18,15 @@ pub mod operand;
 /// Type alias for an individual signed word in the machine.
 pub type Word = i32;
 
+/// Type alias for an individual unsigned word in the machine.
+pub type UnsignedWord = u32;
+
+/// Shorthand type alias for `Word`.
+pub type W = Word;
+
+/// Shorthand type alias for `UnsignedWord`.
+pub type UW = UnsignedWord;
+
 ///////////////////////////////////////////////////////////////////////////////
 //// ENUMS
 
@@ -37,11 +46,11 @@ pub enum Format {
 //// STRUCTS
 
 pub struct Instruction {
-    op:  Operation,
-    rd:  Option<Register>,
-    rs1: Option<Register>,
-    rs2: Option<Register>,
-    imm: Option<Word>,
+    pub op:  Operation,
+    pub rd:  Option<Register>,
+    pub rs1: Option<Register>,
+    pub rs2: Option<Register>,
+    pub imm: Option<Word>,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
