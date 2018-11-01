@@ -48,7 +48,7 @@ pub fn run_simulator(io: IoThread, config: Config) {
         };
 
         // EXECUTE STAGE
-        instruction::exec(&inst, &state, &memory);
+        instruction::exec(&inst, &mut state, &mut memory);
         io.tx.send(IoEvent::UpdateState(state)).unwrap();
         thread::sleep_ms(1000);
 
