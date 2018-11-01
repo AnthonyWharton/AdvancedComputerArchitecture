@@ -28,7 +28,7 @@ $(ALLTARGETS) $(TARGETS):
 
 # Recursively calls make on the subdirectory specified with the given target
 $(SUBDIRTARGETS):
-	echo "================================ $(call SPLIT,1,$@)"
+	echo "================================ program:$(call SPLIT,1,$@)"
 	-$(MAKE) -C $(call SPLIT,1,$@) $(call SPLIT,2,$@)
 
 # Default target, do nothing, run documentation
