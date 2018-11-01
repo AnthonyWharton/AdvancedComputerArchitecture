@@ -12,22 +12,22 @@ pub fn exec(inst: &Instruction, state: &mut State, memory: &mut Memory) {
     match inst.op {
         Operation::LUI    => exec_u_type(inst, state),
         Operation::AUIPC  => exec_u_type(inst, state),
-        Operation::JAL    => unimplemented!(),
-        Operation::JALR   => unimplemented!(),
-        Operation::BEQ    => unimplemented!(),
-        Operation::BNE    => unimplemented!(),
-        Operation::BLT    => unimplemented!(),
-        Operation::BGE    => unimplemented!(),
-        Operation::BLTU   => unimplemented!(),
-        Operation::BGEU   => unimplemented!(),
-        Operation::LB     => unimplemented!(),
-        Operation::LH     => unimplemented!(),
-        Operation::LW     => unimplemented!(),
-        Operation::LBU    => unimplemented!(),
-        Operation::LHU    => unimplemented!(),
-        Operation::SB     => unimplemented!(),
-        Operation::SH     => unimplemented!(),
-        Operation::SW     => unimplemented!(),
+        Operation::JAL    => exec_j_type(inst, state),
+        Operation::JALR   => exec_j_type(inst, state),
+        Operation::BEQ    => exec_b_type(inst, state), //unimplemented!
+        Operation::BNE    => exec_b_type(inst, state), //unimplemented!
+        Operation::BLT    => exec_b_type(inst, state), //unimplemented!
+        Operation::BGE    => exec_b_type(inst, state), //unimplemented!
+        Operation::BLTU   => exec_b_type(inst, state), //unimplemented!
+        Operation::BGEU   => exec_b_type(inst, state), //unimplemented!
+        Operation::LB     => exec_i_type(inst, state), //unimplemented!
+        Operation::LH     => exec_i_type(inst, state), //unimplemented!
+        Operation::LW     => exec_i_type(inst, state), //unimplemented!
+        Operation::LBU    => exec_i_type(inst, state), //unimplemented!
+        Operation::LHU    => exec_i_type(inst, state), //unimplemented!
+        Operation::SB     => exec_s_type(inst, state), //unimplemented!
+        Operation::SH     => exec_s_type(inst, state), //unimplemented!
+        Operation::SW     => exec_s_type(inst, state), //unimplemented!
         Operation::ADDI   => exec_i_type(inst, state),
         Operation::SLTI   => exec_i_type(inst, state),
         Operation::SLTIU  => exec_i_type(inst, state),
@@ -47,27 +47,25 @@ pub fn exec(inst: &Instruction, state: &mut State, memory: &mut Memory) {
         Operation::SRA    => exec_r_type(inst, state),
         Operation::OR     => exec_r_type(inst, state),
         Operation::AND    => exec_r_type(inst, state),
-        Operation::FENCE  => unimplemented!(),
-        Operation::FENCEI => unimplemented!(),
-        Operation::ECALL  => unimplemented!(),
-        Operation::EBREAK => unimplemented!(),
-        Operation::CSRRW  => unimplemented!(),
-        Operation::CSRRS  => unimplemented!(),
-        Operation::CSRRC  => unimplemented!(),
-        Operation::CSRRWI => unimplemented!(),
-        Operation::CSRRSI => unimplemented!(),
-        Operation::CSRRCI => unimplemented!(),
-        Operation::MUL    => unimplemented!(),
-        Operation::MULH   => unimplemented!(),
-        Operation::MULHSU => unimplemented!(),
-        Operation::MULHU  => unimplemented!(),
-        Operation::DIV    => unimplemented!(),
-        Operation::DIVU   => unimplemented!(),
-        Operation::REM    => unimplemented!(),
-        Operation::REMU   => unimplemented!(),
+        Operation::FENCE  => exec_i_type(inst, state), //unimplemented!
+        Operation::FENCEI => exec_i_type(inst, state), //unimplemented!
+        Operation::ECALL  => exec_i_type(inst, state), //unimplemented!
+        Operation::EBREAK => exec_i_type(inst, state), //unimplemented!
+        Operation::CSRRW  => exec_i_type(inst, state), //unimplemented!
+        Operation::CSRRS  => exec_i_type(inst, state), //unimplemented!
+        Operation::CSRRC  => exec_i_type(inst, state), //unimplemented!
+        Operation::CSRRWI => exec_i_type(inst, state), //unimplemented!
+        Operation::CSRRSI => exec_i_type(inst, state), //unimplemented!
+        Operation::CSRRCI => exec_i_type(inst, state), //unimplemented!
+        Operation::MUL    => exec_i_type(inst, state), //unimplemented!
+        Operation::MULH   => exec_i_type(inst, state), //unimplemented!
+        Operation::MULHSU => exec_i_type(inst, state), //unimplemented!
+        Operation::MULHU  => exec_i_type(inst, state), //unimplemented!
+        Operation::DIV    => exec_i_type(inst, state), //unimplemented!
+        Operation::DIVU   => exec_i_type(inst, state), //unimplemented!
+        Operation::REM    => exec_i_type(inst, state), //unimplemented!
+        Operation::REMU   => exec_i_type(inst, state), //unimplemented!
     }
-
-    state.register[Register::PC as usize] += 4;
 }
 
 /// Executes an R type instruction, modifying the borrowed state.
@@ -99,7 +97,9 @@ fn exec_r_type(inst: &Instruction, state: &mut State) {
         Operation::OR   => r[rs1] | r[rs2],
         Operation::AND  => r[rs1] & r[rs2],
         _ => panic!("Unkown I type instruction failed to execute.")
-    }
+    };
+
+    r[Register::PC as usize] += 4;
 }
 
 /// Executes an I type instruction, modifying the borrowed state.
@@ -110,13 +110,15 @@ fn exec_i_type(inst: &Instruction, state: &mut State) {
         .expect("Invalid I type instruction (no rs1) failed to execute.") as usize;
     let imm = inst.imm
         .expect("Invalid I type instruction (no imm) failed to execute.");
+    let r = &mut state.register; // Shorthand, should hopefully be optimised out
 
     if inst.op == Operation::JALR {
         if rd != 0 {
-            state.register[rd] = state.register[Register::PC as usize] + 4;
+            r[rd] = r[Register::PC as usize] + 4;
         }
-        state.register[Register::PC as usize] += state.register[rs1] + imm;
-        state.register[Register::PC as usize] &= !0b1;
+        r[Register::PC as usize] += r[rs1] + imm;
+        r[Register::PC as usize] &= !0b1;
+        return;
     }
 
     // Early exit, assigning to 0 is a nop as there are no side effect status
@@ -125,28 +127,32 @@ fn exec_i_type(inst: &Instruction, state: &mut State) {
         return;
     }
 
-    state.register[rd] = match inst.op {
-        Operation::ADDI  => state.register[rs1] + imm,
-        Operation::SLTI  => (state.register[rs1] < imm) as W,
-        Operation::SLTIU => ((state.register[rs1] as UW) < (imm as UW)) as W,
-        Operation::XORI  => state.register[rs1] ^ imm,
-        Operation::ORI   => state.register[rs1] | imm,
-        Operation::ANDI  => state.register[rs1] & imm,
-        Operation::SLLI  => state.register[rs1] << imm,
-        Operation::SRLI  => ((state.register[rs1] as UW) >> (imm as UW)) as W,
-        Operation::SRAI  => state.register[rs1] >> (imm & 0b11111),
+    r[rd] = match inst.op {
+        Operation::ADDI  => r[rs1] + imm,
+        Operation::SLTI  => (r[rs1] < imm) as W,
+        Operation::SLTIU => ((r[rs1] as UW) < (imm as UW)) as W,
+        Operation::XORI  => r[rs1] ^ imm,
+        Operation::ORI   => r[rs1] | imm,
+        Operation::ANDI  => r[rs1] & imm,
+        Operation::SLLI  => r[rs1] << imm,
+        Operation::SRLI  => ((r[rs1] as UW) >> (imm as UW)) as W,
+        Operation::SRAI  => r[rs1] >> (imm & 0b11111),
         _ => panic!("Unkown I type instruction failed to execute.")
-    }
+    };
+
+    r[Register::PC as usize] += 4;
 }
 
 /// Executes an S type instruction, modifying the borrowed state.
 #[allow(unused)]
 fn exec_s_type(inst: &Instruction, state: &mut State) {
+    state.register[Register::PC as usize] += 4;
 }
 
 /// Executes an B type instruction, modifying the borrowed state.
 #[allow(unused)]
 fn exec_b_type(inst: &Instruction, state: &mut State) {
+    state.register[Register::PC as usize] += 4;
 }
 
 /// Executes an U type instruction, modifying the borrowed state.
@@ -155,12 +161,15 @@ fn exec_u_type(inst: &Instruction, state: &mut State) {
         .expect("Invalid U type instruction (no rd) failed to execute.") as usize;
     let imm = inst.imm
         .expect("Invalid U type instruction (no imm) failed to execute.");
+    let r = &mut state.register; // Shorthand, should hopefully be optimised out
 
     match inst.op {
-        Operation::LUI   => if rd != 0 { state.register[rd] = imm },
-        Operation::AUIPC => state.register[Register::PC as usize] += imm,
+        Operation::LUI   => if rd != 0 { r[rd] = imm },
+        Operation::AUIPC => r[Register::PC as usize] += imm - 4,
         _ => panic!("Unkown U type instruction failed to execute.")
-    }
+    };
+
+    r[Register::PC as usize] += 4;
 }
 
 /// Executes an J type instruction, modifying the borrowed state.
@@ -169,10 +178,14 @@ fn exec_j_type(inst: &Instruction, state: &mut State) {
         .expect("Invalid U type instruction (no rd) failed to execute.") as usize;
     let imm = inst.imm
         .expect("Invalid U type instruction (no imm) failed to execute.");
+    let r = &mut state.register; // Shorthand, should hopefully be optimised out
+
+    if rd != 0 {
+        r[rd] = r[Register::PC as usize] + 4;
+    }
 
     match inst.op {
-        Operation::JAL  => if rd != 0 { state.register[rd] = imm },
-        Operation::JALR => state.register[Register::PC as usize] += imm,
+        Operation::JAL => r[Register::PC as usize] += imm,
         _ => panic!("Unkown U type instruction failed to execute.")
     }
 }

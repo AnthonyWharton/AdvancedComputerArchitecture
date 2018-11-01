@@ -329,10 +329,10 @@ impl Decodable for Operation {
             Some(b) => b,
             None    => return None,
         };
-        // Parse out funct3, or return none (funct3 required)
+        // Parse out funct3, if required
         let funct3 = match base_code.has_funct_code() {
             true  => (instruction >> 12) & 0b111,
-            false => return None,
+            false => 0,
         };
         // Parse out funct7, if required.
         let funct7 = match base_code.may_have_funct7() {
