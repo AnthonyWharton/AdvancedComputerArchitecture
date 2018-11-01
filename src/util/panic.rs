@@ -1,5 +1,6 @@
 extern crate backtrace;
 
+use std::env;
 use std::mem;
 use std::panic;
 use std::process;
@@ -55,6 +56,13 @@ fn attempt_cleanup_raw_terminal() {
 /// Essentially a clone of the backtrace library `Debug::fmt` implementation,
 /// but with `\r`'s to deal with the raw terminal.
 fn print_backtrace() {
+    match env::var_os("RUST_BACKTRACE") {
+        Some(ref s) if s == "1" => {},
+        _ => {
+            println!("Set RUST_BACKTRACE=1 to print a backtrace.\r");
+            return;
+        },
+    }
     let bt = Backtrace::new();
     let hex_width = mem::size_of::<usize>() * 2 + 2;
     print!("stack backtrace:");
