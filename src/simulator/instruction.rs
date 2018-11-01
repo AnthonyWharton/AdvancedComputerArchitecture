@@ -1,5 +1,3 @@
-use std::ops;
-
 use isa::{Instruction, UW, W};
 use isa::op_code::Operation;
 use isa::operand::Register;
@@ -24,8 +22,6 @@ fn exec_r_type(inst: &Instruction, state: &mut State) {
         .expect("Invalid R type instruction (no rs1) failed to execute.") as usize;
     let rs2 = inst.rs2
         .expect("Invalid R type instruction (no rs2) failed to execute.") as usize;
-    let imm = inst.imm
-        .expect("Invalid I type instruction (no imm) failed to execute.");
     let r = &mut state.register; // Shorthand, should hopefully be optimised out
 
     r[rd] = match inst.op {
@@ -47,17 +43,24 @@ fn exec_r_type(inst: &Instruction, state: &mut State) {
 fn exec_i_type(inst: &Instruction, state: &mut State) {
     let rd  = inst.rd
         .expect("Invalid I type instruction (no rd) failed to execute.") as usize;
+    let rs1 = inst.rs1
+        .expect("Invalid I type instruction (no rs1) failed to execute.") as usize;
+    let imm = inst.imm
+        .expect("Invalid I type instruction (no imm) failed to execute.");
+
+    if inst.op == Operation::JALR {
+        if rd != 0 {
+            state.register[rd] = state.register[Register::PC as usize] + 4;
+        }
+        state.register[Register::PC as usize] += state.register[rs1] + imm;
+        state.register[Register::PC as usize] &= !0b1;
+    }
 
     // Early exit, assigning to 0 is a nop as there are no side effect status
     // registers at this point in time.
     if rd == 0 {
         return;
     }
-
-    let rs1 = inst.rs1
-        .expect("Invalid I type instruction (no rs1) failed to execute.") as usize;
-    let imm = inst.imm
-        .expect("Invalid I type instruction (no imm) failed to execute.");
 
     state.register[rd] = match inst.op {
         Operation::ADDI  => state.register[rs1] + imm,
@@ -74,10 +77,12 @@ fn exec_i_type(inst: &Instruction, state: &mut State) {
 }
 
 /// Executes an S type instruction, modifying the borrowed state.
+#[allow(unused)]
 fn exec_s_type(inst: &Instruction, state: &mut State) {
 }
 
 /// Executes an B type instruction, modifying the borrowed state.
+#[allow(unused)]
 fn exec_b_type(inst: &Instruction, state: &mut State) {
 }
 
@@ -89,7 +94,7 @@ fn exec_u_type(inst: &Instruction, state: &mut State) {
         .expect("Invalid U type instruction (no imm) failed to execute.");
 
     match inst.op {
-        Operation::LUI   => if (rd != 0) { state.register[rd] = imm },
+        Operation::LUI   => if rd != 0 { state.register[rd] = imm },
         Operation::AUIPC => state.register[Register::PC as usize] += imm,
         _ => panic!("Unkown U type instruction failed to execute.")
     }
@@ -97,13 +102,22 @@ fn exec_u_type(inst: &Instruction, state: &mut State) {
 
 /// Executes an J type instruction, modifying the borrowed state.
 fn exec_j_type(inst: &Instruction, state: &mut State) {
+    let rd  = inst.rd
+        .expect("Invalid U type instruction (no rd) failed to execute.") as usize;
+    let imm = inst.imm
+        .expect("Invalid U type instruction (no imm) failed to execute.");
 
+    match inst.op {
+        Operation::JAL  => if rd != 0 { state.register[rd] = imm },
+        Operation::JALR => state.register[Register::PC as usize] += imm,
+        _ => panic!("Unkown U type instruction failed to execute.")
+    }
 }
 
 pub fn exec(inst: &Instruction, state: &mut State, memory: &mut Memory) {
     match inst.op {
-        Operation::LUI    => unimplemented!(),
-        Operation::AUIPC  => unimplemented!(),
+        Operation::LUI    => exec_u_type(inst, state),
+        Operation::AUIPC  => exec_u_type(inst, state),
         Operation::JAL    => unimplemented!(),
         Operation::JALR   => unimplemented!(),
         Operation::BEQ    => unimplemented!(),

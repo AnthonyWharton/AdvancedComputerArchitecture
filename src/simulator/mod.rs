@@ -1,8 +1,9 @@
-use std::sync::mpsc::{SendError, TryRecvError};
+use std::sync::mpsc::TryRecvError;
+use std::time::Duration;
 use std::thread;
 
 use io::{IoEvent, IoThread, SimulatorEvent};
-use isa::{Instruction, Word};
+use isa::Instruction;
 use isa::operand::Register;
 use util::config::Config;
 use util::loader::load_elf;
@@ -32,17 +33,14 @@ pub fn run_simulator(io: IoThread, config: Config) {
     let mut state  = r.0;
     let mut memory = r.1;
 
-    let mut inst_raw: Word = 0;
-    let mut inst: Instruction = Instruction::default();
-    let mut _aligned = true;
     loop {
         // FETCH STAGE
         let r = memory.read_word(state.register[Register::PC as usize] as usize);
-        inst_raw = r.0;
-        _aligned = r.1;
+        let inst_raw = r.0;
+        let _aligned = r.1;
 
         // DECODE STAGE
-        inst = match Instruction::decode(inst_raw) {
+        let inst = match Instruction::decode(inst_raw) {
             Some(i) => i,
             None => { panic!("Failed to decode instruction.") },
         };
@@ -50,7 +48,7 @@ pub fn run_simulator(io: IoThread, config: Config) {
         // EXECUTE STAGE
         instruction::exec(&inst, &mut state, &mut memory);
         io.tx.send(IoEvent::UpdateState(state)).unwrap();
-        thread::sleep_ms(1000);
+        thread::sleep(Duration::from_millis(500));
 
         // Handle IO thread events
         match io.rx.try_recv(){
