@@ -170,7 +170,7 @@ impl From<i32> for Register {
             30 => Register::X30,
             31 => Register::X31,
             32 => Register::PC,
-            _    => Register::X0,
+            _  => Register::X0,
         }
     }
 }

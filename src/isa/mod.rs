@@ -108,7 +108,7 @@ impl Instruction {
     /// specification. Returns None if there instruction failed to decode.
     pub fn decode(instruction: i32) -> Option<Instruction> {
         Some(Instruction {
-            op:  match Operation::from_instruction(instruction) {
+            op: match Operation::from_instruction(instruction) {
                 Some(o) => o,
                 None    => return None,
             },
