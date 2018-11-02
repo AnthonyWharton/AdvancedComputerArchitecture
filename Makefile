@@ -34,7 +34,7 @@ build:
 	$(MAKE) --no-print-directory -C ./resources/programs/ all:build
 
 run: build
-	./target/debug/simulator ./resources/programs/hello_world/a.out
+	./target/debug/simulator ./resources/programs/add_10/a.out
 
 clean:
 	$(MAKE) --no-print-directory -C ./resources/programs all:clean

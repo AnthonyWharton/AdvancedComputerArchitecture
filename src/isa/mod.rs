@@ -118,5 +118,15 @@ impl Instruction {
             imm: extract_immediate(instruction),
         })
     }
+
+    pub fn is_ret(&self) -> bool {
+        *self == Instruction {
+            op:  Operation::JALR,
+            rd:  Some(Register::X0),
+            rs1: Some(Register::X1),
+            rs2: None,
+            imm: Some(0i32),
+        }
+    }
 }
 

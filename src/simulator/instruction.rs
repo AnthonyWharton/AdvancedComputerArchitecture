@@ -13,18 +13,18 @@ pub fn exec(inst: &Instruction, state: &mut State, memory: &mut Memory) {
         Operation::LUI    => exec_u_type(inst, state, memory),
         Operation::AUIPC  => exec_u_type(inst, state, memory),
         Operation::JAL    => exec_j_type(inst, state, memory),
-        Operation::JALR   => exec_j_type(inst, state, memory),
-        Operation::BEQ    => exec_b_type(inst, state, memory), //unimplemented!
-        Operation::BNE    => exec_b_type(inst, state, memory), //unimplemented!
-        Operation::BLT    => exec_b_type(inst, state, memory), //unimplemented!
-        Operation::BGE    => exec_b_type(inst, state, memory), //unimplemented!
-        Operation::BLTU   => exec_b_type(inst, state, memory), //unimplemented!
-        Operation::BGEU   => exec_b_type(inst, state, memory), //unimplemented!
-        Operation::LB     => exec_i_type(inst, state, memory), //unimplemented!
-        Operation::LH     => exec_i_type(inst, state, memory), //unimplemented!
-        Operation::LW     => exec_i_type(inst, state, memory), //unimplemented!
-        Operation::LBU    => exec_i_type(inst, state, memory), //unimplemented!
-        Operation::LHU    => exec_i_type(inst, state, memory), //unimplemented!
+        Operation::JALR   => exec_i_type(inst, state, memory),
+        Operation::BEQ    => exec_b_type(inst, state, memory),
+        Operation::BNE    => exec_b_type(inst, state, memory),
+        Operation::BLT    => exec_b_type(inst, state, memory),
+        Operation::BGE    => exec_b_type(inst, state, memory),
+        Operation::BLTU   => exec_b_type(inst, state, memory),
+        Operation::BGEU   => exec_b_type(inst, state, memory),
+        Operation::LB     => exec_i_type(inst, state, memory),
+        Operation::LH     => exec_i_type(inst, state, memory),
+        Operation::LW     => exec_i_type(inst, state, memory),
+        Operation::LBU    => exec_i_type(inst, state, memory),
+        Operation::LHU    => exec_i_type(inst, state, memory),
         Operation::SB     => exec_s_type(inst, state, memory), //unimplemented!
         Operation::SH     => exec_s_type(inst, state, memory), //unimplemented!
         Operation::SW     => exec_s_type(inst, state, memory), //unimplemented!
@@ -96,7 +96,7 @@ fn exec_r_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
         Operation::SRA  => r[rs1] >> (r[rs2] & 0b11111),
         Operation::OR   => r[rs1] | r[rs2],
         Operation::AND  => r[rs1] & r[rs2],
-        _ => panic!("Unkown I type instruction failed to execute.")
+        _ => panic!("Unkown R type instruction failed to execute.")
     };
 
     r[Register::PC as usize] += 4;
@@ -150,12 +150,45 @@ fn exec_i_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
 
 /// Executes an S type instruction, modifying the borrowed state.
 fn exec_s_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
-    state.register[Register::PC as usize] += 4;
+    let rs1 = inst.rs1
+        .expect("Invalid S type instruction (no rs1) failed to execute.") as usize;
+    let rs2 = inst.rs2
+        .expect("Invalid S type instruction (no rs2) failed to execute.") as usize;
+    let imm = inst.imm
+        .expect("Invalid S type instruction (no imm) failed to execute.");
+    let r = &mut state.register; // Shorthand, should hopefully be optimised out
+    let pc = Register::PC as usize;
+
+    match inst.op {
+        Operation::SB => memory[(r[rs1] + imm) as usize] = r[rs2] as u8,
+        Operation::SH => { memory.write_i16((r[rs1] + imm) as usize, r[rs2] as i16); () },
+        Operation::SW => { memory.write_i32((r[rs1] + imm) as usize, r[rs2]); () },
+        _ => panic!("Unkown s type instruction failed to execute.")
+    };
+    r[pc] += 4;
 }
 
 /// Executes an B type instruction, modifying the borrowed state.
 fn exec_b_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
-    state.register[Register::PC as usize] += 4;
+    let rs1 = inst.rs1
+        .expect("Invalid B type instruction (no rs1) failed to execute.") as usize;
+    let rs2 = inst.rs2
+        .expect("Invalid B type instruction (no rs2) failed to execute.") as usize;
+    let imm = inst.imm
+        .expect("Invalid B type instruction (no imm) failed to execute.");
+    let r = &mut state.register; // Shorthand, should hopefully be optimised out
+    let pc = Register::PC as usize;
+
+    match inst.op {
+        Operation::BEQ => if r[rs1] == r[rs2] { r[pc] += imm; return },
+        Operation::BNE => if r[rs1] != r[rs2] { r[pc] += imm; return },
+        Operation::BLT => if r[rs1] <  r[rs2] { r[pc] += imm; return },
+        Operation::BGE => if r[rs1] >= r[rs2] { r[pc] += imm; return },
+        Operation::BLTU => if (r[rs1] as u32) <  (r[rs2] as u32) { r[pc] += imm; return },
+        Operation::BGEU => if (r[rs1] as u32) >= (r[rs2] as u32) { r[pc] += imm; return },
+        _ => panic!("Unkown B type instruction failed to execute.")
+    };
+    r[pc] += 4;
 }
 
 /// Executes an U type instruction, modifying the borrowed state.

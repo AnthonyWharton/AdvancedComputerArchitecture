@@ -202,7 +202,7 @@ impl Register {
                 },
             RegisterOperand::RS2 =>
                 if base_code.has_rs2() {
-                    Some(Register::from((instruction >> 25) & REG_OP_MASK))
+                    Some(Register::from((instruction >> 20) & REG_OP_MASK))
                 } else {
                     None
                 },

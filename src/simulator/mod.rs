@@ -46,10 +46,15 @@ pub fn run_simulator(io: IoThread, config: Config) {
         };
         io.tx.send(IoEvent::UpdateInstruction(inst)).unwrap();
 
+        if inst.is_ret() {
+            io.tx.send(IoEvent::Exit).unwrap();
+            break;
+        }
+
         // EXECUTE STAGE
         instruction::exec(&inst, &mut state, &mut memory);
         io.tx.send(IoEvent::UpdateState(state)).unwrap();
-        thread::sleep(Duration::from_millis(500));
+        // thread::sleep(Duration::from_millis(10));
 
         // Handle IO thread events
         match io.rx.try_recv(){
