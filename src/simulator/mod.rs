@@ -35,7 +35,7 @@ pub fn run_simulator(io: IoThread, config: Config) {
 
     loop {
         // FETCH STAGE
-        let r = memory.read_word(state.register[Register::PC as usize] as usize);
+        let r = memory.read_i32(state.register[Register::PC as usize] as usize);
         let inst_raw = r.0;
         let _aligned = r.1;
 

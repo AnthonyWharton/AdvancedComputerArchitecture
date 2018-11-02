@@ -1,11 +1,9 @@
 use std::default::Default;
 
-use isa::Word;
-
 ///////////////////////////////////////////////////////////////////////////////
 //// TYPES
 
-pub type RegisterFile = [Word; 33];
+pub type RegisterFile = [i32; 33];
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
@@ -21,7 +19,7 @@ pub struct State {
 impl Default for State {
     fn default() -> State {
         State {
-            register: [0 as Word; 33],
+            register: [0i32; 33],
         }
     }
 }

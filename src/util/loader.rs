@@ -2,7 +2,6 @@ use elf::{File, ParseError};
 use elf::types::{Machine, FileHeader, ProgramHeader, ELFCLASS32, ELFDATA2LSB, 
     EV_CURRENT, ELFOSABI_SYSV, ET_EXEC, PT_NULL, PT_LOAD, PT_NOTE, PT_PHDR};
 
-use isa::Word;
 use isa::operand::Register;
 use simulator::memory::Memory;
 use simulator::state::State;
@@ -49,7 +48,7 @@ pub fn load_elf(config: &Config) -> (State, Memory) {
     }
 
     // Load in initial program counter
-    state.register[Register::PC as usize] = file.ehdr.entry as Word;
+    state.register[Register::PC as usize] = file.ehdr.entry as i32;
 
     (state, memory)
 }

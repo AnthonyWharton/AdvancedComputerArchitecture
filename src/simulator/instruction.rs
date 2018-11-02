@@ -1,4 +1,4 @@
-use isa::{Instruction, UW, W};
+use isa::Instruction;
 use isa::op_code::Operation;
 use isa::operand::Register;
 use super::memory::Memory;
@@ -89,10 +89,10 @@ fn exec_r_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
         Operation::ADD  => r[rs1].overflowing_add(r[rs2]).0,
         Operation::SUB  => r[rs1].overflowing_sub(r[rs2]).0,
         Operation::SLL  => r[rs1] << (r[rs2] & 0b11111),
-        Operation::SLT  => (r[rs1] < r[rs2]) as W,
-        Operation::SLTU => ((r[rs1] as UW) < (r[rs2] as UW)) as W,
+        Operation::SLT  => (r[rs1] < r[rs2]) as i32,
+        Operation::SLTU => ((r[rs1] as u32) < (r[rs2] as u32)) as i32,
         Operation::XOR  => r[rs1] ^ r[rs2],
-        Operation::SRL  => ((r[rs1] as UW) >> ((r[rs2] & 0b11111) as UW)) as W,
+        Operation::SRL  => ((r[rs1] as u32) >> ((r[rs2] & 0b11111) as u32)) as i32,
         Operation::SRA  => r[rs1] >> (r[rs2] & 0b11111),
         Operation::OR   => r[rs1] | r[rs2],
         Operation::AND  => r[rs1] & r[rs2],
@@ -134,13 +134,13 @@ fn exec_i_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
         // Operation::LBU   => ,
         // Operation::LHU   => ,
         Operation::ADDI  => r[rs1] + imm,
-        Operation::SLTI  => (r[rs1] < imm) as W,
-        Operation::SLTIU => ((r[rs1] as UW) < (imm as UW)) as W,
+        Operation::SLTI  => (r[rs1] < imm) as i32,
+        Operation::SLTIU => ((r[rs1] as u32) < (imm as u32)) as i32,
         Operation::XORI  => r[rs1] ^ imm,
         Operation::ORI   => r[rs1] | imm,
         Operation::ANDI  => r[rs1] & imm,
         Operation::SLLI  => r[rs1] << imm,
-        Operation::SRLI  => ((r[rs1] as UW) >> (imm as UW)) as W,
+        Operation::SRLI  => ((r[rs1] as u32) >> (imm as u32)) as i32,
         Operation::SRAI  => r[rs1] >> (imm & 0b11111),
         _ => panic!("Unkown I type instruction failed to execute.")
     };
@@ -149,13 +149,11 @@ fn exec_i_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
 }
 
 /// Executes an S type instruction, modifying the borrowed state.
-#[allow(unused)]
 fn exec_s_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
     state.register[Register::PC as usize] += 4;
 }
 
 /// Executes an B type instruction, modifying the borrowed state.
-#[allow(unused)]
 fn exec_b_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
     state.register[Register::PC as usize] += 4;
 }

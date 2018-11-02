@@ -13,21 +13,6 @@ pub mod op_code;
 pub mod operand;
 
 ///////////////////////////////////////////////////////////////////////////////
-//// TYPES
-
-/// Type alias for an individual signed word in the machine.
-pub type Word = i32;
-
-/// Type alias for an individual unsigned word in the machine.
-pub type UnsignedWord = u32;
-
-/// Shorthand type alias for `Word`.
-pub type W = Word;
-
-/// Shorthand type alias for `UnsignedWord`.
-pub type UW = UnsignedWord;
-
-///////////////////////////////////////////////////////////////////////////////
 //// ENUMS
 
 /// An enum of all the different Instruction formats that are provided by
@@ -52,7 +37,7 @@ pub struct Instruction {
     pub rd:  Option<Register>,
     pub rs1: Option<Register>,
     pub rs2: Option<Register>,
-    pub imm: Option<Word>,
+    pub imm: Option<i32>,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -121,7 +106,7 @@ impl Display for Instruction {
 impl Instruction {
     /// Decodes a RISC V binary instruction word from the `rv32im`
     /// specification. Returns None if there instruction failed to decode.
-    pub fn decode(instruction: Word) -> Option<Instruction> {
+    pub fn decode(instruction: i32) -> Option<Instruction> {
         Some(Instruction {
             op:  match Operation::from_instruction(instruction) {
                 Some(o) => o,

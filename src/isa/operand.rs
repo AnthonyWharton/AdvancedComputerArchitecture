@@ -1,12 +1,12 @@
 use std::fmt;
 
-use isa::{Format, Word};
+use isa::Format;
 use isa::op_code::{BaseCode, Decodable};
 
 ///////////////////////////////////////////////////////////////////////////////
 //// CONST/STATIC
 
-const REG_OP_MASK: Word = 0b11111;
+const REG_OP_MASK: i32 = 0b11111;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// ENUMS
@@ -134,8 +134,8 @@ impl fmt::Display for Register {
     }
 }
 
-impl From<Word> for Register {
-    fn from(word: Word) -> Register {
+impl From<i32> for Register {
+    fn from(word: i32) -> Register {
         match word {
              0 => Register::X0,
              1 => Register::X1,
@@ -181,7 +181,7 @@ impl Register {
     /// Returns None on a failure.
     pub fn extract_register(
        register: RegisterOperand,
-       instruction: Word
+       instruction: i32
     ) -> Option<Register> {
         let base_code = match BaseCode::from_instruction(instruction) {
             Some(c) => c,
@@ -215,7 +215,7 @@ impl Register {
 
 /// Decodes the immediate out of a full instruction word.
 /// Returns None on a failure.
-pub fn extract_immediate(instruction: Word) -> Option<Word> {
+pub fn extract_immediate(instruction: i32) -> Option<i32> {
     let base_code = match BaseCode::from_instruction(instruction) {
         Some(c) => c,
         None    => return None,
@@ -246,7 +246,7 @@ pub fn extract_immediate(instruction: Word) -> Option<Word> {
 /// |------------------------------|----------------------|--------------------------|
 /// |              true            |      `[b+4:b+0]`     |          `[4:0]`         |
 /// |             false            |    `[b+4:b+1,b+0]`   |        `[4:1,11]`        |
-fn imm_ex_1(i: Word, b: u8, cont: bool) -> Word {
+fn imm_ex_1(i: i32, b: u8, cont: bool) -> i32 {
     let imm = (i >> b) & 0b11111;
     if !cont {
         ((imm & 0b1) << 11) | (imm & 0b11110)
@@ -265,7 +265,7 @@ fn imm_ex_1(i: Word, b: u8, cont: bool) -> Word {
 /// |     `[31,30:25]`     |        `[e,10:5]`        |
 ///
 /// _Where `e >= 11`. For all values `e <= 11`, `e` is left as `11`._
-fn imm_ex_2(i: Word, e: u8) -> Word {
+fn imm_ex_2(i: i32, e: u8) -> i32 {
     let imm = (i >> 20) & 0b111111100000;
     if e > 11 {
         ((imm & 0b10000000000) << (e - 10)) | (imm & 0b011111100000)
@@ -282,12 +282,12 @@ fn imm_ex_2(i: Word, e: u8) -> Word {
 /// | **Instruction Bits** | **Final Immediate Bits** |
 /// |----------------------|--------------------------|
 /// |        `[b:a]`       |         `[b:a]`          |
-fn imm_ex_3(i: Word, a: u8, b: u8) -> Word {
+fn imm_ex_3(i: i32, a: u8, b: u8) -> i32 {
     i & (((0b1 << 1+b-a) - 1) << a)
 }
 
 /// Sign extends the given `word` from the given `msb` onwards.
-fn sign_extend_from_msb(msb: u8, word: Word) -> Word {
+fn sign_extend_from_msb(msb: u8, word: i32) -> i32 {
     if ((word >> msb) & 0b1) == 0b1 {
         word | (((1 << (32 - msb)) - 1) << msb)
     } else {

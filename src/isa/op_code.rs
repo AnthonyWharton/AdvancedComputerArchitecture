@@ -1,6 +1,6 @@
 use std::fmt;
 
-use isa::{Format, Word};
+use isa::Format;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// ENUMS
@@ -98,7 +98,7 @@ pub enum Operation {
 pub trait Decodable {
     /// Decodes a full instruction word, into an internal representation.
     /// Returns None on a failure.
-    fn from_instruction(instruction: Word) -> Option<Self> where
+    fn from_instruction(instruction: i32) -> Option<Self> where
         Self: Sized;
 }
 
@@ -189,7 +189,7 @@ impl From<Operation> for BaseCode {
 }
 
 impl Decodable for BaseCode {
-    fn from_instruction(instruction: Word) -> Option<BaseCode> {
+    fn from_instruction(instruction: i32) -> Option<BaseCode> {
         match instruction & 0x7f {
             0x03 => Some(BaseCode::LOAD),
             0x0f => Some(BaseCode::MISCMEM),
@@ -323,7 +323,7 @@ impl fmt::Display for Operation {
 }
 
 impl Decodable for Operation {
-    fn from_instruction(instruction: Word) -> Option<Operation> {
+    fn from_instruction(instruction: i32) -> Option<Operation> {
         // To match Function Code, we first need the base code
         let base_code = match BaseCode::from_instruction(instruction) {
             Some(b) => b,

@@ -1,9 +1,8 @@
+
 use std::ops::{Deref, DerefMut};
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use elf::Section;
-
-use isa::Word;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
@@ -40,23 +39,23 @@ impl Memory {
         Memory(vec!(0u8; capacity))
     }
 
-    /// Reads a word from `Memory` at a given index, returning the word and
-    /// whether or not a misaligned access was used.
-    pub fn read_word(&mut self, index: usize) -> (Word, bool) {
+    /// Reads a signed 32 bit word from `Memory` at a given index, returning
+    /// the word and whether or not a misaligned access was used.
+    pub fn read_i32(&mut self, index: usize) -> (i32, bool) {
         // Check if memory data structure is large enough, if not extend
         let (diff, sufficient) = (index + 3).overflowing_sub(self.len());
         if !sufficient {
             self.0.append(&mut vec!(0; diff));
         }
 
-        // Read 4 bytes to make a word
+        // Read 4 bytes to make an i32
         let mut rdr = &self.0[index..];
         (rdr.read_i32::<LittleEndian>().unwrap(), index % 4 == 0)
     }
 
-    /// Writes a word to `Memory` at a given index, returning and
+    /// Writes a signed 32 bit word to `Memory` at a given index, returning
     /// whether or not a misaligned access was used.
-    pub fn write_word(&mut self, index: usize, word: Word) -> bool {
+    pub fn write_i32(&mut self, index: usize, word: i32) -> bool {
         // Check if memory data structure is large enough, if not extend
         let (diff, sufficient) = (index + 3).overflowing_sub(self.len());
         if !sufficient {
@@ -67,6 +66,44 @@ impl Memory {
         let mut wtr = &mut self.0[index..];
         wtr.write_i32::<LittleEndian>(word).unwrap();
         index % 4 == 0
+    }
+
+    /// Reads a signed 16 bit half-word from `Memory` at a given index, 
+    /// returning the half-word and whether or not a misaligned access was
+    /// used.
+    pub fn read_i16(&mut self, index: usize) -> (i16, bool) {
+        // Check if memory data structure is large enough, if not extend
+        let (diff, sufficient) = (index + 1).overflowing_sub(self.len());
+        if !sufficient {
+            self.0.append(&mut vec!(0; diff));
+        }
+
+        // Read 2 bytes to make a i16
+        let mut rdr = &self.0[index..];
+        (rdr.read_i16::<LittleEndian>().unwrap(), index % 2 == 0)
+    }
+    
+    /// Reads an unsigned 16 bit half-word from `Memory` at a given index, 
+    /// returning the half-word and whether or not a misaligned access was
+    /// used.
+    pub fn read_u16(&mut self, index: usize) -> (u16, bool) {
+        let r = self.read_i16(index);
+        return (r.0 as u16, r.1);
+    }
+
+    /// Writes a signed 16 bit half-word to `Memory` at a given index, 
+    /// returning whether or not a misaligned access was used.
+    pub fn write_i16(&mut self, index: usize, word: i16) -> bool {
+        // Check if memory data structure is large enough, if not extend
+        let (diff, sufficient) = (index + 1).overflowing_sub(self.len());
+        if !sufficient {
+            self.0.append(&mut vec!(0; diff));
+        }
+
+        // Write 2 bytes at the given index
+        let mut wtr = &mut self.0[index..];
+        wtr.write_i16::<LittleEndian>(word).unwrap();
+        index % 2 == 0
     }
 
     /// Loads the data from the given section into memory if required. If not
