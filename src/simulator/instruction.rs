@@ -128,11 +128,11 @@ fn exec_i_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
     }
 
     r[rd] = match inst.op {
-        // Operation::LB    => ,
-        // Operation::LH    => ,
-        // Operation::LW    => ,
-        // Operation::LBU   => ,
-        // Operation::LHU   => ,
+        Operation::LB    => memory[(r[rs1] + imm) as usize] as i8 as i32,
+        Operation::LH    => memory.read_i16((r[rs1] + imm) as usize).0 as i32,
+        Operation::LW    => memory.read_i32((r[rs1] + imm) as usize).0,
+        Operation::LBU   => memory[(r[rs1] + imm) as usize] as i32,
+        Operation::LHU   => memory.read_u16((r[rs1] + imm) as usize).0 as i32,
         Operation::ADDI  => r[rs1] + imm,
         Operation::SLTI  => (r[rs1] < imm) as i32,
         Operation::SLTIU => ((r[rs1] as u32) < (imm as u32)) as i32,

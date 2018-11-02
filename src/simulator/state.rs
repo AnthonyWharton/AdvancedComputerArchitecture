@@ -1,5 +1,7 @@
 use std::default::Default;
 
+use isa::operand::Register;
+
 ///////////////////////////////////////////////////////////////////////////////
 //// TYPES
 
@@ -18,8 +20,11 @@ pub struct State {
 
 impl Default for State {
     fn default() -> State {
+        let mut regs = [0i32; 33];
+        regs[Register::X2 as usize] = 128;
+        regs[Register::X8 as usize] = 128;
         State {
-            register: [0i32; 33],
+            register: regs,
         }
     }
 }
