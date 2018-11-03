@@ -69,7 +69,7 @@ pub fn exec(inst: &Instruction, state: &mut State, memory: &mut Memory) {
 }
 
 /// Executes an R type instruction, modifying the borrowed state.
-fn exec_r_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
+fn exec_r_type(inst: &Instruction, state: &mut State, _memory: &mut Memory) {
     let rd  = inst.rd
         .expect("Invalid R type instruction (no rd) failed to execute.") as usize;
 
@@ -169,7 +169,7 @@ fn exec_s_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
 }
 
 /// Executes an B type instruction, modifying the borrowed state.
-fn exec_b_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
+fn exec_b_type(inst: &Instruction, state: &mut State, _memory: &mut Memory) {
     let rs1 = inst.rs1
         .expect("Invalid B type instruction (no rs1) failed to execute.") as usize;
     let rs2 = inst.rs2
@@ -192,7 +192,7 @@ fn exec_b_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
 }
 
 /// Executes an U type instruction, modifying the borrowed state.
-fn exec_u_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
+fn exec_u_type(inst: &Instruction, state: &mut State, _memory: &mut Memory) {
     let rd  = inst.rd
         .expect("Invalid U type instruction (no rd) failed to execute.") as usize;
     let imm = inst.imm
@@ -209,7 +209,7 @@ fn exec_u_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
 }
 
 /// Executes an J type instruction, modifying the borrowed state.
-fn exec_j_type(inst: &Instruction, state: &mut State, memory: &mut Memory) {
+fn exec_j_type(inst: &Instruction, state: &mut State, _memory: &mut Memory) {
     let rd  = inst.rd
         .expect("Invalid U type instruction (no rd) failed to execute.") as usize;
     let imm = inst.imm
