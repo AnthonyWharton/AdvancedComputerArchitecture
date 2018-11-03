@@ -5,7 +5,7 @@ CC=riscv64-linux-gnu-gcc
 # Program used for RISC V object dumps
 OBJDUMP=riscv64-linux-gnu-objdump
 # Standard C Flags, including those to force the ABI/ISA specification
-CFLAGS=-mabi=ilp32 -march=rv32im -nostdlib -s -static -O0
+CFLAGS=-mabi=ilp32 -march=rv32im -nostdlib -s -static -Os -g
 # Flags for the linker to not include the build ID binary
 LFLAGS=-Wl,--build-id=none
 # Dynamically works out the enabled optimisations for our C environment and
