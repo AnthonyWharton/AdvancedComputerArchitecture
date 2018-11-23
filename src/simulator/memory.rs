@@ -5,10 +5,16 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use elf::Section;
 
 ///////////////////////////////////////////////////////////////////////////////
+//// CONST/STATIC
+
+pub const INIT_MEMORY_SIZE: usize = 1_000_000; // 1 Megabyte
+
+///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
 
 /// Smart Pointer on a vector of bytes to store the memory for the simulator.
 /// See the implemented methods for extra functionality.
+#[derive(Clone)]
 pub struct Memory(Vec<u8>);
 
 ///////////////////////////////////////////////////////////////////////////////

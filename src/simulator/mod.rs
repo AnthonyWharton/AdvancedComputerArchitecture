@@ -29,13 +29,11 @@ pub mod state;
 /// Requires an IoThread for sending events to be output to the display, as
 /// well as for receiving any calls to close the simulation.
 pub fn run_simulator(io: IoThread, config: Config) {
-    let r = load_elf(&config);
-    let mut state  = r.0;
-    let mut memory = r.1;
+    let mut state = load_elf(&config);
 
     loop {
         // FETCH STAGE
-        let r = memory.read_i32(state.register[Register::PC as usize] as usize);
+        let r = state.memory.read_i32(state.register[Register::PC as usize] as usize);
         let inst_raw = r.0;
         let _aligned = r.1;
 
@@ -52,8 +50,8 @@ pub fn run_simulator(io: IoThread, config: Config) {
         }
 
         // EXECUTE STAGE
-        instruction::exec(&inst, &mut state, &mut memory);
-        io.tx.send(IoEvent::UpdateState(state)).unwrap();
+        instruction::exec(&inst, &mut state);
+        io.tx.send(IoEvent::UpdateState(state.clone())).unwrap();
         thread::sleep(Duration::from_millis(50));
 
         // Handle IO thread events

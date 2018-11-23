@@ -1,6 +1,8 @@
 use std::default::Default;
 
+use isa::Instruction;
 use isa::operand::Register;
+use super::memory::{INIT_MEMORY_SIZE, Memory};
 
 ///////////////////////////////////////////////////////////////////////////////
 //// TYPES
@@ -10,9 +12,12 @@ pub type RegisterFile = [i32; 33];
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct State {
-    pub register: RegisterFile,
+    pub memory: Memory,
+    pub register:  RegisterFile,
+    pub lp_fetch:  i32,
+    pub lp_decode: Instruction,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -24,7 +29,10 @@ impl Default for State {
         regs[Register::X2 as usize] = 128;
         regs[Register::X8 as usize] = 128;
         State {
+            memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register: regs,
+            lp_fetch: 0,
+            lp_decode: Instruction::default(),
         }
     }
 }
