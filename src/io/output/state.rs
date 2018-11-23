@@ -5,7 +5,7 @@ use simulator::state::State;
 //// FUNCTIONS
 
 /// Simple Register Printout given a state, nothing fancy.
-pub fn simple_draw_state(state: State) {
+pub fn simple_draw_state(state: &State) {
     println!("State: {}:{:08x} ({})\r
     {:>#04}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}\r
     {:>#04}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}, {:>#03}:{:08x}\r

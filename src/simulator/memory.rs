@@ -12,6 +12,13 @@ pub const INIT_MEMORY_SIZE: usize = 1_000_000; // 1 Megabyte
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
 
+/// Container for a memory access.
+#[derive(Clone)]
+pub struct Access<W> {
+    pub word: W,
+    pub aligned: bool
+}
+
 /// Smart Pointer on a vector of bytes to store the memory for the simulator.
 /// See the implemented methods for extra functionality.
 #[derive(Clone)]
@@ -47,7 +54,7 @@ impl Memory {
 
     /// Reads a signed 32 bit word from `Memory` at a given index, returning
     /// the word and whether or not a misaligned access was used.
-    pub fn read_i32(&mut self, index: usize) -> (i32, bool) {
+    pub fn read_i32(&mut self, index: usize) -> Access<i32> {
         // Check if memory data structure is large enough, if not extend
         let (diff, sufficient) = (index + 3).overflowing_sub(self.len());
         if !sufficient {
@@ -56,7 +63,10 @@ impl Memory {
 
         // Read 4 bytes to make an i32
         let mut rdr = &self.0[index..];
-        (rdr.read_i32::<LittleEndian>().unwrap(), index % 4 == 0)
+        Access {
+            word: rdr.read_i32::<LittleEndian>().unwrap(),
+            aligned: index % 4 == 0,
+        }
     }
 
     /// Writes a signed 32 bit word to `Memory` at a given index, returning
@@ -74,10 +84,10 @@ impl Memory {
         index % 4 == 0
     }
 
-    /// Reads a signed 16 bit half-word from `Memory` at a given index, 
+    /// Reads a signed 16 bit half-word from `Memory` at a given index,
     /// returning the half-word and whether or not a misaligned access was
     /// used.
-    pub fn read_i16(&mut self, index: usize) -> (i16, bool) {
+    pub fn read_i16(&mut self, index: usize) -> Access<i16> {
         // Check if memory data structure is large enough, if not extend
         let (diff, sufficient) = (index + 1).overflowing_sub(self.len());
         if !sufficient {
@@ -86,18 +96,24 @@ impl Memory {
 
         // Read 2 bytes to make a i16
         let mut rdr = &self.0[index..];
-        (rdr.read_i16::<LittleEndian>().unwrap(), index % 2 == 0)
-    }
-    
-    /// Reads an unsigned 16 bit half-word from `Memory` at a given index, 
-    /// returning the half-word and whether or not a misaligned access was
-    /// used.
-    pub fn read_u16(&mut self, index: usize) -> (u16, bool) {
-        let r = self.read_i16(index);
-        return (r.0 as u16, r.1);
+        Access {
+            word: rdr.read_i16::<LittleEndian>().unwrap(),
+            aligned: index % 2 == 0,
+        }
     }
 
-    /// Writes a signed 16 bit half-word to `Memory` at a given index, 
+    /// Reads an unsigned 16 bit half-word from `Memory` at a given index,
+    /// returning the half-word and whether or not a misaligned access was
+    /// used.
+    pub fn read_u16(&mut self, index: usize) -> Access<u16> {
+        let r = self.read_i16(index);
+        Access {
+            word: r.word as u16,
+            aligned: r.aligned,
+        }
+    }
+
+    /// Writes a signed 16 bit half-word to `Memory` at a given index,
     /// returning whether or not a misaligned access was used.
     pub fn write_i16(&mut self, index: usize, word: i16) -> bool {
         // Check if memory data structure is large enough, if not extend
@@ -118,7 +134,7 @@ impl Memory {
         // Check if we actually want to load this section
         if section.shdr.name == ".shstrtab" { return }
         if section.shdr.size == 0 { return }
-    
+
         // Check if we need to expand memory
         // `usize as u64` cast is safe as simulator is for 32 bit architectures
         let (extra, sufficient_mem) = (section.shdr.addr + section.shdr.size)
@@ -126,7 +142,7 @@ impl Memory {
         if !sufficient_mem {
             self.reserve(extra as usize);
         }
-    
+
         // Load in the section
         // `usize as u64` cast is safe as simulator is for 32 bit architectures
         let s_addr: usize = section.shdr.addr as usize;

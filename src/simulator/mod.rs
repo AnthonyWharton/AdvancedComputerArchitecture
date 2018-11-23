@@ -33,31 +33,31 @@ pub fn run_simulator(io: IoThread, config: Config) {
 
     loop {
         // FETCH STAGE
-        let r = state.memory.read_i32(state.register[Register::PC as usize] as usize);
-        let inst_raw = r.0;
-        let _aligned = r.1;
+        state.l_fetch = state.memory.read_i32(
+            state.register[Register::PC as usize] as usize
+        );
 
         // DECODE STAGE
-        let inst = match Instruction::decode(inst_raw) {
+        state.l_decode = match Instruction::decode(state.l_fetch.word) {
             Some(i) => i,
             None => { panic!("Failed to decode instruction.") },
         };
-        io.tx.send(IoEvent::UpdateInstruction(inst)).unwrap();
+        // io.tx.send(IoEvent::UpdateInstruction(state.l_decode)).unwrap();
 
-        if inst.is_ret() {
-            io.tx.send(IoEvent::Exit).unwrap();
+        if state.l_decode.is_ret() {
+            io.tx.send(IoEvent::Finish).unwrap();
             break;
         }
 
         // EXECUTE STAGE
-        instruction::exec(&inst, &mut state);
+        instruction::exec(&mut state);
         io.tx.send(IoEvent::UpdateState(state.clone())).unwrap();
         thread::sleep(Duration::from_millis(50));
 
         // Handle IO thread events
         match io.rx.try_recv(){
             Ok(e) => match e {
-                SimulatorEvent::Exit => break,
+                SimulatorEvent::Finish => break,
             },
             Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
                 Some("IO Thread missing, assumed dead.")

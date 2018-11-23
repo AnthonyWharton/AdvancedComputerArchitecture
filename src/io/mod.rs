@@ -1,7 +1,6 @@
 use std::sync::mpsc;
 use std::thread;
 
-use isa::Instruction;
 use simulator::state::State;
 use self::output::display_thread;
 
@@ -20,15 +19,14 @@ pub mod output;
 /// Events destined for the IO thread.
 #[allow(dead_code)]
 pub enum IoEvent {
-    Exit,
+    Finish,
     DoneThing,
-    UpdateInstruction(Instruction),
     UpdateState(State),
 }
 
 /// Events destined for the simulator main thread.
 pub enum SimulatorEvent {
-    Exit,
+    Finish,
 }
 
 ///////////////////////////////////////////////////////////////////////////////

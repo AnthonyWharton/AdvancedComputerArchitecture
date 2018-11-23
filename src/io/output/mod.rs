@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::io::{Error, Stdout, stdout};
 use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 
@@ -6,6 +7,7 @@ use tui::backend::TermionBackend;
 use tui::layout::Rect;
 use termion::raw::{IntoRawMode, RawTerminal};
 
+use simulator::state::State;
 use util::exit::Exit;
 use super::{IoEvent, SimulatorEvent};
 use super::input::{InputHandler, EXIT_KEYS};
@@ -17,6 +19,13 @@ use super::input::{InputHandler, EXIT_KEYS};
 mod state;
 
 ///////////////////////////////////////////////////////////////////////////////
+//// CONST/STATIC
+
+/// The number of states to keep in memory.
+/// Each state uses approximately O(sim_mem_size) RAM, which is typically 1mb.
+const KEPT_STATES: usize = 100;
+
+///////////////////////////////////////////////////////////////////////////////
 //// TYPES
 
 type Terminal = TuiTerminal<TermionBackend<RawTerminal<Stdout>>>;
@@ -24,9 +33,11 @@ type Terminal = TuiTerminal<TermionBackend<RawTerminal<Stdout>>>;
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
 
+/// Encapsulation of the state for the TuiApp front-end.
 pub struct TuiApp {
     input_handler: InputHandler,
     size: Rect,
+    states: VecDeque<State>,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -51,6 +62,7 @@ pub fn display_thread(
     let mut app = TuiApp {
         input_handler: InputHandler::new(),
         size: Rect::default(),
+        states: VecDeque::new(),
     };
 
     terminal.hide_cursor().unwrap();
@@ -77,10 +89,12 @@ pub fn display_thread(
         // Deal with recieved events
         match rx.try_recv() {
             Ok(e) => match e {
-                IoEvent::Exit => break,
+                IoEvent::Finish => break,
                 IoEvent::DoneThing => println!("Done thing.\r"),
-                IoEvent::UpdateInstruction(i) => println!("Running: {}\r", i),
-                IoEvent::UpdateState(s) => state::simple_draw_state(s),
+                IoEvent::UpdateState(s) => {
+                    add_state(&mut app, s);
+                    state::simple_draw_state(app.states.front().unwrap())
+                },
             },
             Err(TryRecvError::Disconnected) => 
                 Exit::IoThreadError.exit(Some("Simulator thread missing, assumed dead.")),
@@ -88,8 +102,15 @@ pub fn display_thread(
         }
     }
 
-    match tx.send(SimulatorEvent::Exit) {
+    match tx.send(SimulatorEvent::Finish) {
         _ => {},
+    }
+}
+
+fn add_state(app: &mut TuiApp, state: State) {
+    app.states.push_front(state);
+    if app.states.len() > KEPT_STATES {
+        app.states.pop_back();
     }
 }
 
