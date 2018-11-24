@@ -58,6 +58,7 @@ pub fn run_simulator(io: IoThread, config: Config) {
         match io.rx.try_recv() {
             Ok(e) => match e {
                 SimulatorEvent::Finish => break,
+                SimulatorEvent::PauseToggle => if pause_simulation(&io) { break },
             },
             Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
                 Some("IO Thread missing, assumed dead.")
@@ -66,5 +67,24 @@ pub fn run_simulator(io: IoThread, config: Config) {
         }
     }
     
-    io.handle.join();
+    #[allow(unused_must_use)]
+    { io.handle.join(); }
 }
+
+/// Holding loop to pause the simulation until futher user input.
+/// Returns whether or not the user closed the simulation.
+fn pause_simulation(io: &IoThread) -> bool {
+    loop {
+        match io.rx.recv() {
+            Ok(e) => match e {
+                SimulatorEvent::Finish => break,
+                SimulatorEvent::PauseToggle => return false, 
+            },
+            Err(_) => Exit::IoThreadError.exit(
+                Some("IO Thread stopped communication properly.")
+            ),
+        };
+    }
+   return true
+}
+

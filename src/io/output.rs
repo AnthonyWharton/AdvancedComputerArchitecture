@@ -9,6 +9,7 @@ use tui::backend::TermionBackend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Style};
 use tui::widgets::{Block, Borders, List, Text, Widget};
+use termion::event::Key;
 use termion::raw::{IntoRawMode, RawTerminal};
 
 use isa::Instruction;
@@ -40,9 +41,18 @@ type Terminal = TuiTerminal<Backend>;
 
 /// Encapsulation of the state for the TuiApp front-end.
 pub struct TuiApp {
+    /// Thread for input handling
     input_handler: InputHandler,
+    /// Terminal size
     size: Rect,
+    /// History of the last KEPT_STATES states
     states: VecDeque<State>,
+    /// Whether or not the simulator has finished
+    finished: bool,
+    /// Whether or not the simulator is paused
+    paused: bool,
+    /// Which historical state we are showing.
+    /// 0 is current, 1 is the state before, 2 is the state before 1, etc
     hist_display: u8,
 }
 
@@ -59,20 +69,19 @@ fn new_terminal() -> Result<Terminal, Error> {
 
 /// Main entry point for the display thread that handles display updates and
 /// user input.
-pub fn display_thread(
-    tx: Sender<SimulatorEvent>,
-    rx: Receiver<IoEvent>
-) {
+pub fn display_thread(tx: Sender<SimulatorEvent>, rx: Receiver<IoEvent>) {
     // Initalise
     let mut terminal = new_terminal().expect("Could not start fancy UI.");
     let mut app = TuiApp {
         input_handler: InputHandler::new(),
         size: Rect::default(),
         states: VecDeque::new(),
+        finished: false,
+        paused: false,
         hist_display: 0,
     };
 
-    // terminal.hide_cursor().unwrap();
+    terminal.hide_cursor().unwrap();
 
     loop {
         let size = terminal.size().unwrap();
@@ -81,27 +90,38 @@ pub fn display_thread(
             app.size = size;
         }
 
-        // Deal with input
-        match app.input_handler.next() {
-            Ok(key) => match key {
-                k if EXIT_KEYS.contains(&k) => break,
+        // Deal with input, non-blocking if simulation is running, else block
+        // when listening to yeild host processor time
+        if !app.finished || app.paused {
+            match app.input_handler.try_next() {
+                Ok(key) => if process_key(key, &mut app, &tx) { break },
+                Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
+                    Some("Input Thread went missing, assumed dead.")
+                ),
                 _ => {},
             }
-            Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
-                Some("Input Thread went missing, assumed dead.")
-            ),
-            _ => {},
+        } else { 
+            match app.input_handler.next() {
+                Ok(key) => if process_key(key, &mut app, &tx) { break },
+                Err(_) => Exit::IoThreadError.exit(
+                    Some("Input Thread stopped communicating properly.")
+                ),
+            }
         }
 
         // Deal with recieved events
         match rx.try_recv() {
             Ok(e) => match e {
-                IoEvent::Finish => (),
-                IoEvent::DoneThing => println!("Done thing.\r"),
+                IoEvent::Finish => app.finished = true,
                 IoEvent::UpdateState(s) => {
                     add_state(&mut app, s);
                     // state::simple_draw_state(app.states.front().unwrap())
-                    draw_state(&mut terminal, &app)
+                    match draw_state(&mut terminal, &app) {
+                        Ok(()) => (),
+                        Err(_) => Exit::IoThreadError.exit(
+                            Some("Error when drawing simulation state. {:?}")
+                        ),
+                    }
                 },
             },
             Err(TryRecvError::Disconnected) => 
@@ -114,13 +134,33 @@ pub fn display_thread(
         _ => {},
     }
 
-    terminal.clear();
+    #[allow(unused_must_use)]
+    { terminal.clear(); }
 
     // Unknown bug, dirty fix:
     // For unknown reasons, occasionally the terminal isn't dropped when we 
     // break out of the display thread loop, meaning the terminal settings are 
     // not reset. Explicit call to drop just in case.
     std::mem::drop(terminal)
+}
+
+/// Process a key input
+fn process_key(
+    key: Key,
+    app: &mut TuiApp,
+    tx: &Sender<SimulatorEvent>
+) -> bool {
+    match key {
+        k if EXIT_KEYS.contains(&k) => return true,
+        Key::Char(' ') => {
+            if !app.finished {
+                tx.send(SimulatorEvent::PauseToggle).unwrap();
+                app.paused = !app.paused;
+            }
+        }
+        _ => {},
+    }
+    false
 }
 
 /// Adds a simulator state to the history in the TuiApp state.
@@ -132,8 +172,7 @@ fn add_state(app: &mut TuiApp, state: State) {
 }
 
 /// Entry point for the drawing of the current stored simulate state.
-fn draw_state(terminal: &mut Terminal, app: &TuiApp) {
-    let state = app.states.front();
+fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> {
     terminal.draw(|mut f| {
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
@@ -151,7 +190,7 @@ fn draw_state(terminal: &mut Terminal, app: &TuiApp) {
             .render(&mut f, chunks[0]);
         draw_registers(&mut f, chunks[1], &app, &State::default());
         draw_memory(&mut f, chunks[2], &app, &State::default());
-    });
+    })
 }
 
 /// Draws the register block
@@ -195,8 +234,8 @@ fn draw_memory(
     let state = app.states.front().unwrap_or(default);
     let pc = state.register[Register::PC as usize];
     let mut skip_amount = cmp::max(0, pc - ((area.height as i32) / 2)) as usize;
-    skip_amount -= skip_amount % (2 * area.height as usize);
     skip_amount /= 4;
+    skip_amount -= skip_amount % area.height as usize;
     let memory = state.memory
         .chunks(4)
         .enumerate()

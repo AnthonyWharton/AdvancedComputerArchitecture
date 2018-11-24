@@ -20,13 +20,13 @@ pub mod output;
 #[allow(dead_code)]
 pub enum IoEvent {
     Finish,
-    DoneThing,
     UpdateState(State),
 }
 
 /// Events destined for the simulator main thread.
 pub enum SimulatorEvent {
     Finish,
+    PauseToggle,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
