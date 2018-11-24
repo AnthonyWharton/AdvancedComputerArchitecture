@@ -1,5 +1,5 @@
 use elf::{File, ParseError};
-use elf::types::{Machine, FileHeader, ProgramHeader, ELFCLASS32, ELFDATA2LSB, 
+use elf::types::{Machine, FileHeader, ProgramHeader, ELFCLASS32, ELFDATA2LSB,
     EV_CURRENT, ELFOSABI_SYSV, ET_EXEC, PT_NULL, PT_LOAD, PT_NOTE, PT_PHDR};
 
 use isa::operand::Register;
@@ -46,23 +46,23 @@ pub fn load_elf(config: &Config) -> State {
     state
 }
 
-/// Verifies the given ELF file header is compatible with the simulator, and 
-/// quits if invalid. If this function returns, it can be assumed that the 
+/// Verifies the given ELF file header is compatible with the simulator, and
+/// quits if invalid. If this function returns, it can be assumed that the
 /// header is good to go!
 fn verify_file_header(header: &FileHeader) {
-    if header.class != ELFCLASS32 { 
+    if header.class != ELFCLASS32 {
         ElfError.exit(Some("Found 64 bit ELF file, expected 32 bit."));
     }
     if header.data != ELFDATA2LSB {
         ElfError.exit(Some("Found Big Endian ELF file, expected Little Endian."));
     }
     if header.version != EV_CURRENT {
-        ElfError.exit(Some("Incompatible ELF file version, expected 1.")); 
+        ElfError.exit(Some("Incompatible ELF file version, expected 1."));
     }
     if header.osabi != ELFOSABI_SYSV {
         ElfError.exit(Some("Incompatible OS ABI in ELF file header, expected Unix - System V."));
     }
-    if header.elftype != ET_EXEC { 
+    if header.elftype != ET_EXEC {
         ElfError.exit(Some("Incompatible object file type in ELF file header, expected EXEC."));
     }
     if header.machine != Machine(0xf3) {

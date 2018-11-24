@@ -11,7 +11,7 @@ use self::backtrace::Backtrace;
 //// FUNCTIONS
 
 /// Add the panic hook that is used to make a panic message that doesn't suck
-/// with the raw terminal. Will also attempt to cleanup the terminal with 
+/// with the raw terminal. Will also attempt to cleanup the terminal with
 /// `reset`.
 pub fn set_panic_hook() {
     panic::set_hook(Box::new(|i| {

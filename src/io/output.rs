@@ -6,7 +6,7 @@ use termion::raw::{IntoRawMode, RawTerminal};
 use tui::{Frame, Terminal as TuiTerminal};
 use tui::backend::TermionBackend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
-use tui::style::{Color, Style};
+use tui::style::{Color, Modifier, Style};
 use tui::widgets::{Block, Borders, List, Text, Widget};
 
 use isa::Instruction;
@@ -34,6 +34,17 @@ pub fn new_terminal() -> Result<Terminal, Error> {
     Ok(terminal)
 }
 
+pub fn standard_block(title: &str) -> Block {
+    Block::default()
+        .borders(Borders::ALL)
+        .title_style(
+            Style::default()
+                .fg(Color::LightGreen)
+                .modifier(Modifier::Bold)
+        )
+        .title(title)
+}
+
 /// Entry point for the drawing of the current stored simulate state.
 pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> {
     terminal.draw(|mut f| {
@@ -47,10 +58,7 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
                 ].as_ref()
             )
             .split(app.size);
-        Block::default()
-            .title("Foo")
-            .borders(Borders::ALL)
-            .render(&mut f, chunks[0]);
+        standard_block("Foo").render(&mut f, chunks[0]);
         draw_registers(&mut f, chunks[1], &app, &State::default());
         draw_memory(&mut f, chunks[2], &app, &State::default());
     })
@@ -63,27 +71,28 @@ fn draw_registers(
     app: &TuiApp,
     default: &State
 ) {
-    let map_closure = |(name, value)| { 
+    let state_prev = app.states.get(app.hist_display+1).unwrap_or(default);
+    let state = app.states.get(app.hist_display).unwrap_or(default);
+    let registers = state.register.iter().enumerate().map(|(name, value)| {
+        let reg = Register::from(name as i32);
         Text::styled(
             format!(
-                "{n:>#04}-{n:<03} = {v:08x} ({v:11})", 
-                n=Register::from(name as i32), 
+                "{n:>#04}-{n:<03} :: {v:08x} - {v}",
+                n=reg,
                 v=value
             ),
-            Style::default().fg(Color::White)
+            if reg == Register::PC {
+                Style::default().fg(Color::LightBlue).modifier(Modifier::Bold)
+            } else if state.register[name] != state_prev.register[name] {
+                Style::default().fg(Color::Black).bg(Color::LightYellow)
+            } else {
+                Style::default().fg(Color::White)
+            }
         )
-    };
- 
-    let state = app.states.front().unwrap_or(default);
-    let registers = state.register.iter().enumerate().map(map_closure);
-    
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title_style(Style::default().fg(Color::LightGreen))
-        .title("Register File");
+    });
 
     List::new(registers)
-        .block(block)
+        .block(standard_block("Register File"))
         .render(f, area);
 }
 
@@ -94,49 +103,45 @@ fn draw_memory(
     app: &TuiApp,
     default: &State
 ) {
-    let state = app.states.front().unwrap_or(default);
+    let state = app.states.get(app.hist_display).unwrap_or(default);
     let pc = state.register[Register::PC as usize];
-    let mut skip_amount = cmp::max(0, pc - ((area.height as i32) / 2)) as usize;
-    skip_amount /= 4;
-    skip_amount -= skip_amount % area.height as usize;
+    let skip_amount = cmp::max(
+        0,
+        (pc - ((4 * area.height as i32) / 2)) / 4
+    ) as usize;
     let memory = state.memory
         .chunks(4)
         .enumerate()
-        .map(|(mut addr, mut value)| { 
+        .map(|(mut addr, mut value)| {
             addr = addr * 4;
             let word = value.read_i32::<LittleEndian>().unwrap();
             Text::styled(
                 match Instruction::decode(word) {
                     Some(i) => {
                         format!(
-                            "{a:08x} = {v:08x} - {i}", 
-                            a=addr, 
+                            "{a:08x} :: {v:08x} - {i}",
+                            a=addr,
                             v=word,
                             i=i,
                         )
                     },
                     None => {
                         format!(
-                            "{a:08x} = {v:08x} - {v}", 
-                            a=addr, 
+                            "{a:08x} :: {v:08x} - {v}",
+                            a=addr,
                             v=word,
                         )
                     }
                 },
                 if addr as i32 == pc {
-                    Style::default().fg(Color::LightBlue) 
+                    Style::default().fg(Color::LightBlue).modifier(Modifier::Bold)
                 } else {
                     Style::default().fg(Color::White)
                 }
             )
         }).skip(skip_amount);
-    
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title_style(Style::default().fg(Color::LightGreen))
-        .title("Memory");
 
     List::new(memory)
-        .block(block)
+        .block(standard_block("Memory"))
         .render(f, area);
 }

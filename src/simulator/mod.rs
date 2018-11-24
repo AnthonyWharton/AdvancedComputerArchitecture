@@ -66,7 +66,7 @@ pub fn run_simulator(io: IoThread, config: Config) {
             _ => {},
         }
     }
-    
+
     #[allow(unused_must_use)]
     { io.handle.join(); }
 }
@@ -78,7 +78,7 @@ fn pause_simulation(io: &IoThread) -> bool {
         match io.rx.recv() {
             Ok(e) => match e {
                 SimulatorEvent::Finish => break,
-                SimulatorEvent::PauseToggle => return false, 
+                SimulatorEvent::PauseToggle => return false,
             },
             Err(_) => Exit::IoThreadError.exit(
                 Some("IO Thread stopped communication properly.")

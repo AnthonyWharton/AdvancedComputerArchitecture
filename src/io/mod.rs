@@ -57,7 +57,7 @@ pub enum SimulatorEvent {
 /// Wrapper class around the IO thread, which deals with user input and output.
 ///
 ///  - The `tx` field can be used to send `IoEvent`'s to the IO Thread.
-///  - The `rx` field should be used with `try_recv` to receive 
+///  - The `rx` field should be used with `try_recv` to receive
 ///    `SimulatorEvent`'s.
 pub struct IoThread {
     pub tx: Sender<IoEvent>,
@@ -69,7 +69,7 @@ pub struct IoThread {
 pub struct TuiApp {
     /// Sender to send messages to the simulator
     pub tx: Sender<SimulatorEvent>,
-    /// Reciever for events send from the simulator 
+    /// Reciever for events send from the simulator
     pub rx: Receiver<IoEvent>,
     /// Terminal size
     pub size: Rect,
@@ -177,6 +177,7 @@ pub fn display_thread(tx: Sender<SimulatorEvent>, rx: Receiver<IoEvent>) {
             app.size = size;
         }
 
+        // Handle user input
         if input_handler.next(&mut app) {
             break;
         }
@@ -185,31 +186,31 @@ pub fn display_thread(tx: Sender<SimulatorEvent>, rx: Receiver<IoEvent>) {
         match app.rx.try_recv() {
             Ok(e) => match e {
                 IoEvent::Finish => app.finished = true,
-                IoEvent::UpdateState(s) => {
-                    app.add_state(s);
-                    match draw_state(&mut terminal, &app) {
-                        Ok(()) => (),
-                        Err(_) => Exit::IoThreadError.exit(
-                            Some("Error when drawing simulation state. {:?}")
-                        ),
-                    }
-                },
+                IoEvent::UpdateState(s) => app.add_state(s),
             },
-            Err(TryRecvError::Disconnected) => 
+            Err(TryRecvError::Disconnected) =>
                 Exit::IoThreadError.exit(Some("Simulator thread missing, assumed dead.")),
             _ => {},
+        }
+
+        // Draw output
+        match draw_state(&mut terminal, &app) {
+            Ok(()) => (),
+            Err(_) => Exit::IoThreadError.exit(
+                Some("Error when drawing simulation state. {:?}")
+            ),
         }
     }
 
     #[allow(unused_must_use)]
     {
         app.tx.send(SimulatorEvent::Finish);
-        terminal.clear(); 
+        terminal.clear();
     }
 
     // Unknown bug, dirty fix:
-    // For unknown reasons, occasionally the terminal isn't dropped when we 
-    // break out of the display thread loop, meaning the terminal settings are 
+    // For unknown reasons, occasionally the terminal isn't dropped when we
+    // break out of the display thread loop, meaning the terminal settings are
     // not reset. Explicit call to drop just in case.
     std::mem::drop(terminal)
 }

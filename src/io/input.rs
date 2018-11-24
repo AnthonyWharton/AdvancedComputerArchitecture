@@ -24,7 +24,7 @@ impl InputHandler {
         InputHandler(rx)
     }
 
-    /// Deal with input, non-blocking if simulation is running, blocking when 
+    /// Deal with input, non-blocking if simulation is running, blocking when
     /// simulation isn't running so as to yeild host processor time.
     /// Returns whether or not the user pressed an exit key.
     pub fn next(&self, app: &mut TuiApp) -> bool {
@@ -35,7 +35,7 @@ impl InputHandler {
                     Some("Input Thread stopped communicating properly.")
                 ),
             }
-        } else { 
+        } else {
             match self.0.try_recv() {
                 Ok(key) => return app.process_key(key),
                 Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
@@ -51,7 +51,7 @@ impl InputHandler {
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
-/// Function for handling user input, called within it's own thread as this 
+/// Function for handling user input, called within it's own thread as this
 /// will loop until either it fails to send an input event, or an exit button
 /// is pressed.
 fn input_thread(tx: Sender<Key>) {

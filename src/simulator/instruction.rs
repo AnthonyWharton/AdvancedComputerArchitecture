@@ -108,7 +108,7 @@ fn exec_i_type(state: &mut State) {
         .expect("Invalid I type instruction (no rs1) failed to execute.") as usize;
     let imm = state.l_decode.imm
         .expect("Invalid I type instruction (no imm) failed to execute.");
-    
+
     // Shorthand, should hopefully be optimised out
     let r = &mut state.register;
     let m = &mut state.memory;
@@ -157,7 +157,7 @@ fn exec_s_type(state: &mut State) {
         .expect("Invalid S type instruction (no rs2) failed to execute.") as usize;
     let imm = state.l_decode.imm
         .expect("Invalid S type instruction (no imm) failed to execute.");
-    
+
     // Shorthand, should hopefully be optimised out
     let r = &mut state.register;
     let m = &mut state.memory;
@@ -203,7 +203,7 @@ fn exec_u_type(state: &mut State) {
         .expect("Invalid U type instruction (no rd) failed to execute.") as usize;
     let imm = state.l_decode.imm
         .expect("Invalid U type instruction (no imm) failed to execute.");
-    
+
     // Shorthand, should hopefully be optimised out
     let r = &mut state.register;
 
