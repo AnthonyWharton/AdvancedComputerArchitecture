@@ -1,37 +1,50 @@
 use std::io;
-use std::sync::mpsc;
+use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread;
 
 use termion::event::Key;
 use termion::input::TermRead;
 
-///////////////////////////////////////////////////////////////////////////////
-//// CONST/STATIC
-
-pub const EXIT_KEYS: [Key; 3] = [Key::Esc, Key::Char('q'), Key::Ctrl('c')];
+use util::exit::Exit;
+use super::{EXIT_KEYS, TuiApp};
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
 
-pub struct InputHandler(mpsc::Receiver<Key>);
+pub struct InputHandler(Receiver<Key>);
 
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
 
 impl InputHandler {
     pub fn new() -> InputHandler {
-        let (tx, rx) = mpsc::channel();
+        let (tx, rx) = channel();
         let tx = tx.clone();
-        thread::spawn(move || handle_input(tx));
+        thread::spawn(move || input_thread(tx));
         InputHandler(rx)
     }
 
-    pub fn try_next(&self) -> Result<Key, mpsc::TryRecvError> {
-        self.0.try_recv()
-    }
-    
-    pub fn next(&self) -> Result<Key, mpsc::RecvError> {
-        self.0.recv()
+    /// Deal with input, non-blocking if simulation is running, blocking when 
+    /// simulation isn't running so as to yeild host processor time.
+    /// Returns whether or not the user pressed an exit key.
+    pub fn next(&self, app: &mut TuiApp) -> bool {
+        if app.paused || app.finished {
+            match self.0.recv() {
+                Ok(key) => return app.process_key(key),
+                Err(_) => Exit::IoThreadError.exit(
+                    Some("Input Thread stopped communicating properly.")
+                ),
+            }
+        } else { 
+            match self.0.try_recv() {
+                Ok(key) => return app.process_key(key),
+                Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
+                    Some("Input Thread went missing, assumed dead.")
+                ),
+                _ => {},
+            }
+        }
+        false
     }
 }
 
@@ -41,7 +54,7 @@ impl InputHandler {
 /// Function for handling user input, called within it's own thread as this 
 /// will loop until either it fails to send an input event, or an exit button
 /// is pressed.
-fn handle_input(tx: mpsc::Sender<Key>) {
+fn input_thread(tx: Sender<Key>) {
     let stdin = io::stdin();
     for evt in stdin.keys() {
         match evt {
