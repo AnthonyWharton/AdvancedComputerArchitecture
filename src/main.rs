@@ -30,7 +30,7 @@ mod util;
 /// Main entry point, not much else to say.
 fn main() {
     util::panic::set_panic_hook();
-    let io: IoThread = IoThread::new();
+    let io = IoThread::new();
     let config = match Config::new(env::args()) {
         Ok(c)  => c,
         Err(e) => Exit::ArgumentError.exit(Some(e)),

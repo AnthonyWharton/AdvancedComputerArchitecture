@@ -94,7 +94,7 @@ fn exec_r_type(state: &mut State) {
         Operation::SRA  => r[rs1] >> (r[rs2] & 0b11111),
         Operation::OR   => r[rs1] | r[rs2],
         Operation::AND  => r[rs1] & r[rs2],
-        _ => panic!("Unkown R type instruction failed to execute.")
+        _ => panic!("Unknown R type instruction failed to execute.")
     };
 
     r[Register::PC as usize] += 4;
@@ -143,7 +143,7 @@ fn exec_i_type(state: &mut State) {
         Operation::SLLI  => r[rs1] << imm,
         Operation::SRLI  => ((r[rs1] as u32) >> (imm as u32)) as i32,
         Operation::SRAI  => r[rs1] >> (imm & 0b11111),
-        _ => panic!("Unkown I type instruction failed to execute.")
+        _ => panic!("Unknown I type instruction failed to execute.")
     };
 
     r[Register::PC as usize] += 4;
@@ -167,7 +167,7 @@ fn exec_s_type(state: &mut State) {
         Operation::SB => { m[(r[rs1] + imm) as usize] = r[rs2] as u8 },
         Operation::SH => { m.write_i16((r[rs1] + imm) as usize, r[rs2] as i16); () },
         Operation::SW => { m.write_i32((r[rs1] + imm) as usize, r[rs2]); () },
-        _ => panic!("Unkown s type instruction failed to execute.")
+        _ => panic!("Unknown s type instruction failed to execute.")
     };
     r[pc] += 4;
 }
@@ -192,7 +192,7 @@ fn exec_b_type(state: &mut State) {
         Operation::BGE => if r[rs1] >= r[rs2] { r[pc] += imm; return },
         Operation::BLTU => if (r[rs1] as u32) <  (r[rs2] as u32) { r[pc] += imm; return },
         Operation::BGEU => if (r[rs1] as u32) >= (r[rs2] as u32) { r[pc] += imm; return },
-        _ => panic!("Unkown B type instruction failed to execute.")
+        _ => panic!("Unknown B type instruction failed to execute.")
     };
     r[pc] += 4;
 }
@@ -210,7 +210,7 @@ fn exec_u_type(state: &mut State) {
     match state.l_decode.op {
         Operation::LUI   => if rd != 0 { r[rd] = imm },
         Operation::AUIPC => r[Register::PC as usize] += imm - 4,
-        _ => panic!("Unkown U type instruction failed to execute.")
+        _ => panic!("Unknown U type instruction failed to execute.")
     };
 
     r[Register::PC as usize] += 4;
@@ -232,7 +232,7 @@ fn exec_j_type(state: &mut State) {
 
     match state.l_decode.op {
         Operation::JAL => r[Register::PC as usize] += imm,
-        _ => panic!("Unkown U type instruction failed to execute.")
+        _ => panic!("Unknown U type instruction failed to execute.")
     }
 }
 

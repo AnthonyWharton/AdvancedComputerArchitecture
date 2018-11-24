@@ -40,6 +40,7 @@ pub enum SimulatorEvent {
 pub struct IoThread {
     pub tx: mpsc::Sender<IoEvent>,
     pub rx: mpsc::Receiver<SimulatorEvent>,
+    pub handle: thread::JoinHandle<()>
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -49,10 +50,10 @@ impl IoThread {
     pub fn new() -> IoThread {
         let (tx_m, rx_m) = mpsc::channel(); // Channel from io to MAIN
         let (tx_i, rx_i) = mpsc::channel(); // Channel from main to IO
-        thread::spawn(|| display_thread(tx_m, rx_i));
         IoThread {
             tx: tx_i,
             rx: rx_m,
+            handle: thread::spawn(|| display_thread(tx_m, rx_i)),
         }
     }
 }

@@ -55,7 +55,7 @@ pub fn run_simulator(io: IoThread, config: Config) {
         thread::sleep(Duration::from_millis(50));
 
         // Handle IO thread events
-        match io.rx.try_recv(){
+        match io.rx.try_recv() {
             Ok(e) => match e {
                 SimulatorEvent::Finish => break,
             },
@@ -65,4 +65,6 @@ pub fn run_simulator(io: IoThread, config: Config) {
             _ => {},
         }
     }
+    
+    io.handle.join();
 }
