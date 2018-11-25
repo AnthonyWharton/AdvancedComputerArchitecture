@@ -1,7 +1,7 @@
 use std::cmp;
-use std::thread;
 use std::collections::VecDeque;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
+use std::thread::{JoinHandle, spawn};
 
 use termion::event::Key;
 use tui::layout::Rect;
@@ -9,7 +9,7 @@ use tui::layout::Rect;
 use simulator::INITIALLY_PAUSED;
 use simulator::state::State;
 use util::exit::Exit;
-use self::input::InputHandler;
+use self::input::spawn_input_thread;
 use self::output::{draw_state, new_terminal};
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -24,14 +24,6 @@ pub mod output;
 ///////////////////////////////////////////////////////////////////////////////
 //// CONST/STATIC
 
-/// The key presses that will exit the simulator.
-const EXIT_KEYS: [Key; 4] = [
-    Key::Esc,
-    Key::Char('q'),
-    Key::Ctrl('c'),
-    Key::Ctrl('d'),
-];
-
 /// The number of states to keep in memory.
 /// Each state uses approximately O(sim_mem_size) RAM, which is typically 1mb.
 pub const KEPT_STATES: usize = 100;
@@ -42,8 +34,12 @@ pub const KEPT_STATES: usize = 100;
 /// Events destined for the IO thread.
 #[allow(dead_code)]
 pub enum IoEvent {
+    /// Signal that the user has asked to exit the process.
+    Exit,
     /// Signal that the simulation has finished.
     Finish,
+    /// Signal that a keypress has occured (from the input thread).
+    Input(Key),
     /// Signal that the state has updated after a clock cycle.
     UpdateState(State),
 }
@@ -69,7 +65,7 @@ pub enum SimulatorEvent {
 pub struct IoThread {
     pub tx: Sender<IoEvent>,
     pub rx: Receiver<SimulatorEvent>,
-    pub handle: thread::JoinHandle<()>
+    pub handle: JoinHandle<()>
 }
 
 /// Encapsulation of the state for the TuiApp front-end.
@@ -96,18 +92,42 @@ pub struct TuiApp {
 //// IMPLEMENTATIONS
 
 impl IoThread {
+    /// Creates a new IoThread object, and spawns the input/out threads
+    /// to run in the background.
     pub fn new() -> IoThread {
         let (tx_m, rx_m) = channel(); // Channel from io to MAIN
         let (tx_i, rx_i) = channel(); // Channel from main to IO
+        let input_tx = tx_i.clone();
+        spawn_input_thread(input_tx);
         IoThread {
             tx: tx_i,
             rx: rx_m,
-            handle: thread::spawn(|| display_thread(tx_m, rx_i)),
+            handle: spawn(move || display_thread(tx_m, rx_i)),
         }
     }
 }
 
 impl TuiApp {
+    /// Public event handler for the TuiApp. Should be run between each render.
+    pub fn handle_event(&mut self) -> bool {
+        if self.paused || self.finished {
+            match self.rx.recv() {
+                Ok(e) => return self.process_event(e),
+                Err(_) => Exit::IoThreadError.exit(
+                    Some("Input Thread stopped communicating properly.")
+                ),
+            }
+        } else {
+            match self.rx.try_recv() {
+                Ok(e) => return self.process_event(e),
+                Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
+                    Some("Input Thread went missing, assumed dead.")
+                ),
+                _ => return true,
+            }
+        }
+    }
+
     /// Adds a simulator state to the history in the TuiApp state.
     fn add_state(&mut self, state: State) {
         self.states.push_front(state);
@@ -116,16 +136,25 @@ impl TuiApp {
         }
     }
 
-    /// Process a key input
-    pub fn process_key(&mut self, key: Key) -> bool {
+    /// Process an IoEvent.
+    fn process_event(&mut self, event: IoEvent) -> bool {
+        match event {
+            IoEvent::Exit => return false,
+            IoEvent::Finish => self.finished = true,
+            IoEvent::Input(k) => self.process_key(k),
+            IoEvent::UpdateState(s) => self.add_state(s),
+        };
+        true
+    }
+
+    /// Process a key input.
+    fn process_key(&mut self, key: Key) {
         match key {
-            k if EXIT_KEYS.contains(&k) => return true,
             Key::Char(' ') => self.toggle_pause(),
             Key::Left => self.state_backward(),
             Key::Right => self.state_forward(),
             _ => {},
         }
-        false
     }
 
     /// Rewinds the state to the last one in the history.
@@ -163,10 +192,12 @@ impl TuiApp {
 
 /// Main entry point for the display thread that handles display updates and
 /// user input.
-pub fn display_thread(tx: Sender<SimulatorEvent>, rx: Receiver<IoEvent>) {
+fn display_thread(
+    tx: Sender<SimulatorEvent>,
+    rx: Receiver<IoEvent>,
+) {
     // Initalise
     let mut terminal = new_terminal().expect("Could not start fancy UI.");
-    let input_handler = InputHandler::new();
     let mut app = TuiApp {
         tx,
         rx,
@@ -194,20 +225,8 @@ pub fn display_thread(tx: Sender<SimulatorEvent>, rx: Receiver<IoEvent>) {
             ),
         }
 
-        // Handle user input
-        if input_handler.next(&mut app) {
-            break;
-        }
-
-        // Deal with recieved events
-        match app.rx.try_recv() {
-            Ok(e) => match e {
-                IoEvent::Finish => app.finished = true,
-                IoEvent::UpdateState(s) => app.add_state(s),
-            },
-            Err(TryRecvError::Disconnected) =>
-                Exit::IoThreadError.exit(Some("Simulator thread missing, assumed dead.")),
-            _ => {},
+        if !app.handle_event() {
+            break
         }
     }
 

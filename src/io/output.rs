@@ -7,7 +7,7 @@ use tui::{Frame, Terminal as TuiTerminal};
 use tui::backend::TermionBackend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Borders, List, Text, Widget};
+use tui::widgets::{Block, Borders, List, Paragraph, Text, Widget};
 
 use isa::Instruction;
 use isa::operand::Register;
@@ -47,13 +47,32 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
                 ].as_ref()
             )
             .split(app.size);
-        standard_block("FooBar").render(&mut f, chunks[0]);
+        draw_stats(&mut f, chunks[0], &app, &State::default());
         draw_registers(&mut f, chunks[1], &app, &State::default());
         draw_memory(&mut f, chunks[2], &app, &State::default());
     })
 }
 
-/// Draws the register block
+/// Draws the TuiApp state statistics on screen.
+fn draw_stats(
+    f: &mut Frame<Backend>,
+    area: Rect,
+    app: &TuiApp,
+    default: &State
+) {
+    let state = app.states.get(app.hist_display).unwrap_or(default);
+    let tmp = [
+        Text::raw(format!("Instructions Executed: {}\n", state.stats.executed)),
+        Text::raw(format!("Cycles Passed: {}\n", state.stats.cycles)),
+        Text::raw(format!("Executed per Cycle: {}\n", state.stats.executed as f32/ state.stats.cycles as f32)),
+    ];
+    Paragraph::new(tmp.iter())
+        .block(standard_block("Statistics"))
+        .wrap(true)
+        .render(f, area);
+}
+
+/// Draws the register file.
 fn draw_registers(
     f: &mut Frame<Backend>,
     area: Rect,
@@ -85,7 +104,7 @@ fn draw_registers(
         .render(f, area);
 }
 
-/// Draws the memory block
+/// Draws a section of the memory around the PC.
 fn draw_memory(
     f: &mut Frame<Backend>,
     area: Rect,

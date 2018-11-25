@@ -1,70 +1,49 @@
 use std::io;
-use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
-use std::thread;
+use std::sync::mpsc::Sender;
+use std::thread::{JoinHandle, spawn};
 
 use termion::event::Key;
 use termion::input::TermRead;
 
-use util::exit::Exit;
-use super::{EXIT_KEYS, TuiApp};
+use super::IoEvent;
 
 ///////////////////////////////////////////////////////////////////////////////
-//// STRUCTS
+//// CONST/STATIC
 
-pub struct InputHandler(Receiver<Key>);
-
-///////////////////////////////////////////////////////////////////////////////
-//// IMPLEMENTATIONS
-
-impl InputHandler {
-    pub fn new() -> InputHandler {
-        let (tx, rx) = channel();
-        let tx = tx.clone();
-        thread::spawn(move || input_thread(tx));
-        InputHandler(rx)
-    }
-
-    /// Deal with input, non-blocking if simulation is running, blocking when
-    /// simulation isn't running so as to yeild host processor time.
-    /// Returns whether or not the user pressed an exit key.
-    pub fn next(&self, app: &mut TuiApp) -> bool {
-        if app.paused || app.finished {
-            match self.0.recv() {
-                Ok(key) => return app.process_key(key),
-                Err(_) => Exit::IoThreadError.exit(
-                    Some("Input Thread stopped communicating properly.")
-                ),
-            }
-        } else {
-            match self.0.try_recv() {
-                Ok(key) => return app.process_key(key),
-                Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
-                    Some("Input Thread went missing, assumed dead.")
-                ),
-                _ => {},
-            }
-        }
-        false
-    }
-}
+/// The key presses that will exit the simulator.
+const EXIT_KEYS: [Key; 4] = [
+    Key::Esc,
+    Key::Char('q'),
+    Key::Ctrl('c'),
+    Key::Ctrl('d'),
+];
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
+/// Spawns the input handler thread. This thread will run in the background
+/// and send key press/exit events to the given Sender.
+pub fn spawn_input_thread(tx: Sender<IoEvent>) -> JoinHandle<()> {
+    spawn(move || input_thread(tx))
+}
+
 /// Function for handling user input, called within it's own thread as this
 /// will loop until either it fails to send an input event, or an exit button
 /// is pressed.
-fn input_thread(tx: Sender<Key>) {
+fn input_thread(tx: Sender<IoEvent>) {
     let stdin = io::stdin();
     for evt in stdin.keys() {
         match evt {
             Ok(key) => {
-                if let Err(_) = tx.send(key) {
-                    return;
-                }
                 if EXIT_KEYS.contains(&key) {
-                    return;
-                }
+                    if let Err(_) = tx.send(IoEvent::Exit) {
+                        return;
+                    }
+                } else {
+                    if let Err(_) = tx.send(IoEvent::Input(key)) {
+                        return;
+                    }
+                };
             }
             Err(_) => {}
         }
