@@ -22,6 +22,11 @@ pub mod memory;
 pub mod state;
 
 ///////////////////////////////////////////////////////////////////////////////
+//// CONST/STATIC
+
+pub const INITIALLY_PAUSED: bool = true;
+
+///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
 /// Main entry point for the simulation.
@@ -30,8 +35,9 @@ pub mod state;
 /// well as for receiving any calls to close the simulation.
 pub fn run_simulator(io: IoThread, config: Config) {
     let mut state = load_elf(&config);
+    let mut paused = INITIALLY_PAUSED;
 
-    loop {
+    while handle_io_and_continue(&mut paused, &io) {
         // FETCH STAGE
         state.l_fetch = state.memory.read_i32(
             state.register[Register::PC as usize] as usize
@@ -42,8 +48,8 @@ pub fn run_simulator(io: IoThread, config: Config) {
             Some(i) => i,
             None => { panic!("Failed to decode instruction.") },
         };
-        // io.tx.send(IoEvent::UpdateInstruction(state.l_decode)).unwrap();
 
+        // Check for return instruction, immediately shutdown simulator.
         if state.l_decode.is_ret() {
             io.tx.send(IoEvent::Finish).unwrap();
             break;
@@ -51,40 +57,50 @@ pub fn run_simulator(io: IoThread, config: Config) {
 
         // EXECUTE STAGE
         instruction::exec(&mut state);
+
+        state.stats.cycles += 1;
+
+        // Update the IO thread.
         io.tx.send(IoEvent::UpdateState(state.clone())).unwrap();
         thread::sleep(Duration::from_millis(50));
-
-        // Handle IO thread events
-        match io.rx.try_recv() {
-            Ok(e) => match e {
-                SimulatorEvent::Finish => break,
-                SimulatorEvent::PauseToggle => if pause_simulation(&io) { break },
-            },
-            Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
-                Some("IO Thread missing, assumed dead.")
-            ),
-            _ => {},
-        }
     }
 
     #[allow(unused_must_use)]
     { io.handle.join(); }
 }
 
-/// Holding loop to pause the simulation until futher user input.
-/// Returns whether or not the user closed the simulation.
-fn pause_simulation(io: &IoThread) -> bool {
-    loop {
-        match io.rx.recv() {
-            Ok(e) => match e {
-                SimulatorEvent::Finish => break,
-                SimulatorEvent::PauseToggle => return false,
-            },
-            Err(_) => Exit::IoThreadError.exit(
-                Some("IO Thread stopped communication properly.")
+/// Handles any messages from the input/output thread. Will block if paused, &
+/// not block if unpaused. Returns false when the user closed the simulator.
+fn handle_io_and_continue(paused: &mut bool, io: &IoThread) -> bool {
+    if *paused {
+        loop {
+            match io.rx.recv() {
+                Ok(e) => return handle_message(e, paused),
+                Err(_) => Exit::IoThreadError.exit(
+                    Some("IO Thread stopped communication properly.")
+                ),
+            };
+        }
+    } else {
+        match io.rx.try_recv() {
+            Ok(e) => return handle_message(e, paused),
+            Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
+                Some("IO Thread missing, assumed dead.")
             ),
-        };
+            _ => return true,
+        }
     }
-   return true
+}
+
+/// Handles any messages from the input/output thread.
+/// Returns false when the user closed the simulator.
+fn handle_message(event: SimulatorEvent, paused: &mut bool) -> bool {
+    match event {
+        SimulatorEvent::Finish => return false,
+        SimulatorEvent::PauseToggle => {
+            *paused ^= true;
+            return true
+        },
+    }
 }
 

@@ -64,6 +64,7 @@ pub fn exec(state: &mut State) {
         Operation::REM    => exec_i_type(state), //unimplemented!
         Operation::REMU   => exec_i_type(state), //unimplemented!
     }
+    state.stats.executed += 1;
 }
 
 /// Executes an R type instruction, modifying the borrowed state.

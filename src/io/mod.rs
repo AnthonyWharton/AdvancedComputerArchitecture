@@ -6,6 +6,7 @@ use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use termion::event::Key;
 use tui::layout::Rect;
 
+use simulator::INITIALLY_PAUSED;
 use simulator::state::State;
 use util::exit::Exit;
 use self::input::InputHandler;
@@ -164,7 +165,7 @@ pub fn display_thread(tx: Sender<SimulatorEvent>, rx: Receiver<IoEvent>) {
         size: Rect::default(),
         states: VecDeque::new(),
         finished: false,
-        paused: false,
+        paused: INITIALLY_PAUSED,
         hist_display: 0,
     };
 
@@ -175,6 +176,14 @@ pub fn display_thread(tx: Sender<SimulatorEvent>, rx: Receiver<IoEvent>) {
         if size != app.size {
             terminal.resize(size).unwrap();
             app.size = size;
+        }
+
+        // Draw output
+        match draw_state(&mut terminal, &app) {
+            Ok(()) => (),
+            Err(_) => Exit::IoThreadError.exit(
+                Some("Error when drawing simulation state. {:?}")
+            ),
         }
 
         // Handle user input
@@ -191,14 +200,6 @@ pub fn display_thread(tx: Sender<SimulatorEvent>, rx: Receiver<IoEvent>) {
             Err(TryRecvError::Disconnected) =>
                 Exit::IoThreadError.exit(Some("Simulator thread missing, assumed dead.")),
             _ => {},
-        }
-
-        // Draw output
-        match draw_state(&mut terminal, &app) {
-            Ok(()) => (),
-            Err(_) => Exit::IoThreadError.exit(
-                Some("Error when drawing simulation state. {:?}")
-            ),
         }
     }
 

@@ -7,17 +7,27 @@ use super::memory::{Access, INIT_MEMORY_SIZE, Memory};
 ///////////////////////////////////////////////////////////////////////////////
 //// TYPES
 
+/// The entire physical register file.
 pub type RegisterFile = [i32; 33];
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
 
+/// Current state of the simulator at any given moment.
 #[derive(Clone)]
 pub struct State {
+    pub stats: Stats,
     pub memory: Memory,
     pub register: RegisterFile,
     pub l_fetch: Access<i32>,
     pub l_decode: Instruction,
+}
+
+/// Struct to contain the simulator statistics.
+#[derive(Clone, Default)]
+pub struct Stats {
+    pub cycles: u64,
+    pub executed: u64,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -29,6 +39,7 @@ impl Default for State {
         regs[Register::X2 as usize] = 128;
         regs[Register::X8 as usize] = 128;
         State {
+            stats: Stats::default(),
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register: regs,
             l_fetch: Access { word: 0, aligned: false },

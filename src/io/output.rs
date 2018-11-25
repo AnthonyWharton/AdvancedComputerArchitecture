@@ -34,17 +34,6 @@ pub fn new_terminal() -> Result<Terminal, Error> {
     Ok(terminal)
 }
 
-pub fn standard_block(title: &str) -> Block {
-    Block::default()
-        .borders(Borders::ALL)
-        .title_style(
-            Style::default()
-                .fg(Color::LightGreen)
-                .modifier(Modifier::Bold)
-        )
-        .title(title)
-}
-
 /// Entry point for the drawing of the current stored simulate state.
 pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> {
     terminal.draw(|mut f| {
@@ -58,7 +47,7 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
                 ].as_ref()
             )
             .split(app.size);
-        standard_block("Foo").render(&mut f, chunks[0]);
+        standard_block("FooBar").render(&mut f, chunks[0]);
         draw_registers(&mut f, chunks[1], &app, &State::default());
         draw_memory(&mut f, chunks[2], &app, &State::default());
     })
@@ -145,3 +134,16 @@ fn draw_memory(
         .block(standard_block("Memory"))
         .render(f, area);
 }
+
+/// Constructs a standardised Block widget with given title.
+pub fn standard_block(title: &str) -> Block {
+    Block::default()
+        .borders(Borders::ALL)
+        .title_style(
+            Style::default()
+                .fg(Color::LightGreen)
+                .modifier(Modifier::Bold)
+        )
+        .title(title)
+}
+
