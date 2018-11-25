@@ -12,6 +12,10 @@ use util::exit::Exit;
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES
 
+/// Miscellaneous Utilities and Helpers
+#[macro_use]
+mod util;
+
 /// All input/output logic, including interfacing with the IO thread.
 mod io;
 
@@ -20,9 +24,6 @@ mod isa;
 
 /// Everything to do with the simulator; logic and virtual components etc.
 mod simulator;
-
-/// Miscellaneous Utilities and Helpers
-mod util;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
