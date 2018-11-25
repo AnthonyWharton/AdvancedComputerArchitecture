@@ -19,8 +19,8 @@ pub struct State {
     pub stats: Stats,
     pub memory: Memory,
     pub register: RegisterFile,
-    pub l_fetch: Access<i32>,
-    pub l_decode: Instruction,
+    pub l_fetch: Option<Access<i32>>,
+    pub l_decode: Option<Instruction>,
 }
 
 /// Struct to contain the simulator statistics.
@@ -42,8 +42,8 @@ impl Default for State {
             stats: Stats::default(),
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register: regs,
-            l_fetch: Access { word: 0, aligned: false },
-            l_decode: Instruction::default(),
+            l_fetch: None,
+            l_decode: None,
         }
     }
 }

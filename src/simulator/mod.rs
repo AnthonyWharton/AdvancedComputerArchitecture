@@ -39,24 +39,23 @@ pub fn run_simulator(io: IoThread, config: Config) {
 
     while handle_io_and_continue(&mut paused, &io) {
         // FETCH STAGE
-        state.l_fetch = state.memory.read_i32(
+        state.l_fetch = Some(state.memory.read_i32(
             state.register[Register::PC as usize] as usize
-        );
+        ));
 
         // DECODE STAGE
-        state.l_decode = match Instruction::decode(state.l_fetch.word) {
-            Some(i) => i,
-            None => { panic!("Failed to decode instruction.") },
-        };
-
-        // Check for return instruction, immediately shutdown simulator.
-        if state.l_decode.is_ret() {
-            io.tx.send(IoEvent::Finish).unwrap();
-            break;
+        if let Some(ref raw) = state.l_fetch {
+            state.l_decode = match Instruction::decode(raw.word) {
+                Some(i) => Some(i),
+                None => { panic!("Failed to decode instruction.") },
+            };
         }
 
         // EXECUTE STAGE
-        instruction::exec(&mut state);
+        if !instruction::exec(&mut state) {
+            io.tx.send(IoEvent::Finish).unwrap();
+            break;
+        }
 
         state.stats.cycles += 1;
 
