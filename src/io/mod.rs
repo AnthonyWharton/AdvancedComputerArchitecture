@@ -42,14 +42,20 @@ pub const KEPT_STATES: usize = 100;
 /// Events destined for the IO thread.
 #[allow(dead_code)]
 pub enum IoEvent {
+    /// Signal that the simulation has finished.
     Finish,
+    /// Signal that the state has updated after a clock cycle.
     UpdateState(State),
 }
 
 /// Events destined for the simulator main thread.
 pub enum SimulatorEvent {
+    /// Signal that the user has asked to stop the simulator.
     Finish,
+    /// Signal that the the simulation pause state should be toggled.
     PauseToggle,
+    /// Signal that (when paused) the processor should execute one clock cycle.
+    Cycle,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -137,6 +143,8 @@ impl TuiApp {
     fn state_forward(&mut self) {
         if self.hist_display > 0 {
             self.hist_display -= 1;
+        } else if !self.finished {
+            self.tx.send(SimulatorEvent::Cycle).unwrap();
         }
     }
 

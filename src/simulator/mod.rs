@@ -101,6 +101,7 @@ fn handle_message(event: SimulatorEvent, paused: &mut bool) -> bool {
             *paused ^= true;
             return true
         },
+        SimulatorEvent::Cycle => return true,
     }
 }
 
