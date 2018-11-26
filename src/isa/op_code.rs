@@ -11,7 +11,7 @@ use isa::Format;
 ///    `11` in bits `0` and `1`.
 ///  - These correspond to the assembly op codes for all instruction types that
 ///    do not have an associated function code.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BaseCode {
     LOAD,
     MISCMEM,
@@ -31,7 +31,7 @@ pub enum BaseCode {
 /// These can be parse from a mixture of the `BaseCode` and/or the function
 /// code(s) within the instruction. Therefore, these are not necessarily
 /// derived from one contiguous bit-range within the instruction.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
     LUI,
     AUIPC,

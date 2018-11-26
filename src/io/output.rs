@@ -61,10 +61,18 @@ fn draw_stats(
     default: &State
 ) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
-    let tmp = [
-        Text::raw(format!("Instructions Executed: {}\n", state.stats.executed)),
-        Text::raw(format!("Cycles Passed: {}\n", state.stats.cycles)),
-        Text::raw(format!("Executed per Cycle: {}\n", state.stats.executed as f32/ state.stats.cycles as f32)),
+    let epc = if state.stats.cycles == 0 {
+        0f32
+    } else {
+        state.stats.executed as f32/ state.stats.cycles as f32
+    };
+    let tmp = vec![
+        Text::raw(format!("executed: {}\n", state.stats.executed)),
+        Text::raw(format!("cycles:   {}\n", state.stats.cycles)),
+        Text::raw(format!("avg. executions/cycle: {:.3}\n", epc)),
+        Text::raw("\n"),
+        Text::raw(format_option!("Fetch:  ", "{}", "\n", state.l_fetch)),
+        Text::raw(format_option!("Decode: ", "{}", "\n", state.l_decode)),
     ];
     Paragraph::new(tmp.iter())
         .block(standard_block("Statistics"))

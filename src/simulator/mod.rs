@@ -34,33 +34,43 @@ pub const INITIALLY_PAUSED: bool = true;
 /// Requires an IoThread for sending events to be output to the display, as
 /// well as for receiving any calls to close the simulation.
 pub fn run_simulator(io: IoThread, config: Config) {
-    let mut state = load_elf(&config);
+    let mut state_p = load_elf(&config);
+    let mut state_n = state_p.clone();
     let mut paused = INITIALLY_PAUSED;
 
     while handle_io_and_continue(&mut paused, &io) {
         // FETCH STAGE
-        state.l_fetch = Some(state.memory.read_i32(
-            state.register[Register::PC as usize] as usize
-        ));
+        if state_p.l_fetch.is_none() && state_p.l_decode.is_none() {
+            state_n.l_fetch = Some(state_p.memory.read_i32(
+                state_p.register[Register::PC as usize] as usize
+            ));
+        }
 
         // DECODE STAGE
-        if let Some(ref raw) = state.l_fetch {
-            state.l_decode = match Instruction::decode(raw.word) {
+        if let Some(ref raw) = state_p.l_fetch {
+            state_n.l_decode = match Instruction::decode(raw.word) {
                 Some(i) => Some(i),
                 None => { panic!("Failed to decode instruction.") },
             };
+            state_n.l_fetch = None;
         }
 
         // EXECUTE STAGE
-        if !instruction::exec(&mut state) {
-            io.tx.send(IoEvent::Finish).unwrap();
-            break;
+        if let Some(instruction) = state_p.l_decode {
+            if instruction.is_ret() {
+                io.tx.send(IoEvent::Finish).unwrap();
+                break;
+            }
+            instruction::exec(&mut state_n, instruction);
+            state_n.l_decode = None;
         }
 
-        state.stats.cycles += 1;
+        // End of cycle, start housekeeping
+        state_n.stats.cycles += 1;
+        state_p = state_n.clone();
 
-        // Update the IO thread.
-        io.tx.send(IoEvent::UpdateState(state.clone())).unwrap();
+        // Update IO thread and sleep for a moment
+        io.tx.send(IoEvent::UpdateState(state_n.clone())).unwrap();
         thread::sleep(Duration::from_millis(50));
     }
 

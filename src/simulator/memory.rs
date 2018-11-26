@@ -1,4 +1,4 @@
-
+use std::fmt::{Display, Formatter, LowerHex, Result};
 use std::ops::{Deref, DerefMut};
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -13,7 +13,7 @@ pub const INIT_MEMORY_SIZE: usize = 1_000_000; // 1 Megabyte
 //// STRUCTS
 
 /// Container for a memory access.
-#[derive(Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Access<W> {
     pub word: W,
     pub aligned: bool
@@ -26,6 +26,16 @@ pub struct Memory(Vec<u8>);
 
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
+
+impl<W: Display + LowerHex> Display for Access<W> {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        if self.aligned {
+            write!(f, "{:08x} (aligned)", self.word)
+        } else {
+            write!(f, "{:08x} (misaligned)", self.word)
+        }
+    }
+}
 
 /// Allows for direct access to the memory data structure nested within the
 /// `Memory` struct.

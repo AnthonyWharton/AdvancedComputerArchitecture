@@ -7,16 +7,7 @@ use super::state::State;
 //// FUNCTIONS
 
 /// Main entry point for execution given an instruction, state and memory.
-/// Returns false when an exit instruction is reached
-pub fn exec(state: &mut State) -> bool {
-    if state.l_decode.is_none() {
-        return true;
-    }
-    let instruction = state.l_decode.unwrap();
-    if instruction.is_ret() {
-        return false;
-    }
-
+pub fn exec(state: &mut State, instruction: Instruction) {
     match instruction.op {
         Operation::LUI    => exec_u_type(state, instruction),
         Operation::AUIPC  => exec_u_type(state, instruction),
@@ -75,7 +66,6 @@ pub fn exec(state: &mut State) -> bool {
         Operation::REMU   => exec_i_type(state, instruction), //unimplemented!
     }
     state.stats.executed += 1;
-    true
 }
 
 /// Executes an R type instruction, modifying the borrowed state.

@@ -17,7 +17,7 @@ pub mod operand;
 
 /// An enum of all the different Instruction formats that are provided by
 /// `rv32im`.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Format {
     R,
     I,
@@ -31,7 +31,7 @@ pub enum Format {
 //// STRUCTS
 
 /// Struct to encapsulate a decoded instruction.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Instruction {
     pub op:  Operation,
     pub rd:  Option<Register>,
