@@ -9,8 +9,15 @@ use util::config::Config;
 use util::loader::load_elf;
 use util::exit::Exit;
 
+use self::fetch::fetch_stage;
+
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES
+
+/// Logic and data structures regarding the fetch state of the pipeline. This
+/// is responsible for coordinating the retrieval (or fetching) of instructions
+/// from memory.
+mod fetch;
 
 /// _To be replaced._
 ///
@@ -53,12 +60,7 @@ pub fn run_simulator(io: IoThread, config: Config) {
     let mut paused = INITIALLY_PAUSED;
 
     while handle_io_and_continue(&mut paused, &io) {
-        // FETCH STAGE
-        if state_p.l_fetch.is_none() && state_p.l_decode.is_none() {
-            state_n.l_fetch = Some(state_p.memory.read_i32(
-                state_p.register[Register::PC as usize] as usize
-            ));
-        }
+        fetch_stage(&mut state_p, &mut state_n);
 
         // DECODE STAGE
         if let Some(ref raw) = state_p.l_fetch {
