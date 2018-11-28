@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::default::Default;
 
 use isa::Instruction;
@@ -42,28 +41,6 @@ pub struct LatchFetch {
     data: Option<Access<i32>>,
     /// The choice the branch predictor made.
     branch_choice: u32,
-}
-
-/// Reservation station data and logic.
-#[derive(Clone)]
-pub struct ResvStation {
-    /// The amount of reservations the Reservation Station can hold.
-    capacity: usize,
-    /// The contents of the Reservation Station.
-    contents: VecDeque<Reservation>,
-}
-
-/// A single Reservation within the Reservation Station.
-#[derive(Clone, Default)]
-pub struct Reservation {
-    /// The instruction being reserved.
-    instr: Instruction,
-    /// Whether the rs1 source register is ready. If no rs1 is required this
-    /// will always be true.
-    rs1_ready: bool,
-    /// Whether the rs2 source register is ready. If no rs2 is required this
-    /// will always be true.
-    rs2_ready: bool,
 }
 
 ///////////////////////////////////////////////////////////////////////////////

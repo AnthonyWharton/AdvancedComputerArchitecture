@@ -21,6 +21,9 @@ pub mod memory;
 /// Definitions for the register file inside the simulator.
 pub mod register;
 
+/// Definitions for the unified reservation station inside the simulator.
+pub mod reservation;
+
 /// Definitions for the ongoing state of the simulator.
 pub mod state;
 
