@@ -23,11 +23,15 @@ pub struct State {
     pub l_decode: Option<Instruction>,
 }
 
-/// Struct to contain the simulator statistics.
+/// Container for simulation statistics.
 #[derive(Clone, Default)]
 pub struct Stats {
+    /// The number of cycles that have passed.
     pub cycles: u64,
+    /// The number of successfully executed instructions.
     pub executed: u64,
+    /// The number of pipeline stalls/bubbles that have occured.
+    pub stalls: u64,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
