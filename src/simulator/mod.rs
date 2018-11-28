@@ -12,24 +12,32 @@ use util::exit::Exit;
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES
 
+/// _To be replaced._
+///
 /// Definitions for the execution of every function.
 mod instruction;
 
-/// Definitions for the main memory data structure.
+/// Logic and data structures for the simulated main memory module, which is
+/// where program instructions and data are stored.
 pub mod memory;
 
-/// Definitions for the register file inside the simulator.
+/// Logic and data structures for the architectural and physical register
+/// files, which are where temporary working values used by the simulated
+/// processor are stored.
 pub mod register;
 
-/// Definitions for the unified reservation station inside the simulator.
+/// Logic and data structures for the unified reservation station, which is
+/// responsible for holding decoded instructions that are pending execution.
 pub mod reservation;
 
-/// Definitions for the ongoing state of the simulator.
+/// Definitions for the ongoing state of the simulator. This encapsulates
+/// almost all of the submodules within this module.
 pub mod state;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// CONST/STATIC
 
+/// Whether or not the simulator is initially paused upon being opened.
 pub const INITIALLY_PAUSED: bool = true;
 
 ///////////////////////////////////////////////////////////////////////////////
