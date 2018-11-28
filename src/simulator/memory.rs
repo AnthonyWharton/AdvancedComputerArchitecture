@@ -66,6 +66,9 @@ impl Memory {
 
     /// Reads a signed 32 bit word from `Memory` at a given index, returning
     /// the word and whether or not a misaligned access was used.
+    ///
+    /// Requires self to be mutable as this function will 0-extend memory if
+    /// attempting to access memory that has not been initialised before.
     pub fn read_i32(&mut self, index: usize) -> Access<i32> {
         // Check if memory data structure is large enough, if not extend
         let (diff, sufficient) = (index + 3).overflowing_sub(self.len());
@@ -83,6 +86,9 @@ impl Memory {
 
     /// Writes a signed 32 bit word to `Memory` at a given index, returning
     /// whether or not a misaligned access was used.
+    ///
+    /// Requires self to be mutable as this function will 0-extend memory if
+    /// attempting to access memory that has not been initialised before.
     pub fn write_i32(&mut self, index: usize, word: i32) -> bool {
         // Check if memory data structure is large enough, if not extend
         let (diff, sufficient) = (index + 3).overflowing_sub(self.len());
@@ -99,6 +105,9 @@ impl Memory {
     /// Reads a signed 16 bit half-word from `Memory` at a given index,
     /// returning the half-word and whether or not a misaligned access was
     /// used.
+    ///
+    /// Requires self to be mutable as this function will 0-extend memory if
+    /// attempting to access memory that has not been initialised before.
     pub fn read_i16(&mut self, index: usize) -> Access<i16> {
         // Check if memory data structure is large enough, if not extend
         let (diff, sufficient) = (index + 1).overflowing_sub(self.len());
@@ -117,6 +126,9 @@ impl Memory {
     /// Reads an unsigned 16 bit half-word from `Memory` at a given index,
     /// returning the half-word and whether or not a misaligned access was
     /// used.
+    ///
+    /// Requires self to be mutable as this function will 0-extend memory if
+    /// attempting to access memory that has not been initialised before.
     pub fn read_u16(&mut self, index: usize) -> Access<u16> {
         let r = self.read_i16(index);
         Access {
@@ -127,6 +139,9 @@ impl Memory {
 
     /// Writes a signed 16 bit half-word to `Memory` at a given index,
     /// returning whether or not a misaligned access was used.
+    ///
+    /// Requires self to be mutable as this function will 0-extend memory if
+    /// attempting to access memory that has not been initialised before.
     pub fn write_i16(&mut self, index: usize, word: i16) -> bool {
         // Check if memory data structure is large enough, if not extend
         let (diff, sufficient) = (index + 1).overflowing_sub(self.len());
