@@ -3,12 +3,11 @@ use std::time::Duration;
 use std::thread;
 
 use io::{IoEvent, IoThread, SimulatorEvent};
-use isa::Instruction;
-use isa::operand::Register;
 use util::config::Config;
 use util::loader::load_elf;
 use util::exit::Exit;
 
+use self::decode::decode_and_rename_stage;
 use self::fetch::fetch_stage;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -18,6 +17,11 @@ use self::fetch::fetch_stage;
 /// is responsible for coordinating the retrieval (or fetching) of instructions
 /// from memory.
 mod fetch;
+
+/// Logic regarding the decode and rename section of the pipeline. This is
+/// responsible for decoding instructions and ensuring they have no
+/// dependencies when moving down the pipeline,
+mod decode;
 
 /// _To be replaced._
 ///
@@ -61,15 +65,7 @@ pub fn run_simulator(io: IoThread, config: Config) {
 
     while handle_io_and_continue(&mut paused, &io) {
         fetch_stage(&mut state_p, &mut state_n);
-
-        // DECODE STAGE
-        if let Some(ref raw) = state_p.l_fetch {
-            state_n.l_decode = match Instruction::decode(raw.word) {
-                Some(i) => Some(i),
-                None => { panic!("Failed to decode instruction.") },
-            };
-            state_n.l_fetch = None;
-        }
+        decode_and_rename_stage(&state_p, &mut state_n);
 
         // EXECUTE STAGE
         if let Some(instruction) = state_p.l_decode {
