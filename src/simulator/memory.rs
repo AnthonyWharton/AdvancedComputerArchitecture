@@ -27,6 +27,8 @@ pub struct Memory(Vec<u8>);
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
 
+/// Implementation to pretty print a memory address access and whether or not
+/// it was aligned.
 impl<W: Display + LowerHex> Display for Access<W> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         if self.aligned {
