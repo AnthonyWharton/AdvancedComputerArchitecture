@@ -34,6 +34,15 @@ pub struct Stats {
     pub stalls: u64,
 }
 
+/// The contents of the latch that the fetch stage feeds into.
+#[derive(Clone, Default)]
+pub struct LatchFetch {
+    /// The data fetched.
+    data: Option<Access<i32>>,
+    /// The choice the branch predictor made.
+    branch_choice: u32,
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
 
