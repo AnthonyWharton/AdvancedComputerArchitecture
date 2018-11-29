@@ -1,7 +1,7 @@
 use std::fmt;
 
-use isa::Format;
-use isa::op_code::{BaseCode, Decodable};
+use super::Format;
+use super::op_code::{BaseCode, Decodable};
 
 ///////////////////////////////////////////////////////////////////////////////
 //// CONST/STATIC

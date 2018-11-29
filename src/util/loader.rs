@@ -4,8 +4,8 @@ use elf::types::{Machine, FileHeader, ProgramHeader, ELFCLASS32, ELFDATA2LSB,
 
 use isa::operand::Register;
 use simulator::state::State;
-use util::config::Config;
-use util::exit::Exit::{FileLoadError, ElfError};
+use super::config::Config;
+use super::exit::Exit::{FileLoadError, ElfError};
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS

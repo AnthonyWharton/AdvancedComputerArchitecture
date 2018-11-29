@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 
-use isa::op_code::{BaseCode, Decodable, Operation};
-use isa::operand::{Register, RegisterOperand, extract_immediate};
+use self::op_code::{BaseCode, Decodable, Operation};
+use self::operand::{Register, RegisterOperand, extract_immediate};
 
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES
