@@ -1,3 +1,9 @@
+//! # Project Daybreak
+//! Project Daybreak is a superscalar, out of order, `riscv32im` simulator. 
+//! It was primarily developed for a piece of coursework whilst studying 
+//! _Advanced Computer Architecture_ in the Department of Computer Science at 
+//! the University of Bristol.
+
 extern crate byteorder;
 extern crate elf;
 extern crate either;
