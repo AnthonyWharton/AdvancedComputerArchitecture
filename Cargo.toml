@@ -1,7 +1,12 @@
 [package]
-name = "simulator"
-version = "0.1.0"
-authors = ["Anthony Wharton <a.wharton.2015@bristol.ac.uk>"]
+name        = "daybreak"
+version     = "0.1.0"
+authors     = ["Anthony Wharton <a.wharton.2015@bristol.ac.uk>"]
+publish     = false
+description = "Project Daybreak is a superscalar, out of order, `riscv32im` simulator. It was primarily developed for a piece of coursework whilst studying Advanced Computer Architecture in the Department of Computer Science at the University of Bristol."
+keywords    = ["riscv", "risc", "simulator", "cpu", "isa"]
+categories  = ["command-line-utilities", "simulation", "science", "visualization"]
+readme      = "README.md"
 
 [dependencies]
 backtrace = "0.3.9"
