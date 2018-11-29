@@ -3,6 +3,8 @@
 //! It was primarily developed for a piece of coursework whilst studying 
 //! _Advanced Computer Architecture_ in the Department of Computer Science at 
 //! the University of Bristol.
+//!
+//! ![Project Daybreak Simulator Diagram](https://github.com/AnthonyWharton/AdvancedComputerArchitecture/raw/master/resources/diagram.png)
 
 extern crate byteorder;
 extern crate elf;
