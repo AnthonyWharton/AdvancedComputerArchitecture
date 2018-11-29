@@ -118,6 +118,14 @@ impl RegisterFile {
     /// is returned.
     pub fn using_write(&mut self, register: Register) -> Option<usize> {
         let idx = register as usize;
+        // Register zero and the program counters are special cases
+        if idx == (Register::X0 as usize) {
+            return Some(0)
+        } else if idx == (Register::PC as usize) {
+            // TODO: Consider a greater error for renaming program counter
+            None
+        }
+
         self.arch[idx].valid = false;
         match self.free.pop_front() {
             Some(name) => {
@@ -185,3 +193,4 @@ impl Default for RegisterEntry {
         }
     }
 }
+
