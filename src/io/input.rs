@@ -2,8 +2,8 @@ use std::io;
 use std::sync::mpsc::Sender;
 use std::thread::{JoinHandle, spawn};
 
-use termion::event::Key;
-use termion::input::TermRead;
+use super::termion::event::Key;
+use super::termion::input::TermRead;
 
 use super::IoEvent;
 

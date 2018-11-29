@@ -1,8 +1,6 @@
 extern crate byteorder;
 extern crate elf;
 extern crate either;
-extern crate tui;
-extern crate termion;
 
 use std::env;
 

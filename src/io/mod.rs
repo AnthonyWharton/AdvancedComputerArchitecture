@@ -1,10 +1,13 @@
+extern crate tui;
+extern crate termion;
+
 use std::cmp;
 use std::collections::VecDeque;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread::{JoinHandle, spawn};
 
-use termion::event::Key;
-use tui::layout::Rect;
+use self::termion::event::Key;
+use self::tui::layout::Rect;
 
 use simulator::INITIALLY_PAUSED;
 use simulator::state::State;
