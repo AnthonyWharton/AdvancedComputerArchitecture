@@ -12,17 +12,17 @@ use util::exit::Exit;
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES
 
-/// Miscellaneous Utilities and Helpers
+/// Miscellaneous Utilities and Helpers.
 #[macro_use]
 mod util;
 
 /// All input/output logic, including interfacing with the IO thread.
 mod io;
 
-/// Everything to do isa instructions; definitions and binary logic/parsing etc.
+/// Definitions for the `riscv32im` ISA, and logic for decoding.
 mod isa;
 
-/// Everything to do with the simulator; logic and virtual components etc.
+/// All of the simulator's components, logic and state.
 mod simulator;
 
 ///////////////////////////////////////////////////////////////////////////////
