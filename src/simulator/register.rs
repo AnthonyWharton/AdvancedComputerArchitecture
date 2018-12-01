@@ -42,7 +42,7 @@ pub struct ArchRegEntry {
 /// The contents of a line in the Phsyical Register File.
 ///
 /// Will remain invalid until an execute unit writes into it.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct PhysicalRegEntry {
     /// The data stored in the line of the physical register file.
     data: i32,
@@ -131,15 +131,15 @@ impl RegisterFile {
     /// Returns the renamed register reference, if available, otherwise `None`
     /// is returned.
     pub fn using_write(&mut self, register: Register) -> Option<usize> {
-        let idx = register as usize;
         // Register zero and the program counters are special cases
-        if idx == (Register::X0 as usize) {
-            return Some(0)
-        } else if idx == (Register::PC as usize) {
-            // TODO: Consider a greater error for renaming program counter
-            return None
+        match register {
+            Register::X0 => return Some(0),
+            // TODO: Consider a more severe error for renaming program counter
+            Register::PC => return None,
+            _ => (),
         }
 
+        let idx = register as usize;
         self.arch[idx].valid = false;
         match self.free.pop_front() {
             Some(name) => {
@@ -171,6 +171,11 @@ impl RegisterFile {
     /// youngest rename of the register, this will reset the validity of the
     /// architectural register file to true.
     pub fn finished_write(&mut self, register: Register, name: usize) {
+        // Register zero special case
+        if register == Register::X0 {
+            return;
+        }
+
         let idx = register as usize;
         self.arch[idx].data = self.physical[name - 33].data;
         if self.arch[idx].rename == name {
