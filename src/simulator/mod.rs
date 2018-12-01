@@ -37,6 +37,11 @@ pub mod memory;
 /// processor are stored.
 pub mod register;
 
+/// Logic and data structures for the reorder buffer, which is used to ensure
+/// that instructions executed out of order will be committed in the order of
+/// execution.
+pub mod reorder;
+
 /// Logic and data structures for the unified reservation station, which is
 /// responsible for holding decoded instructions that are pending execution.
 pub mod reservation;
