@@ -11,8 +11,9 @@ use super::state::State;
 pub struct LatchFetch {
     /// The data fetched.
     data: Option<Access<i32>>,
-    /// The choice the branch predictor made.
-    branch_choice: u32,
+    /// The program counter value for this instruction, indicating the choice
+    /// the branch predictor made.
+    spec_bp_pc: usize,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
