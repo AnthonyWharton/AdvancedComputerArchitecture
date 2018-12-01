@@ -1,6 +1,5 @@
 use std::collections::VecDeque;
 use std::default::Default;
-use std::ops::{Index, IndexMut};
 
 use either::{Either, Left, Right};
 
@@ -16,97 +15,112 @@ use isa::operand::Register;
 #[derive(Clone)]
 pub struct RegisterFile {
     /// The architectural register lookup table.
-    arch: Vec<RegisterEntry>,
+    arch: Vec<ArchRegEntry>,
     /// The physical registers that hold register data, and a count of how many
     /// references are making current use of it.
-    physical: Vec<(i32, u8)>,
+    physical: Vec<PhysicalRegEntry>,
     /// A queue of registers that are free for rename usage in the physical
     /// register file.
     free: VecDeque<usize>,
 }
 
-/// The contents of a line in the Register File.
+/// The contents of a line in the Architectural Register File.
+///
+/// If the valid bit is not set, more up to date information may be in the
+/// physical register file.
 #[derive(Clone)]
-pub struct RegisterEntry {
-    /// If valid bit is set, this contains value of the architectural Register,
-    /// else is contains the last valid value of the architectural Register.
+pub struct ArchRegEntry {
+    /// The latest committed value of the register.
     data: i32,
     /// The 'valid' bit, i.e. the data is directly usable.
     valid: bool,
-    /// The name of the register in the physical register file, used when the
-    /// valid bit is not set.
+    /// The renamed name of the register in the physical register file, used
+    /// when the valid bit is not set.
     rename: usize,
 }
 
+/// The contents of a line in the Phsyical Register File.
+///
+/// Will remain invalid until an execute unit writes into it.
+#[derive(Clone)]
+pub struct PhysicalRegEntry {
+    /// The data stored in the line of the physical register file.
+    data: i32,
+    /// The 'valid' bit, i.e. the data is directly usable.
+    valid: bool,
+    /// The number of components that have a reference to this physical
+    /// register entry.
+    ref_count: u8,
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
-
-/// Implementation used for indexing the register file by the raw register
-/// name, with **NO** guarentee for validity. (If an architectural register is
-/// given, it will follow the most recent rename for it).
-impl Index<usize> for RegisterFile {
-    type Output = i32;
-
-    /// Returns the register with the given name.
-    fn index(&self, name: usize) -> &i32 {
-        if name < 33 {
-            &self[Register::from(name as i32)]
-        } else {
-            &self.physical[name - 33].0
-        }
-    }
-}
-
-/// Implementation used for indexing the register file by architectural
-/// register. Will use the most recent renamed version of the register, with
-/// **NO** guarentee for validity.
-impl Index<Register> for RegisterFile {
-    type Output = i32;
-
-    fn index(&self, index: Register) -> &i32 {
-        if self.arch[index as usize].valid {
-            &self.arch[index as usize].data
-        } else {
-            &self.physical[self.arch[index as usize].rename - 33].0
-        }
-    }
-}
-
-/// Implementation used for mutably indexing the register file by the raw
-/// register name, with **NO** guarentee for validity. (If an architectural
-/// register is given, it will follow the most recent rename for it).
-impl IndexMut<usize> for RegisterFile {
-    /// Returns the register with the given name.
-    fn index_mut(&mut self, name: usize) -> &mut i32 {
-        if name < 33 {
-            &mut self[Register::from(name as i32)]
-        } else {
-            &mut self.physical[name - 33].0
-        }
-    }
-}
-
-/// Implementation used for mutably indexing the register file by architectural
-/// register. Will use the most recent renamed version of the register, with
-/// **NO** guarentee for validity.
-impl IndexMut<Register> for RegisterFile {
-    fn index_mut(&mut self, index: Register) -> &mut i32 {
-        if self.arch[index as usize].valid {
-            &mut self.arch[index as usize].data
-        } else {
-            &mut self.physical[self.arch[index as usize].rename - 33].0
-        }
-    }
-}
 
 impl RegisterFile {
     /// Creates a new register file with specified amount of physical registers
     /// in the physical register file.
     pub fn new(physical_regs: usize) -> RegisterFile {
         RegisterFile {
-            arch: vec![RegisterEntry::default(); 33],
+            arch: vec![ArchRegEntry::default(); 33],
             physical: Vec::with_capacity(physical_regs),
             free: (33 .. physical_regs + 33).collect(),
+        }
+    }
+
+    /// Finds the value of a given register name if valid. If an architectural
+    /// register file name is given, this will return the value of the
+    /// architectural file's data regardless of validity. For a method that
+    /// takes architectural register file validity into account use
+    /// [`read_reg()`](#method.reg) instead.
+    fn read_at_name(&self, name: usize) -> Option<i32> {
+        if name < 33 {
+            if self.arch[name].valid {
+                Some(self.arch[name].data)
+            } else {
+                None
+            }
+        } else {
+            if self.physical[name - 33].valid {
+                Some(self.physical[name - 33].data)
+            } else {
+                None
+            }
+        }
+    }
+
+    /// Writes the give value to a given register name. If a physical register
+    /// file name is given, the valid bit will be set to `true` upon a write.
+    /// If an architectural register file name is given, the validity bit is
+    /// not touched. To set the architectural register file validity bit,
+    /// initiate a writeback with [`finished_write()`](#method.finished_write)
+    /// instead.
+    fn write_to_name(&mut self, name: usize, data: i32) {
+        if name < 33 {
+            self.arch[name].data = data;
+        } else {
+            self.physical[name - 33].data = data;
+            self.physical[name - 33].valid = true;
+        }
+    }
+
+    /// Finds the value of a given register if valid. This will follow the
+    /// latest rename of that register if the valid bit is not set.
+    ///
+    /// Order of checks:
+    ///   1) If, architectural register file entry is valid, return the data.
+    ///   2) Else, follow the architectural register file rename to physical
+    ///      register file.
+    ///   3) If, physical register file entry is valid, return the data/
+    ///   3) Else, no data is available for this name.
+    fn read_reg(&self, index: Register) -> Option<i32> {
+        let name = index as usize;
+        if self.arch[name].valid {
+            Some(self.arch[name].data)
+        } else if self.physical[self.arch[name].rename].valid {
+            Some(self.physical[self.arch[name].rename].data)
+        } else {
+            None
         }
     }
 
@@ -129,9 +143,7 @@ impl RegisterFile {
         self.arch[idx].valid = false;
         match self.free.pop_front() {
             Some(name) => {
-                // No guarentee to contents, but we will wipe it to 0 for this
-                // implementation.
-                self.physical[name - 33] = (0, 1);
+                self.physical[name - 33] = PhysicalRegEntry::default();
                 self.arch[idx].rename = name;
                 return Some(name)
             },
@@ -148,7 +160,7 @@ impl RegisterFile {
         if self.arch[idx].valid {
             Left(self.arch[idx].data)
         } else {
-            self.physical[self.arch[idx].rename - 33].1 += 1;
+            self.physical[self.arch[idx].rename - 33].ref_count += 1;
             Right(self.arch[idx].rename)
         }
     }
@@ -160,7 +172,7 @@ impl RegisterFile {
     /// architectural register file to true.
     pub fn finished_write(&mut self, register: Register, name: usize) {
         let idx = register as usize;
-        self.arch[idx].data = self.physical[name - 33].0;
+        self.arch[idx].data = self.physical[name - 33].data;
         if self.arch[idx].rename == name {
             self.arch[idx].valid = true;
         }
@@ -176,18 +188,18 @@ impl RegisterFile {
     /// Removes a reference from the physical register file, and free's it if
     /// that was the last reference.
     fn remove_ref(&mut self, name: usize) {
-        self.physical[name - 33].1 -= 1;
-        if self.physical[name - 33].1 <= 0 {
+        self.physical[name - 33].ref_count -= 1;
+        if self.physical[name - 33].ref_count <= 0 {
             self.free.push_back(name)
         }
     }
 }
 
-impl Default for RegisterEntry {
+impl Default for ArchRegEntry {
     /// Returns the default register entry, that is with a valid value of 0
     /// set.
-    fn default() -> RegisterEntry {
-        RegisterEntry {
+    fn default() -> ArchRegEntry {
+        ArchRegEntry {
             data: 0,
             valid: true,
             rename: 0,
@@ -195,3 +207,14 @@ impl Default for RegisterEntry {
     }
 }
 
+impl Default for PhysicalRegEntry {
+    /// Returns the default register entry, that is with a valid value of 0
+    /// set.
+    fn default() -> PhysicalRegEntry {
+        PhysicalRegEntry {
+            data: 0,
+            valid: false,
+            ref_count: 1,
+        }
+    }
+}
