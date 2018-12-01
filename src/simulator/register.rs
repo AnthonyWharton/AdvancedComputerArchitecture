@@ -123,7 +123,7 @@ impl RegisterFile {
             return Some(0)
         } else if idx == (Register::PC as usize) {
             // TODO: Consider a greater error for renaming program counter
-            None
+            return None
         }
 
         self.arch[idx].valid = false;
@@ -146,7 +146,7 @@ impl RegisterFile {
     pub fn using_read(&mut self, register: Register) -> Either<i32, usize> {
         let idx = register as usize;
         if self.arch[idx].valid {
-            Left(self[register])
+            Left(self.arch[idx].data)
         } else {
             self.physical[self.arch[idx].rename - 33].1 += 1;
             Right(self.arch[idx].rename)
@@ -154,13 +154,14 @@ impl RegisterFile {
     }
 
     /// Indicate that the given physical register file name with given
-    /// associated register is no longer needed for write operations. If this
-    /// is the youngest rename of the register, this will flush the value back
-    /// into the architectural register file.
+    /// associated register is no longer needed for write operations, and flush
+    /// the value back to the architectural register file. If this is the
+    /// youngest rename of the register, this will reset the validity of the
+    /// architectural register file to true.
     pub fn finished_write(&mut self, register: Register, name: usize) {
         let idx = register as usize;
+        self.arch[idx].data = self.physical[name - 33].0;
         if self.arch[idx].rename == name {
-            self.arch[idx].data = self.physical[name - 33].0;
             self.arch[idx].valid = true;
         }
         self.remove_ref(name);
