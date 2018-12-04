@@ -23,6 +23,11 @@ mod fetch;
 /// dependencies when moving down the pipeline,
 mod decode;
 
+/// All of the execute units, which are responsible for the execute stage in
+/// the pipeline, as well as the logic for what should happen at writeback for
+/// a particular instruction.
+mod execute;
+
 /// _To be replaced._
 ///
 /// Definitions for the execution of every function.
