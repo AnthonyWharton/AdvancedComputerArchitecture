@@ -15,8 +15,10 @@ pub const INIT_MEMORY_SIZE: usize = 1_000_000; // 1 Megabyte
 /// Container for a memory access.
 #[derive(Copy, Clone, Debug)]
 pub struct Access<W> {
+    /// Whether or not the access was aligned.
+    pub aligned: bool,
+    /// The word as a result of the memory access.
     pub word: W,
-    pub aligned: bool
 }
 
 /// Smart Pointer on a vector of bytes to store the memory for the simulator.
@@ -69,18 +71,14 @@ impl Memory {
     ///
     /// Requires self to be mutable as this function will 0-extend memory if
     /// attempting to access memory that has not been initialised before.
-    pub fn read_i32(&mut self, index: usize) -> Access<i32> {
-        // Check if memory data structure is large enough, if not extend
-        let (diff, sufficient) = (index + 3).overflowing_sub(self.len());
-        if !sufficient {
-            self.0.append(&mut vec!(0; diff));
-        }
-
-        // Read 4 bytes to make an i32
-        let mut rdr = &self.0[index..];
+    pub fn read_i32(&self, index: usize) -> Access<i32> {
         Access {
-            word: rdr.read_i32::<LittleEndian>().unwrap(),
             aligned: index % 4 == 0,
+            word: if self.is_capable(index, 4) {
+                (&self.0[index..]).read_i32::<LittleEndian>().unwrap()
+            } else {
+                0
+            },
         }
     }
 
@@ -90,13 +88,8 @@ impl Memory {
     /// Requires self to be mutable as this function will 0-extend memory if
     /// attempting to access memory that has not been initialised before.
     pub fn write_i32(&mut self, index: usize, word: i32) -> bool {
-        // Check if memory data structure is large enough, if not extend
-        let (diff, sufficient) = (index + 3).overflowing_sub(self.len());
-        if !sufficient {
-            self.0.append(&mut vec!(0; diff));
-        }
+        self.zero_extend(index);
 
-        // Write 4 bytes at the given index
         let mut wtr = &mut self.0[index..];
         wtr.write_i32::<LittleEndian>(word).unwrap();
         index % 4 == 0
@@ -108,18 +101,14 @@ impl Memory {
     ///
     /// Requires self to be mutable as this function will 0-extend memory if
     /// attempting to access memory that has not been initialised before.
-    pub fn read_i16(&mut self, index: usize) -> Access<i16> {
-        // Check if memory data structure is large enough, if not extend
-        let (diff, sufficient) = (index + 1).overflowing_sub(self.len());
-        if !sufficient {
-            self.0.append(&mut vec!(0; diff));
-        }
-
-        // Read 2 bytes to make a i16
-        let mut rdr = &self.0[index..];
+    pub fn read_i16(&self, index: usize) -> Access<i16> {
         Access {
-            word: rdr.read_i16::<LittleEndian>().unwrap(),
             aligned: index % 2 == 0,
+            word: if self.is_capable(index, 2) {
+                (&self.0[index..]).read_i16::<LittleEndian>().unwrap()
+            } else {
+                0
+            },
         }
     }
 
@@ -132,8 +121,8 @@ impl Memory {
     pub fn read_u16(&mut self, index: usize) -> Access<u16> {
         let r = self.read_i16(index);
         Access {
-            word: r.word as u16,
             aligned: r.aligned,
+            word: r.word as u16,
         }
     }
 
@@ -143,13 +132,8 @@ impl Memory {
     /// Requires self to be mutable as this function will 0-extend memory if
     /// attempting to access memory that has not been initialised before.
     pub fn write_i16(&mut self, index: usize, word: i16) -> bool {
-        // Check if memory data structure is large enough, if not extend
-        let (diff, sufficient) = (index + 1).overflowing_sub(self.len());
-        if !sufficient {
-            self.0.append(&mut vec!(0; diff));
-        }
+        self.zero_extend(index + 1);
 
-        // Write 2 bytes at the given index
         let mut wtr = &mut self.0[index..];
         wtr.write_i16::<LittleEndian>(word).unwrap();
         index % 2 == 0
@@ -162,13 +146,8 @@ impl Memory {
         if section.shdr.name == ".shstrtab" { return }
         if section.shdr.size == 0 { return }
 
-        // Check if we need to expand memory
-        // `usize as u64` cast is safe as simulator is for 32 bit architectures
-        let (extra, sufficient_mem) = (section.shdr.addr + section.shdr.size)
-                                      .overflowing_sub(self.capacity() as u64);
-        if !sufficient_mem {
-            self.reserve(extra as usize);
-        }
+        // Extend the size of memory to contain new data
+        self.zero_extend((section.shdr.addr + section.shdr.size) as usize);
 
         // Load in the section
         // `usize as u64` cast is safe as simulator is for 32 bit architectures
@@ -176,5 +155,27 @@ impl Memory {
         let e_addr: usize = s_addr + section.data.len();
         self.splice(s_addr..e_addr, section.data.iter().cloned());
     }
+
+    /// Zero extends memory to the index given, if it is not currently
+    /// generated within the simulated `Memory` data structure.
+    fn zero_extend(&mut self, index: usize) {
+        // Check if memory data structure is large enough, if not extend
+        let (diff, sufficient) = (index).overflowing_sub(self.len());
+        if !sufficient {
+            self.0.append(&mut vec!(0; diff));
+        }
+    }
+
+    /// Whether or not the memory is capable of reading or writing a value of
+    /// `size` bytes at `index` - i.e. if the memory has been allocated on the
+    /// host machine of the simulator.
+    fn is_capable(&self, index: usize, size: usize) -> bool {
+        if size == 0 {
+            true
+        } else {
+            (index + size - 1).overflowing_sub(self.len()).1
+        }
+    }
+
 }
 

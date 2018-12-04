@@ -69,13 +69,15 @@ pub const INITIALLY_PAUSED: bool = true;
 /// Requires an IoThread for sending events to be output to the display, as
 /// well as for receiving any calls to close the simulation.
 pub fn run_simulator(io: IoThread, config: Config) {
-    let mut state_p = load_elf(&config);
-    let mut state_n = state_p.clone();
+    let mut state = load_elf(&config);
     let mut paused = INITIALLY_PAUSED;
 
     while handle_io_and_continue(&mut paused, &io) {
-        fetch_stage(&mut state_p, &mut state_n);
-        decode_and_rename_stage(&state_p, &mut state_n);
+        // Maintain immutable past state
+        let state_p = state.clone();
+
+        fetch_stage(&state_p, &mut state);
+        decode_and_rename_stage(&state_p, &mut state);
 
         // EXECUTE STAGE
         if let Some(instruction) = state_p.l_decode {
@@ -83,16 +85,15 @@ pub fn run_simulator(io: IoThread, config: Config) {
                 io.tx.send(IoEvent::Finish).unwrap();
                 break;
             }
-            instruction::exec(&mut state_n, instruction);
-            state_n.l_decode = None;
+            instruction::exec(&mut state, instruction);
+            state.l_decode = None;
         }
 
         // End of cycle, start housekeeping
-        state_n.stats.cycles += 1;
-        state_p = state_n.clone();
+        state.stats.cycles += 1;
 
         // Update IO thread and sleep for a moment
-        io.tx.send(IoEvent::UpdateState(state_n.clone())).unwrap();
+        io.tx.send(IoEvent::UpdateState(state.clone())).unwrap();
         thread::sleep(Duration::from_millis(50));
     }
 

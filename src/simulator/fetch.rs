@@ -25,7 +25,7 @@ pub struct LatchFetch {
 /// Requires previous self to be mutable due to mutable requirement on
 /// [`Memory.read_i32()`](../memory/struct.Memory.html#method.write_i32).
 /// Nothing else in the state will be changed.
-pub fn fetch_stage(state_p: &mut State, state_n: &mut State) {
+pub fn fetch_stage(state_p: &State, state_n: &mut State) {
     if state_p.l_fetch.is_none() && state_p.l_decode.is_none() {
         state_n.l_fetch = Some(state_p.memory.read_i32(
             state_p.register[Register::PC as usize] as usize
