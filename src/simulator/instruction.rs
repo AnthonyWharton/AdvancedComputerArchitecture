@@ -24,9 +24,9 @@ pub fn exec(state: &mut State, instruction: Instruction) {
         Operation::LW     => exec_i_type(state, instruction),
         Operation::LBU    => exec_i_type(state, instruction),
         Operation::LHU    => exec_i_type(state, instruction),
-        Operation::SB     => exec_s_type(state, instruction), //unimplemented!
-        Operation::SH     => exec_s_type(state, instruction), //unimplemented!
-        Operation::SW     => exec_s_type(state, instruction), //unimplemented!
+        Operation::SB     => exec_s_type(state, instruction),
+        Operation::SH     => exec_s_type(state, instruction),
+        Operation::SW     => exec_s_type(state, instruction),
         Operation::ADDI   => exec_i_type(state, instruction),
         Operation::SLTI   => exec_i_type(state, instruction),
         Operation::SLTIU  => exec_i_type(state, instruction),
