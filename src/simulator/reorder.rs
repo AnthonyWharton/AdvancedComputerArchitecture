@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 
+use either::{Either, Left};
+
 use isa::operand::Register;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -16,19 +18,23 @@ pub struct ReorderBuffer {
 pub struct ReorderEntry {
     /// The 'finished' bit, i.e. the data is directly usable, and the entry is
     /// ready for writeback.
-    finished: bool,
+    pub finished: bool,
     /// The speculative program counter for this instruction from the branch
     /// prediction unit. Should the Program Counter be different to this field
     /// at writeback, a branch misprediction has occured.
-    spec_bp_pc: usize,
+    pub spec_bp_pc: usize,
     /// The pre-renamed `rd` result register.
-    reg_rd: Option<Register>,
+    pub reg_rd: Option<Register>,
     /// The renamed `rd` result register.
-    name_rd: Option<usize>,
-    /// The name of the `rs1` register.
-    name_rs1: Option<usize>,
-    /// The name of the `rs2` register.
-    name_rs2: Option<usize>,
+    pub name_rd: Option<usize>,
+    /// Either the first source register name, or value. If this argument is
+    /// unused, it will be set as 0.
+    pub rs1: Either<i32, usize>,
+    /// Either the second source register name, or value. If this argument is
+    /// unused, it will be set as 0.
+    pub rs2: Either<i32, usize>,
+    /// The immediate of the pending instruction, if applicable.
+    pub imm: Option<i32>,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -65,8 +71,9 @@ impl Default for ReorderEntry {
             spec_bp_pc: 0,
             reg_rd: None,
             name_rd: None,
-            name_rs1: None,
-            name_rs2: None,
+            rs1: Left(0),
+            rs2: Left(0),
+            imm: None,
         }
     }
 }
