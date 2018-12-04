@@ -1,12 +1,9 @@
 use std::collections::VecDeque;
 
-use either::{Either, Left};
+use either::Either;
 
-use isa::Instruction;
 use isa::op_code::Operation;
 use isa::operand::Register;
-use super::register::RegisterFile;
-use super::reorder::ReorderBuffer;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
@@ -56,58 +53,21 @@ impl ResvStation {
         }
     }
 
-    /// Reserves a new slot in the reservation station.
-    /// TODO, Document, Types, Implement
-    pub fn reserve(
-        &mut self,
-        instruction: Instruction,
-        spec_bp_pc: usize,
-        rob: &mut ReorderBuffer,
-        rf: &mut RegisterFile,
-    ) -> bool {
+    /// Returns whether the reservation station has free capacity to add more
+    /// reservations.
+    pub fn free_capactiy(&self) -> bool {
+        self.contents.len() + 1 < self.capacity
+    }
+
+    /// Reserves an entry within the reservation station for future out of
+    /// order execution. Returns whether or not the reservation was made
+    /// successfully.
+    pub fn reserve(&mut self, reservation: Reservation) -> Result<(),()> {
         if self.contents.len() + 1 >= self.capacity {
-            return false
+            return Err(())
         }
-
-        // Reserve a physical register for writeback.
-        let mut name_rd = 0;
-        match instruction.rd {
-            Some(rd) => match rf.using_write(rd) {
-                Some(n) => name_rd = n,
-                None => return false, // No Available Physical Registers
-            },
-            None => (), // No need to rename as no writeback.
-        }
-
-        // Reserve a reorder buffer entry
-        let rob_entry = match rob.reserve_entry(spec_bp_pc) {
-            Some(entry) => entry,
-            None => {
-                rf.not_using_write(name_rd);
-                return false
-            },
-        };
-
-        self.contents.push_back(Reservation {
-            rob_entry,
-            spec_bp_pc,
-            op: instruction.op,
-            reg_rd: instruction.rd,
-            name_rd: match instruction.rd {
-                    Some(_) => Some(name_rd),
-                    None => None,
-                },
-            rs1: match instruction.rs1 {
-                    Some(rs1) => rf.using_read(rs1),
-                    None => Left(0),
-                },
-            rs2: match instruction.rs2 {
-                    Some(rs2) => rf.using_read(rs2),
-                    None => Left(0),
-                },
-            imm: instruction.imm,
-        });
-        true
+        self.contents.push_back(reservation);
+        Ok(())
     }
 
     /// Consumes a reservation that follows the given criteria, if such a
