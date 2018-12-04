@@ -56,14 +56,14 @@ pub fn exec(state: &mut State, instruction: Instruction) {
         Operation::CSRRWI => exec_i_type(state, instruction), //unimplemented!
         Operation::CSRRSI => exec_i_type(state, instruction), //unimplemented!
         Operation::CSRRCI => exec_i_type(state, instruction), //unimplemented!
-        Operation::MUL    => exec_i_type(state, instruction), //unimplemented!
-        Operation::MULH   => exec_i_type(state, instruction), //unimplemented!
-        Operation::MULHSU => exec_i_type(state, instruction), //unimplemented!
-        Operation::MULHU  => exec_i_type(state, instruction), //unimplemented!
-        Operation::DIV    => exec_i_type(state, instruction), //unimplemented!
-        Operation::DIVU   => exec_i_type(state, instruction), //unimplemented!
-        Operation::REM    => exec_i_type(state, instruction), //unimplemented!
-        Operation::REMU   => exec_i_type(state, instruction), //unimplemented!
+        Operation::MUL    => exec_i_type(state, instruction),
+        Operation::MULH   => exec_i_type(state, instruction),
+        Operation::MULHSU => exec_i_type(state, instruction),
+        Operation::MULHU  => exec_i_type(state, instruction),
+        Operation::DIV    => exec_i_type(state, instruction),
+        Operation::DIVU   => exec_i_type(state, instruction),
+        Operation::REM    => exec_i_type(state, instruction),
+        Operation::REMU   => exec_i_type(state, instruction),
     }
     state.stats.executed += 1;
 }
