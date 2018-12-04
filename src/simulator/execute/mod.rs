@@ -1,6 +1,18 @@
 use isa::op_code::Operation;
 
 ///////////////////////////////////////////////////////////////////////////////
+//// EXTERNAL MODULES
+
+/// Logic that is used by the _Arithmetic Logic Unit_.
+pub mod alu;
+
+/// Logic that is used by the _Branch Logic Unit_.
+pub mod blu;
+
+/// Logic that is used by the _Memory & Control Unit_.
+pub mod mcu;
+
+///////////////////////////////////////////////////////////////////////////////
 //// ENUMS
 
 /// An enumeration of the different types of execute units that exist within
@@ -14,8 +26,9 @@ pub enum ExecuteUnit {
     /// instructions.
     BLU,
     /// **Memory & Control Unit**, Responsible for load and store operations
-    /// that happen with main memory, as well as control operations and system
-    /// calls.
+    /// that happen with main memory in order, as well as control operations
+    /// and system calls which also need to occur in order at the writeback
+    /// stage.
     MCU,
 }
 
