@@ -86,16 +86,42 @@ fn exec_r_type(state: &mut State, instruction: Instruction) {
     let r = &mut state.register; // Shorthand, should hopefully be optimised out
 
     r[rd] = match instruction.op {
-        Operation::ADD  => r[rs1].overflowing_add(r[rs2]).0,
-        Operation::SUB  => r[rs1].overflowing_sub(r[rs2]).0,
-        Operation::SLL  => r[rs1] << (r[rs2] & 0b11111),
-        Operation::SLT  => (r[rs1] < r[rs2]) as i32,
-        Operation::SLTU => ((r[rs1] as u32) < (r[rs2] as u32)) as i32,
-        Operation::XOR  => r[rs1] ^ r[rs2],
-        Operation::SRL  => ((r[rs1] as u32) >> ((r[rs2] & 0b11111) as u32)) as i32,
-        Operation::SRA  => r[rs1] >> (r[rs2] & 0b11111),
-        Operation::OR   => r[rs1] | r[rs2],
-        Operation::AND  => r[rs1] & r[rs2],
+        Operation::ADD    => r[rs1].overflowing_add(r[rs2]).0,
+        Operation::SUB    => r[rs1].overflowing_sub(r[rs2]).0,
+        Operation::SLL    => r[rs1] << (r[rs2] & 0b11111),
+        Operation::SLT    => (r[rs1] < r[rs2]) as i32,
+        Operation::SLTU   => ((r[rs1] as u32) < (r[rs2] as u32)) as i32,
+        Operation::XOR    => r[rs1] ^ r[rs2],
+        Operation::SRL    => ((r[rs1] as u32) >> ((r[rs2] & 0b11111) as u32)) as i32,
+        Operation::SRA    => r[rs1] >> (r[rs2] & 0b11111),
+        Operation::OR     => r[rs1] | r[rs2],
+        Operation::AND    => r[rs1] & r[rs2],
+        Operation::MUL    => r[rs1].overflowing_mul(r[rs2]).0,
+        Operation::MULH   => (((r[rs1] as i64) * (r[rs2] as i64)) >> 32) as i32,
+        Operation::MULHU  => (((r[rs1] as u64) * (r[rs2] as u64)) >> 32) as i32,
+        Operation::MULHSU => (((r[rs1] as i64) * (r[rs2] as i64).abs()) >> 32) as i32,
+        Operation::DIV    => match r[rs2] {
+                                 0  => -1i32,
+                                 _  => match r[rs1].overflowing_div(r[rs2]) {
+                                     (_, true) => i32::min_value(),
+                                     (v, _)    => v,
+                                 },
+                             },
+        Operation::DIVU   => match r[rs2] {
+                                 0  => i32::max_value(),
+                                 _  => ((r[rs1] as u32) / (r[rs2] as u32)) as i32,
+                             },
+        Operation::REM    => match r[rs2] {
+                                 0 => r[rs1],
+                                 _ => match r[rs1].overflowing_div(r[rs2]) {
+                                     (_, true) => 0,
+                                     (v, _)    => v,
+                                 }
+                             },
+        Operation::REMU   => match r[rs2] {
+                                 0 => r[rs1],
+                                 _ => ((r[rs1] as u32) % (r[rs2] as u32)) as i32,
+                             },
         _ => panic!("Unknown R type instruction failed to execute.")
     };
 
