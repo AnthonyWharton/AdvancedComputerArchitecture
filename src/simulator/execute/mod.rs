@@ -1,4 +1,7 @@
 use isa::op_code::Operation;
+use simulator::reorder::ReorderEntry;
+use simulator::reservation::Reservation;
+use simulator::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES
@@ -17,7 +20,7 @@ pub mod mcu;
 
 /// An enumeration of the different types of execute units that exist within
 /// the simulator.
-pub enum ExecuteUnit {
+pub enum UnitType {
     /// **Arithmentic Logic Unit**, Responsible for all arithmetic and logic
     /// operations.
     ALU,
@@ -33,66 +36,94 @@ pub enum ExecuteUnit {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+//// TRAITS
+
+/// An `ExecuteUnit` will provide functions that can be run to execute an
+/// instruction in the execute stage, as well as deal with the results in the
+/// writeback stage.
+pub trait ExecuteUnit {
+    /// Handles the logic for the execution of an
+    /// [`Operation`](../../isa/op_code/enum.Operation.html) that this execution
+    /// unit is responsible for.
+    fn handle_execute(
+        &mut self,
+        state_p: &State,
+        state_n: &mut State,
+        reservation: &Reservation,
+    );
+
+    /// Handles the logic for the writeback of an
+    /// [`Operation`](../../isa/op_code/enum.Operation.html) that this execution
+    /// unit is responsible for.
+    fn handle_writeback(
+        &mut self,
+        state_p: &State,
+        state_n: &mut State,
+        rob_entry: &ReorderEntry,
+    );
+}
+
+///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
 
-impl From<Operation> for ExecuteUnit {
-    fn from(op: Operation) -> ExecuteUnit {
+impl From<Operation> for UnitType {
+    fn from(op: Operation) -> UnitType {
         match op {
-            Operation::LUI    => ExecuteUnit::ALU,
-            Operation::AUIPC  => ExecuteUnit::BLU,
-            Operation::JAL    => ExecuteUnit::BLU,
-            Operation::JALR   => ExecuteUnit::BLU,
-            Operation::BEQ    => ExecuteUnit::BLU,
-            Operation::BNE    => ExecuteUnit::BLU,
-            Operation::BLT    => ExecuteUnit::BLU,
-            Operation::BGE    => ExecuteUnit::BLU,
-            Operation::BLTU   => ExecuteUnit::BLU,
-            Operation::BGEU   => ExecuteUnit::BLU,
-            Operation::LB     => ExecuteUnit::MCU,
-            Operation::LH     => ExecuteUnit::MCU,
-            Operation::LW     => ExecuteUnit::MCU,
-            Operation::LBU    => ExecuteUnit::MCU,
-            Operation::LHU    => ExecuteUnit::MCU,
-            Operation::SB     => ExecuteUnit::MCU,
-            Operation::SH     => ExecuteUnit::MCU,
-            Operation::SW     => ExecuteUnit::MCU,
-            Operation::ADDI   => ExecuteUnit::ALU,
-            Operation::SLTI   => ExecuteUnit::ALU,
-            Operation::SLTIU  => ExecuteUnit::ALU,
-            Operation::XORI   => ExecuteUnit::ALU,
-            Operation::ORI    => ExecuteUnit::ALU,
-            Operation::ANDI   => ExecuteUnit::ALU,
-            Operation::SLLI   => ExecuteUnit::ALU,
-            Operation::SRLI   => ExecuteUnit::ALU,
-            Operation::SRAI   => ExecuteUnit::ALU,
-            Operation::ADD    => ExecuteUnit::ALU,
-            Operation::SUB    => ExecuteUnit::ALU,
-            Operation::SLL    => ExecuteUnit::ALU,
-            Operation::SLT    => ExecuteUnit::ALU,
-            Operation::SLTU   => ExecuteUnit::ALU,
-            Operation::XOR    => ExecuteUnit::ALU,
-            Operation::SRL    => ExecuteUnit::ALU,
-            Operation::SRA    => ExecuteUnit::ALU,
-            Operation::OR     => ExecuteUnit::ALU,
-            Operation::AND    => ExecuteUnit::ALU,
-            Operation::FENCE  => ExecuteUnit::MCU,
-            Operation::FENCEI => ExecuteUnit::MCU,
-            Operation::ECALL  => ExecuteUnit::MCU,
-            Operation::EBREAK => ExecuteUnit::MCU,
-            Operation::CSRRW  => ExecuteUnit::MCU,
-            Operation::CSRRS  => ExecuteUnit::MCU,
-            Operation::CSRRC  => ExecuteUnit::MCU,
-            Operation::CSRRWI => ExecuteUnit::MCU,
-            Operation::CSRRSI => ExecuteUnit::MCU,
-            Operation::CSRRCI => ExecuteUnit::MCU,
-            Operation::MUL    => ExecuteUnit::ALU,
-            Operation::MULH   => ExecuteUnit::ALU,
-            Operation::MULHSU => ExecuteUnit::ALU,
-            Operation::MULHU  => ExecuteUnit::ALU,
-            Operation::DIV    => ExecuteUnit::ALU,
-            Operation::DIVU   => ExecuteUnit::ALU,
-            Operation::REM    => ExecuteUnit::ALU,
-            Operation::REMU   => ExecuteUnit::ALU,
+            Operation::LUI    => UnitType::ALU,
+            Operation::AUIPC  => UnitType::BLU,
+            Operation::JAL    => UnitType::BLU,
+            Operation::JALR   => UnitType::BLU,
+            Operation::BEQ    => UnitType::BLU,
+            Operation::BNE    => UnitType::BLU,
+            Operation::BLT    => UnitType::BLU,
+            Operation::BGE    => UnitType::BLU,
+            Operation::BLTU   => UnitType::BLU,
+            Operation::BGEU   => UnitType::BLU,
+            Operation::LB     => UnitType::MCU,
+            Operation::LH     => UnitType::MCU,
+            Operation::LW     => UnitType::MCU,
+            Operation::LBU    => UnitType::MCU,
+            Operation::LHU    => UnitType::MCU,
+            Operation::SB     => UnitType::MCU,
+            Operation::SH     => UnitType::MCU,
+            Operation::SW     => UnitType::MCU,
+            Operation::ADDI   => UnitType::ALU,
+            Operation::SLTI   => UnitType::ALU,
+            Operation::SLTIU  => UnitType::ALU,
+            Operation::XORI   => UnitType::ALU,
+            Operation::ORI    => UnitType::ALU,
+            Operation::ANDI   => UnitType::ALU,
+            Operation::SLLI   => UnitType::ALU,
+            Operation::SRLI   => UnitType::ALU,
+            Operation::SRAI   => UnitType::ALU,
+            Operation::ADD    => UnitType::ALU,
+            Operation::SUB    => UnitType::ALU,
+            Operation::SLL    => UnitType::ALU,
+            Operation::SLT    => UnitType::ALU,
+            Operation::SLTU   => UnitType::ALU,
+            Operation::XOR    => UnitType::ALU,
+            Operation::SRL    => UnitType::ALU,
+            Operation::SRA    => UnitType::ALU,
+            Operation::OR     => UnitType::ALU,
+            Operation::AND    => UnitType::ALU,
+            Operation::FENCE  => UnitType::MCU,
+            Operation::FENCEI => UnitType::MCU,
+            Operation::ECALL  => UnitType::MCU,
+            Operation::EBREAK => UnitType::MCU,
+            Operation::CSRRW  => UnitType::MCU,
+            Operation::CSRRS  => UnitType::MCU,
+            Operation::CSRRC  => UnitType::MCU,
+            Operation::CSRRWI => UnitType::MCU,
+            Operation::CSRRSI => UnitType::MCU,
+            Operation::CSRRCI => UnitType::MCU,
+            Operation::MUL    => UnitType::ALU,
+            Operation::MULH   => UnitType::ALU,
+            Operation::MULHSU => UnitType::ALU,
+            Operation::MULHU  => UnitType::ALU,
+            Operation::DIV    => UnitType::ALU,
+            Operation::DIVU   => UnitType::ALU,
+            Operation::REM    => UnitType::ALU,
+            Operation::REMU   => UnitType::ALU,
         }
     }
 }
