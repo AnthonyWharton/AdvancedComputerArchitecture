@@ -73,7 +73,7 @@ impl RegisterFile {
     /// architectural file's data regardless of validity. For a method that
     /// takes architectural register file validity into account use
     /// [`read_reg()`](#method.reg) instead.
-    fn read_at_name(&self, name: usize) -> Option<i32> {
+    pub fn read_at_name(&self, name: usize) -> Option<i32> {
         if name < 33 {
             if self.arch[name].valid {
                 Some(self.arch[name].data)
@@ -95,7 +95,7 @@ impl RegisterFile {
     /// not touched. To set the architectural register file validity bit,
     /// initiate a writeback with [`finished_write()`](#method.finished_write)
     /// instead.
-    fn write_to_name(&mut self, name: usize, data: i32) {
+    pub fn write_to_name(&mut self, name: usize, data: i32) {
         if name < 33 {
             self.arch[name].data = data;
         } else {
@@ -113,7 +113,7 @@ impl RegisterFile {
     ///      register file.
     ///   3) If, physical register file entry is valid, return the data/
     ///   3) Else, no data is available for this name.
-    fn read_reg(&self, index: Register) -> Option<i32> {
+    pub fn read_reg(&self, index: Register) -> Option<i32> {
         let name = index as usize;
         if self.arch[name].valid {
             Some(self.arch[name].data)
