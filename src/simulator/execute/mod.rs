@@ -20,6 +20,7 @@ pub mod mcu;
 
 /// An enumeration of the different types of execute units that exist within
 /// the simulator.
+#[derive(PartialEq)]
 pub enum UnitType {
     /// **Arithmentic Logic Unit**, Responsible for all arithmetic and logic
     /// operations.
@@ -42,15 +43,30 @@ pub enum UnitType {
 /// instruction in the execute stage, as well as deal with the results in the
 /// writeback stage.
 pub trait ExecuteUnit {
+    /// Returns what type of execution unit this is.
+    fn get_type(&self) -> UnitType;
+
+    /// Indicates whether or not this Execute Unit is pipelined or not.
+    fn is_pipelined(&self) -> bool;
+
+    /// Indicates whether or not this Execute Unit is free to take on another
+    /// instruction.
+    fn is_free(&self) -> bool;
+
     /// Handles the logic for the execution of an
     /// [`Operation`](../../isa/op_code/enum.Operation.html) that this execution
-    /// unit is responsible for.
+    /// unit is responsible for. If the execute unit is pipelined, this will
+    /// add the execution to the pipeline.
     fn handle_execute(
         &mut self,
         state_p: &State,
         state_n: &mut State,
         reservation: &Reservation,
     );
+
+    /// Retrieves the results of the finished execute stage ready for the
+    /// reorder buffer, if anything exists in the latch.
+    fn get_result_latch(&mut self) -> Option<ReorderEntry>;
 
     /// Handles the logic for the writeback of an
     /// [`Operation`](../../isa/op_code/enum.Operation.html) that this execution
