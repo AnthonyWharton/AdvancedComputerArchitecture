@@ -77,6 +77,13 @@ impl From<op_code::BaseCode> for Format {
     }
 }
 
+impl From<op_code::Operation> for Format {
+    /// Provides an Instruction Format given the `Operation` of an instruction.
+    fn from(op: Operation) -> Format {
+        Format::from(BaseCode::from(op))
+    }
+}
+
 /////////////////////////////////////////////////////////////////// Instruction
 
 impl Default for Instruction {
