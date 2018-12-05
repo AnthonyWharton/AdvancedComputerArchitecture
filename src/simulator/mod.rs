@@ -28,6 +28,10 @@ mod decode;
 /// a particular instruction.
 mod execute;
 
+/// Logic recarding the writeback section of the pipeline. This is responsible
+/// for committing the results of instructions that have finished execution.
+pub mod writeback;
+
 /// _To be replaced._
 ///
 /// Definitions for the execution of every function.
@@ -54,6 +58,7 @@ pub mod reservation;
 /// Definitions for the ongoing state of the simulator. This encapsulates
 /// almost all of the submodules within this module.
 pub mod state;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //// CONST/STATIC
