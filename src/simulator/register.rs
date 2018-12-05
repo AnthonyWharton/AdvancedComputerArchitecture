@@ -96,7 +96,8 @@ impl RegisterFile {
     /// initiate a writeback with [`finished_write()`](#method.finished_write)
     /// instead.
     pub fn write_to_name(&mut self, name: usize, data: i32) {
-        if name < 33 {
+        // Ensure we never write to the zero register.
+        if 0 < name && name < 33 {
             self.arch[name].data = data;
         } else {
             self.physical[name - 33].data = data;
@@ -208,9 +209,11 @@ impl RegisterFile {
     /// Removes a reference from the physical register file, and free's it if
     /// that was the last reference.
     fn remove_ref(&mut self, name: usize) {
-        self.physical[name - 33].ref_count -= 1;
-        if self.physical[name - 33].ref_count <= 0 {
-            self.free.push_back(name)
+        if name >= 33 {
+            self.physical[name - 33].ref_count -= 1;
+            if self.physical[name - 33].ref_count <= 0 {
+                self.free.push_back(name)
+            }
         }
     }
 }
