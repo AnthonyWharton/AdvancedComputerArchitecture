@@ -26,6 +26,12 @@ pub struct ReorderEntry {
     /// prediction unit. Should the Program Counter be different to this field
     /// at writeback, a branch misprediction has occured.
     pub spec_bp_pc: usize,
+    /// The actual value of the Program Counter after execution. Only valid
+    /// when finished is `true`.
+    pub act_pc: usize,
+    /// The actual value of the `rd` result register after execution. Only
+    /// valid when finished is `true`.
+    pub act_rd: i32,
     /// The pre-renamed `rd` result register.
     pub reg_rd: Option<Register>,
     /// The renamed `rd` result register.
