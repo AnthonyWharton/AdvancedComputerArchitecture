@@ -1,9 +1,11 @@
 use std::collections::VecDeque;
 
-use either::Either;
+use either::{Either, Left, Right};
 
 use isa::op_code::Operation;
 use isa::operand::Register;
+use super::execute::UnitType;
+use super::register::RegisterFile;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
@@ -70,11 +72,41 @@ impl ResvStation {
         Ok(())
     }
 
-    /// Consumes a reservation that follows the given criteria, if such a
-    /// reservation exists.
-    /// TODO, Document, Types, Implement
-    pub fn consume(_criteria: ()) -> Option<Reservation> {
-        unimplemented!()
+    pub fn consume_next(
+        &mut self,
+        unit_type: UnitType,
+        rf: &RegisterFile,
+        limit: usize,
+    ) -> Option<Reservation> {
+        let act_limit = if limit == 0 {
+            self.contents.len()
+        } else {
+            limit
+        };
+        let next_valid = self.contents.iter()
+                                      .cloned()
+                                      .take(act_limit)
+                                      .enumerate()
+                                      .find(|(_, r)| {
+            // Unit does not require this type of instruction
+            unit_type == UnitType::from(r.op)
+            &&
+            match r.rs1 {
+                Left(_)  => true,
+                Right(n) => rf.read_at_name(n).is_some(),
+            }
+            &&
+            match r.rs2 {
+                Left(_)  => true,
+                Right(n) => rf.read_at_name(n).is_some(),
+            }
+        });
+
+        // Consume the reservation, if a valid one was found.
+        match next_valid {
+            Some((idx, _)) => self.contents.remove(idx),
+            None           => None,
+        }
     }
 }
 
