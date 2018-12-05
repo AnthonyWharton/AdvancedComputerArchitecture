@@ -4,18 +4,6 @@ use simulator::reservation::Reservation;
 use simulator::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////
-//// EXTERNAL MODULES
-
-/// Logic that is used by the _Arithmetic Logic Unit_.
-pub mod alu;
-
-/// Logic that is used by the _Branch Logic Unit_.
-pub mod blu;
-
-/// Logic that is used by the _Memory & Control Unit_.
-pub mod mcu;
-
-///////////////////////////////////////////////////////////////////////////////
 //// ENUMS
 
 /// An enumeration of the different types of execute units that exist within
@@ -37,46 +25,13 @@ pub enum UnitType {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-//// TRAITS
+//// STRUCTS
 
 /// An `ExecuteUnit` will provide functions that can be run to execute an
 /// instruction in the execute stage, as well as deal with the results in the
 /// writeback stage.
-pub trait ExecuteUnit {
-    /// Returns what type of execution unit this is.
-    fn get_type(&self) -> UnitType;
-
-    /// Indicates whether or not this Execute Unit is pipelined or not.
-    fn is_pipelined(&self) -> bool;
-
-    /// Indicates whether or not this Execute Unit is free to take on another
-    /// instruction.
-    fn is_free(&self) -> bool;
-
-    /// Handles the logic for the execution of an
-    /// [`Operation`](../../isa/op_code/enum.Operation.html) that this execution
-    /// unit is responsible for. If the execute unit is pipelined, this will
-    /// add the execution to the pipeline.
-    fn handle_execute(
-        &mut self,
-        state_p: &State,
-        state_n: &mut State,
-        reservation: &Reservation,
-    );
-
-    /// Retrieves the results of the finished execute stage ready for the
-    /// reorder buffer, if anything exists in the latch.
-    fn get_result_latch(&mut self) -> Option<ReorderEntry>;
-
-    /// Handles the logic for the writeback of an
-    /// [`Operation`](../../isa/op_code/enum.Operation.html) that this execution
-    /// unit is responsible for.
-    fn handle_writeback(
-        &mut self,
-        state_p: &State,
-        state_n: &mut State,
-        rob_entry: &ReorderEntry,
-    );
+#[derive(Clone)]
+pub struct ExecuteUnit {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -141,6 +96,55 @@ impl From<Operation> for UnitType {
             Operation::REM    => UnitType::ALU,
             Operation::REMU   => UnitType::ALU,
         }
+    }
+}
+
+impl ExecuteUnit {
+    /// Returns what type of execution unit this is.
+    pub fn get_type(&self) -> UnitType {
+        unimplemented!()
+    }
+
+    /// Indicates whether or not this Execute Unit is pipelined or not.
+    pub fn is_pipelined(&self) -> bool {
+        unimplemented!()
+    }
+
+    /// Indicates whether or not this Execute Unit is free to take on another
+    /// instruction.
+    pub fn is_free(&self) -> bool {
+        unimplemented!()
+    }
+
+    /// Handles the logic for the execution of an
+    /// [`Operation`](../../isa/op_code/enum.Operation.html) that this execution
+    /// unit is responsible for. If the execute unit is pipelined, this will
+    /// add the execution to the pipeline.
+    pub fn handle_execute(
+        &mut self,
+        state_p: &State,
+        state_n: &mut State,
+        reservation: &Reservation,
+    ) {
+        unimplemented!()
+    }
+
+    /// Retrieves the results of the finished execute stage ready for the
+    /// reorder buffer, if anything exists in the latch.
+    pub fn get_result_latch(&mut self) -> Option<ReorderEntry> {
+        unimplemented!()
+    }
+
+    /// Handles the logic for the writeback of an
+    /// [`Operation`](../../isa/op_code/enum.Operation.html) that this execution
+    /// unit is responsible for.
+    pub fn handle_writeback(
+        &mut self,
+        state_p: &State,
+        state_n: &mut State,
+        rob_entry: &ReorderEntry,
+    ) {
+        unimplemented!()
     }
 }
 

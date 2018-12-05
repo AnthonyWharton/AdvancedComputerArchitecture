@@ -2,7 +2,10 @@ use std::default::Default;
 
 use isa::Instruction;
 use isa::operand::Register;
+// use super::execute::ExecuteUnit;
 use super::memory::{Access, INIT_MEMORY_SIZE, Memory};
+// use super::reorder::ReorderBuffer;
+// use super::reservation::ResvStation;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// TYPES
@@ -21,6 +24,11 @@ pub struct State {
     pub register: RegisterFile,
     pub l_fetch: Option<Access<i32>>,
     pub l_decode: Option<Instruction>,
+
+    // Coming soon
+    // pub resrvation_station: ResvStation,
+    // pub reorder_buffer: ReorderBuffer,
+    // pub execute_units: Vec<Box<ExecuteUnit>>,
 }
 
 /// Container for simulation statistics.
