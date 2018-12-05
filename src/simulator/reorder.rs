@@ -7,6 +7,9 @@ use isa::operand::Register;
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
 
+/// The reorder buffer is responsible for keeping an in-order list of
+/// instructions that are being executed out of order, and their states. This
+/// can then be used to 'commit' results back in order, when they are ready.
 #[derive(Clone)]
 pub struct ReorderBuffer {
     rob: Vec<ReorderEntry>,

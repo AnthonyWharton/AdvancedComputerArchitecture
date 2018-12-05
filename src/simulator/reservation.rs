@@ -10,7 +10,9 @@ use super::register::RegisterFile;
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
 
-/// Reservation station data and logic.
+/// The reservation station is the cache between the decode and dispatch stage.
+/// It is responsible for holding instructions that are ready, or waiting for
+/// dependencies, before they are dispatched to execution units.
 #[derive(Clone)]
 pub struct ResvStation {
     /// The amount of reservations the Reservation Station can hold.
