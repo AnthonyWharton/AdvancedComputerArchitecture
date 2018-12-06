@@ -28,7 +28,8 @@ pub fn set_panic_hook() {
 /// There seems to be no good way to reset this portably.
 #[allow(unused_must_use)]
 fn attempt_cleanup_raw_terminal() {
-    process::Command::new("stty").arg("sane").output();
+    process::Command::new("reset").output()
+        .expect("Failed attempt to reset terminal from raw mode.");
 }
 
 /// Essentially a clone of the backtrace library `Debug::fmt` implementation,
