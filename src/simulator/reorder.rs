@@ -31,10 +31,9 @@ pub struct ReorderEntry {
     /// The 'finished' bit, i.e. the data is directly usable, and the entry is
     /// ready for writeback.
     pub finished: bool,
-    /// The speculative program counter for this instruction from the branch
-    /// prediction unit. Should the Program Counter be different to this field
-    /// at writeback, a branch misprediction has occured.
-    pub spec_bp_pc: usize,
+    /// The program counter for this instruction, indicating the choice that
+    /// the branch predictor made.
+    pub pc: usize,
     /// The actual value of the Program Counter after execution. Only valid
     /// when finished is `true`.
     pub act_pc: usize,
@@ -72,8 +71,9 @@ impl ReorderBuffer {
     }
 
     /// If available, allocate a free entry in the reorder buffer with the
-    /// speculative program counter chosen by the branch predictor.
-    pub fn reserve_entry(&mut self, spec_bp_pc: usize) -> Option<usize> {
+    /// (speculative) program counter chosen by the branch predictor for the
+    /// instruction destined in the entry.
+    pub fn reserve_entry(&mut self, pc: usize) -> Option<usize> {
         // Check we have space
         if self.count == self.capacity {
             return None
@@ -83,7 +83,7 @@ impl ReorderBuffer {
         self.count += 1;
         self.front = (self.front + 1) % self.capacity;
         self.rob[e] = ReorderEntry::default();
-        self.rob[e].spec_bp_pc = spec_bp_pc;
+        self.rob[e].pc = pc;
         Some(e)
     }
 
@@ -124,7 +124,7 @@ impl Default for ReorderEntry {
     fn default() -> ReorderEntry {
         ReorderEntry {
             finished: false,
-            spec_bp_pc: 0,
+            pc: 0,
             act_pc: 0,
             act_rd: 0,
             reg_rd: None,

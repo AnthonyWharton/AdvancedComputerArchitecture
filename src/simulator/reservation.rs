@@ -28,7 +28,7 @@ pub struct Reservation {
     pub rob_entry: usize,
     /// The program counter value for this instruction, indicating the choice
     /// the branch predictor made.
-    pub spec_bp_pc: usize,
+    pub pc: usize,
     /// The pending operation
     pub op:  Operation,
     /// The pending writeback register.
