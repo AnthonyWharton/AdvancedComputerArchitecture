@@ -41,7 +41,10 @@ pub fn load_elf(config: &Config) -> State {
     }
 
     // Load in initial program counter
-    state.register[Register::PC as usize] = file.ehdr.entry as i32;
+    state.register.write_to_name(
+        Register::PC as usize,
+        file.ehdr.entry as i32
+    );
 
     state
 }
