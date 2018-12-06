@@ -2,16 +2,13 @@ use std::default::Default;
 
 use isa::Instruction;
 use isa::operand::Register;
-// use super::execute::ExecuteUnit;
+use super::branch::BranchPredictor;
+use super::execute::ExecuteUnit;
+use super::fetch::LatchFetch;
 use super::memory::{Access, INIT_MEMORY_SIZE, Memory};
-// use super::reorder::ReorderBuffer;
-// use super::reservation::ResvStation;
-
-///////////////////////////////////////////////////////////////////////////////
-//// TYPES
-
-/// The entire physical register file.
-pub type RegisterFile = [i32; 33];
+use super::register::RegisterFile;
+use super::reorder::ReorderBuffer;
+use super::reservation::ResvStation;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
@@ -19,16 +16,29 @@ pub type RegisterFile = [i32; 33];
 /// Current state of the simulator at any given moment.
 #[derive(Clone)]
 pub struct State {
+    /// Statistics collected over the simulator's lifetime.
     pub stats: Stats,
+    /// The virtual memory module, holding data and instructions in the
+    /// simulated machine.
     pub memory: Memory,
+    /// The virtual register file, holding both architectural and physical
+    /// registers for the simulated machine.
     pub register: RegisterFile,
-    pub l_fetch: Option<Access<i32>>,
-    pub l_decode: Option<Instruction>,
-
-    // Coming soon
-    // pub resrvation_station: ResvStation,
-    // pub reorder_buffer: ReorderBuffer,
-    // pub execute_units: Vec<Box<ExecuteUnit>>,
+    /// The virtual branch predict unit, that is used to select the instruction
+    /// that is loaded in the _fetch_ stage.
+    pub branch_predictor: BranchPredictor,
+    /// The virtual latch after the fetch unit, holding the data that is
+    /// fetched after the _fetch_ stage in the pipeline.
+    pub latch_fetch: LatchFetch,
+    /// The virtual reservation station, that holding instructions pending
+    /// execution.
+    pub resv_station: ResvStation,
+    /// The virtual reorder buffer, holding the pending results ready for
+    /// in-order _commitment_ at the writeback stage.
+    pub reorder_buffer: ReorderBuffer,
+    /// The virtual execute units, used to execute instructions out of order in
+    /// the _execute_ stage.
+    pub execute_units: Vec<Box<ExecuteUnit>>,
 }
 
 /// Container for simulation statistics.
@@ -47,15 +57,18 @@ pub struct Stats {
 
 impl Default for State {
     fn default() -> State {
-        let mut regs = [0i32; 33];
-        regs[Register::X2 as usize] = 128;
-        regs[Register::X8 as usize] = 128;
+        let mut regs = RegisterFile::new(64);
+        regs.write_to_name(Register::X2 as usize, 128);
+        regs.write_to_name(Register::X8 as usize, 128);
         State {
             stats: Stats::default(),
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register: regs,
-            l_fetch: None,
-            l_decode: None,
+            branch_predictor: BranchPredictor::new(0),
+            latch_fetch: LatchFetch::default(),
+            resv_station: ResvStation::new(16),
+            reorder_buffer: ReorderBuffer::new(32),
+            execute_units: Vec::new(), // TODO address lack of execute units
         }
     }
 }
