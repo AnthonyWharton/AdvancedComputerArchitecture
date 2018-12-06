@@ -8,10 +8,10 @@ use super::state::State;
 #[derive(Clone, Default)]
 pub struct LatchFetch {
     /// The data fetched.
-    data: Access<i32>,
+    pub data: Access<i32>,
     /// The program counter value for this instruction, indicating the choice
     /// the branch predictor made.
-    pc: usize,
+    pub pc: usize,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
