@@ -45,6 +45,7 @@ pub fn load_elf(config: &Config) -> State {
         Register::PC as usize,
         file.ehdr.entry as i32
     );
+    state.branch_predictor.force_update(file.ehdr.entry as usize);
 
     state
 }
