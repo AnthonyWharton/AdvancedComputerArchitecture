@@ -53,6 +53,6 @@ impl BranchPredictor {
     /// incorrect, and that the program counter should be hard reset to the
     /// given value.
     pub fn force_update(&mut self, corrected_pc: usize) {
-        unimplemented!();
+        self.pc = corrected_pc;
     }
 }
