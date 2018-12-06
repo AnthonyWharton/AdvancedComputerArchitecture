@@ -13,8 +13,8 @@ pub const INIT_MEMORY_SIZE: usize = 1_000_000; // 1 Megabyte
 //// STRUCTS
 
 /// Container for a memory access.
-#[derive(Copy, Clone, Debug)]
-pub struct Access<W> {
+#[derive(Copy, Clone, Debug, Default)]
+pub struct Access<W: Default> {
     /// Whether or not the access was aligned.
     pub aligned: bool,
     /// The word as a result of the memory access.
@@ -31,7 +31,7 @@ pub struct Memory(Vec<u8>);
 
 /// Implementation to pretty print a memory address access and whether or not
 /// it was aligned.
-impl<W: Display + LowerHex> Display for Access<W> {
+impl<W: Default + Display + LowerHex> Display for Access<W> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         if self.aligned {
             write!(f, "{:08x} (aligned)", self.word)

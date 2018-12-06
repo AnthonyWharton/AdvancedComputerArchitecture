@@ -8,7 +8,7 @@ use super::state::State;
 #[derive(Clone, Default)]
 pub struct LatchFetch {
     /// The data fetched.
-    data: Option<Access<i32>>,
+    data: Access<i32>,
     /// The program counter value for this instruction, indicating the choice
     /// the branch predictor made.
     pc: usize,
@@ -31,7 +31,7 @@ pub fn fetch_stage(state_p: &State, state_n: &mut State) {
     // Pass loaded word to following latch and branch predictor.
     state_n.branch_predictor.predict(data.word);
     state_n.latch_fetch = LatchFetch {
-        data: Some(data),
+        data: data,
         pc,
     };
 }
