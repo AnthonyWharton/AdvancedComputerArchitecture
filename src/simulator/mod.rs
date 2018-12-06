@@ -76,6 +76,9 @@ pub fn run_simulator(io: IoThread, config: Config) {
     let mut state = load_elf(&config);
     let mut paused = INITIALLY_PAUSED;
 
+    // Send the initial state to the UI to be displayed
+    io.tx.send(IoEvent::UpdateState(state.clone())).unwrap();
+
     while handle_io_and_continue(&mut paused, &io) {
         // Maintain immutable past state
         let state_p = state.clone();
