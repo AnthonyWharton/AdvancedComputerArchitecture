@@ -1,5 +1,3 @@
-use isa::operand::Register;
-
 use super::memory::Access;
 use super::state::State;
 
@@ -13,7 +11,7 @@ pub struct LatchFetch {
     data: Option<Access<i32>>,
     /// The program counter value for this instruction, indicating the choice
     /// the branch predictor made.
-    spec_bp_pc: usize,
+    pc: usize,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -26,10 +24,15 @@ pub struct LatchFetch {
 /// [`Memory.read_i32()`](../memory/struct.Memory.html#method.write_i32).
 /// Nothing else in the state will be changed.
 pub fn fetch_stage(state_p: &State, state_n: &mut State) {
-    if state_p.l_fetch.is_none() && state_p.l_decode.is_none() {
-        state_n.l_fetch = Some(state_p.memory.read_i32(
-            state_p.register[Register::PC as usize] as usize
-        ));
-    }
+    // Get branch prediction fed in
+    let pc = state_p.branch_predictor.get_prediction();
+    // Load word
+    let data = state_p.memory.read_i32(pc);
+    // Pass loaded word to following latch and branch predictor.
+    state_n.branch_predictor.predict(data.word);
+    state_n.latch_fetch = LatchFetch {
+        data: Some(data),
+        pc,
+    };
 }
 
