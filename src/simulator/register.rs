@@ -114,8 +114,8 @@ impl RegisterFile {
     ///      register file.
     ///   3) If, physical register file entry is valid, return the data/
     ///   3) Else, no data is available for this name.
-    pub fn read_reg(&self, index: Register) -> Option<i32> {
-        let name = index as usize;
+    pub fn read_reg(&self, reg: Register) -> Option<i32> {
+        let name = reg as usize;
         if self.arch[name].valid {
             Some(self.arch[name].data)
         } else if self.physical[self.arch[name].rename].valid {
