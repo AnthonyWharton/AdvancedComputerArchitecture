@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::ops::{Index, IndexMut};
 
 use either::{Either, Left};
 
@@ -12,8 +13,16 @@ use isa::operand::Register;
 /// can then be used to 'commit' results back in order, when they are ready.
 #[derive(Clone)]
 pub struct ReorderBuffer {
+    /// All the reorder buffer entries.
     rob: Vec<ReorderEntry>,
-    free: VecDeque<usize>,
+    /// A pointer to the start of the circular buffer.
+    front: usize,
+    /// A pointer to the end of the circular buffer.
+    back: usize,
+    /// The amount of items in the circular buffer.
+    count: usize,
+    /// The capacity of the circular buffer.
+    capacity: usize,
 }
 
 /// The contents of a line in the Register File.
@@ -53,22 +62,60 @@ impl ReorderBuffer {
     /// Creates a new reorder buffer with given capacity.
     pub fn new(capacity: usize) -> ReorderBuffer {
         ReorderBuffer {
-            rob: vec![ReorderEntry::default(); capacity],
-            free: (0 .. capacity).collect(),
+            rob: vec![ReorderEntry::default(); capacity + 1],
+            front: 0,
+            back: 0,
+            count: 1,
+            capacity
         }
+
     }
 
     /// If available, allocate a free entry in the reorder buffer with the
     /// speculative program counter chosen by the branch predictor.
     pub fn reserve_entry(&mut self, spec_bp_pc: usize) -> Option<usize> {
-        match self.free.pop_front() {
-            Some(e) => {
-                self.rob[e] = ReorderEntry::default();
-                self.rob[e].spec_bp_pc = spec_bp_pc;
-                Some(e)
-            },
-            None => None,
+        // Check we have space
+        if self.count == self.capacity {
+            return None
         }
+
+        let e = self.front;
+        self.count += 1;
+        self.front = (self.front + 1) % self.capacity;
+        self.rob[e] = ReorderEntry::default();
+        self.rob[e].spec_bp_pc = spec_bp_pc;
+        Some(e)
+    }
+
+    /// Placeholder implementation.
+    fn free_entry(&mut self) {
+        if self.count == 0 {
+            return
+        }
+        self.count -= 1;
+        self.back = (self.back + 1) % self.capacity;
+    }
+}
+
+impl Index<usize> for ReorderBuffer {
+    type Output = ReorderEntry;
+
+    /// Access a reorder buffer entry, panics if entry is out of bound.
+    fn index(&self, entry: usize) -> &ReorderEntry {
+        if entry >= self.capacity {
+            panic!("Tried to access out of bounds reorder entry.");
+        }
+        &self.rob[entry]
+    }
+}
+
+impl IndexMut<usize> for ReorderBuffer {
+    /// Mutably access a reorder buffer entry, panics if entry is out of bound.
+    fn index_mut(&mut self, entry: usize) -> &mut ReorderEntry {
+        if entry >= self.capacity {
+            panic!("Tried to access out of bounds reorder entry.");
+        }
+        &mut self.rob[entry]
     }
 }
 
@@ -78,6 +125,8 @@ impl Default for ReorderEntry {
         ReorderEntry {
             finished: false,
             spec_bp_pc: 0,
+            act_pc: 0,
+            act_rd: 0,
             reg_rd: None,
             name_rd: None,
             rs1: Left(0),
