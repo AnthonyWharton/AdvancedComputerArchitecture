@@ -74,6 +74,10 @@ impl ResvStation {
         Ok(())
     }
 
+    /// Consumes the next reservation station entry that is ready for
+    /// execution, and is supported by the given execution unit type. The limit
+    /// field reduces how many entries of the reservation station will be
+    /// checked.
     pub fn consume_next(
         &mut self,
         unit_type: UnitType,
@@ -90,13 +94,15 @@ impl ResvStation {
                                       .take(act_limit)
                                       .enumerate()
                                       .find(|(_, r)| {
-            // Unit does not require this type of instruction
+            // Check operation is supported by unit type
             unit_type == UnitType::from(r.op)
             &&
+            // Check rs1 is ready
             match r.rs1 {
                 Left(_)  => true,
                 Right(n) => rf.read_at_name(n).is_some(),
             }
+            // Check rs2 is ready
             &&
             match r.rs2 {
                 Left(_)  => true,
