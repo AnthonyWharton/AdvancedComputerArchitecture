@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::ops::{Index, IndexMut};
 
 use either::{Either, Left};
