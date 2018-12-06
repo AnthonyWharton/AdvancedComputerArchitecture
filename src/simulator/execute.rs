@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use either::{Left, Right};
 
-use isa::{Format, Instruction};
+use isa::Format;
 use isa::op_code::Operation;
 use isa::operand::Register;
 use simulator::register::RegisterFile;
@@ -47,7 +47,7 @@ pub struct ExecuteUnit {
     pipeline_size: usize,
     /// The pipeline of executing instructions, and how many cycles left in the
     /// execution of the instruction.
-    executing: VecDeque<(ExecuteLatch, u8)>,
+    executing: VecDeque<(ExecuteLatch, ExecutionLen)>,
 }
 
 /// The latch that contains the resulting information from the execute unit
@@ -63,8 +63,78 @@ pub struct ExecuteLatch {
     pub rd: Option<i32>,
 }
 
+/// A collection of information regarding how long an execution will take, and
+/// whether or not it blocks the pipeline.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct ExecutionLen {
+    pub blocking: bool,
+    pub steps: u8,
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
+
+impl From<Operation> for ExecutionLen {
+    fn from(op: Operation) -> ExecutionLen {
+        match op {
+            Operation::LUI    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::AUIPC  => ExecutionLen { blocking: false, steps: 1 },
+            Operation::JAL    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::JALR   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::BEQ    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::BNE    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::BLT    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::BGE    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::BLTU   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::BGEU   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::LB     => ExecutionLen { blocking:  true, steps: 1 },
+            Operation::LH     => ExecutionLen { blocking:  true, steps: 1 },
+            Operation::LW     => ExecutionLen { blocking:  true, steps: 1 },
+            Operation::LBU    => ExecutionLen { blocking:  true, steps: 1 },
+            Operation::LHU    => ExecutionLen { blocking:  true, steps: 1 },
+            Operation::SB     => ExecutionLen { blocking:  true, steps: 1 },
+            Operation::SH     => ExecutionLen { blocking:  true, steps: 1 },
+            Operation::SW     => ExecutionLen { blocking:  true, steps: 1 },
+            Operation::ADDI   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::SLTI   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::SLTIU  => ExecutionLen { blocking: false, steps: 1 },
+            Operation::XORI   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::ORI    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::ANDI   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::SLLI   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::SRLI   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::SRAI   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::ADD    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::SUB    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::SLL    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::SLT    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::SLTU   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::XOR    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::SRL    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::SRA    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::OR     => ExecutionLen { blocking: false, steps: 1 },
+            Operation::AND    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::FENCE  => ExecutionLen { blocking: false, steps: 1 },
+            Operation::FENCEI => ExecutionLen { blocking: false, steps: 1 },
+            Operation::ECALL  => ExecutionLen { blocking: false, steps: 1 },
+            Operation::EBREAK => ExecutionLen { blocking: false, steps: 1 },
+            Operation::CSRRW  => ExecutionLen { blocking: false, steps: 1 },
+            Operation::CSRRS  => ExecutionLen { blocking: false, steps: 1 },
+            Operation::CSRRC  => ExecutionLen { blocking: false, steps: 1 },
+            Operation::CSRRWI => ExecutionLen { blocking: false, steps: 1 },
+            Operation::CSRRSI => ExecutionLen { blocking: false, steps: 1 },
+            Operation::CSRRCI => ExecutionLen { blocking: false, steps: 1 },
+            Operation::MUL    => ExecutionLen { blocking: false, steps: 1 },
+            Operation::MULH   => ExecutionLen { blocking: false, steps: 1 },
+            Operation::MULHSU => ExecutionLen { blocking: false, steps: 1 },
+            Operation::MULHU  => ExecutionLen { blocking: false, steps: 1 },
+            Operation::DIV    => ExecutionLen { blocking:  true, steps: 1 },
+            Operation::DIVU   => ExecutionLen { blocking:  true, steps: 1 },
+            Operation::REM    => ExecutionLen { blocking:  true, steps: 1 },
+            Operation::REMU   => ExecutionLen { blocking:  true, steps: 1 },
+        }
+    }
+}
 
 impl From<Operation> for UnitType {
     fn from(op: Operation) -> UnitType {
@@ -140,9 +210,28 @@ impl ExecuteUnit {
     }
 
     /// Indicates whether or not this Execute Unit is free to take on another
-    /// instruction.
-    pub fn is_free(&self) -> bool {
-        self.executing.len() < self.pipeline_size
+    /// specified instruction.
+    pub fn is_free(&self, op: Operation) -> bool {
+        if ExecutionLen::from(op).blocking {
+            if self.executing.len() == 0 {
+                return true
+            } else {
+                return false
+            }
+        }
+        // Note: Dispatch is run before the execute/writeback stage, so we need
+        // to take into account that even if the pipeline is full, if the front
+        // instruction is about to be popped off, the EU is actually free.
+        match self.executing.front() {
+            Some((_, len)) => {
+                // Check if not blocking (in this case there should be only 1)
+                !len.blocking && // AND
+                // Either the pipeline is free, or is about to be free
+                ((self.executing.len() < self.pipeline_size) ||
+                 (len.steps == 1 && self.executing.len() <= self.pipeline_size))
+            },
+            None => true, // Nothing in the queue, so free
+        }
     }
 
     /// Handles the logic for the execution of an
@@ -171,11 +260,19 @@ impl ExecuteUnit {
         }
     }
 
-    /// Retrieves the results of the finished execute stage ready for the
-    /// reorder buffer, if anything exists in the latch.
-    pub fn get_result_latch(&mut self) -> Option<ExecuteLatch> {
-        self.executing.iter_mut().for_each(|(_, remaining)| *remaining -= 1);
-        unimplemented!()
+    /// Triggers another execution step, advancing the pipeline of executing
+    /// instructions. If an instruction has finished passing the pipeline, it
+    /// will be returned by this function.
+    pub fn advance_pipeline(&mut self) -> Option<ExecuteLatch> {
+        self.executing.iter_mut().for_each(|(_, len)| len.steps -= 1);
+        match self.executing.pop_front() {
+            Some((el, len)) if len.steps == 0 => Some(el),
+            Some(entry) => {
+                self.executing.push_front(entry);
+                None
+            },
+            _ => None,
+        }
     }
 
     /// Executes an R type instruction, putting the results in self.
@@ -230,11 +327,14 @@ impl ExecuteUnit {
             _ => panic!("Unknown R type instruction failed to execute.")
         };
 
-        self.executing.push_back((ExecuteLatch {
-            rob_entry: r.rob_entry,
-            pc: rf.read_reg(Register::PC).unwrap() + 4,
-            rd: Some(rd),
-        }, 1))
+        self.executing.push_back((
+            ExecuteLatch {
+                rob_entry: r.rob_entry,
+                pc: rf.read_reg(Register::PC).unwrap() + 4,
+                rd: Some(rd),
+            },
+            ExecutionLen::from(r.op)
+        ))
     }
 
 
