@@ -32,10 +32,9 @@ mod execute;
 /// for committing the results of instructions that have finished execution.
 pub mod writeback;
 
-/// _To be replaced._
-///
-/// Definitions for the execution of every function.
-mod instruction;
+/// Locic and datastructures for the branch predictor, used to inform the
+/// _fetch_ stage of which instruction to fetch next for speculative execution.
+pub mod branch;
 
 /// Logic and data structures for the simulated main memory module, which is
 /// where program instructions and data are stored.
@@ -83,16 +82,9 @@ pub fn run_simulator(io: IoThread, config: Config) {
 
         fetch_stage(&state_p, &mut state);
         decode_and_rename_stage(&state_p, &mut state);
-
-        // EXECUTE STAGE
-        if let Some(instruction) = state_p.l_decode {
-            if instruction.is_ret() {
-                io.tx.send(IoEvent::Finish).unwrap();
-                break;
-            }
-            instruction::exec(&mut state, instruction);
-            state.l_decode = None;
-        }
+        // TODO Add dispatch stage
+        // TODO Add execute stage
+        // TODO Add writeback stage
 
         // End of cycle, start housekeeping
         state.stats.cycles += 1;
