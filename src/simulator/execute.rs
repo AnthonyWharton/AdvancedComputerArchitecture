@@ -240,7 +240,7 @@ impl ExecuteUnit {
     /// add the execution to the pipeline.
     pub fn handle_execute(
         &mut self,
-        state_p: &State,
+        _state_p: &State,
         reservation: &Reservation,
     ) {
         if self.unit_type != UnitType::from(reservation.op) {
@@ -280,14 +280,14 @@ impl ExecuteUnit {
         let rs1 = match r.rs1 {
             Left(val)   => val,
             Right(name) => rf.read_at_name(name)
-                .expect("Exeute unit missing rs1!"),
+                .expect("Execute unit missing rs1!"),
         };
         let rs2 = match r.rs2 {
             Left(val)   => val,
             Right(name) => rf.read_at_name(name)
                 .expect("Execute unit missing rs2!"),
         };
-        let rd = match r.op {
+        let rd_val = match r.op {
             Operation::ADD    => rs1.overflowing_add(rs2).0,
             Operation::SUB    => rs1.overflowing_sub(rs2).0,
             Operation::SLL    => rs1 << (rs2 & 0b11111),
@@ -331,7 +331,62 @@ impl ExecuteUnit {
             ExecuteLatch {
                 rob_entry: r.rob_entry,
                 pc: rf.read_reg(Register::PC).unwrap() + 4,
-                rd: Some(rd),
+                rd: Some(rd_val),
+            },
+            ExecutionLen::from(r.op)
+        ))
+    }
+
+    /// Executes an I type instruction, modifying the borrowed state.
+    fn ex_i_type(&mut self, rf: &RegisterFile, r: &Reservation) {
+        let rs1 = match r.rs1 {
+            Left(val)   => val,
+            Right(name) => rf.read_at_name(name)
+                .expect("Execute unit missing rs1!"),
+        };
+        let imm = r.imm.expect("Execute unit missing imm!");
+
+        let rd_val = match r.op {
+            Operation::JALR   => rf.read_reg(Register::PC).unwrap() + 4,
+            // TODO Move to writeback stage
+            // Operation::LB     => m[(rs1 + imm) as usize] as i8 as i32,
+            // Operation::LH     => m.read_i16((rs1 + imm) as usize).word as i32,
+            // Operation::LW     => m.read_i32((rs1 + imm) as usize).word,
+            // Operation::LBU    => m[(rs1 + imm) as usize] as i32,
+            // Operation::LHU    => m.read_u16((rs1 + imm) as usize).word as i32,
+            Operation::ADDI   => rs1 + imm,
+            Operation::SLTI   => (rs1 < imm) as i32,
+            Operation::SLTIU  => ((rs1 as u32) < (imm as u32)) as i32,
+            Operation::XORI   => rs1 ^ imm,
+            Operation::ORI    => rs1 | imm,
+            Operation::ANDI   => rs1 & imm,
+            Operation::SLLI   => rs1 << imm,
+            Operation::SRLI   => ((rs1 as u32) >> (imm as u32)) as i32,
+            Operation::SRAI   => rs1 >> (imm & 0b11111),
+            Operation::FENCE  => unimplemented!(),
+            Operation::FENCEI => unimplemented!(),
+            Operation::ECALL  => unimplemented!(),
+            Operation::EBREAK => unimplemented!(),
+            Operation::CSRRW  => unimplemented!(),
+            Operation::CSRRS  => unimplemented!(),
+            Operation::CSRRC  => unimplemented!(),
+            Operation::CSRRWI => unimplemented!(),
+            Operation::CSRRSI => unimplemented!(),
+            Operation::CSRRCI => unimplemented!(),
+            _ => panic!("Unknown I type instruction failed to execute.")
+        };
+
+        let pc_val = if r.op == Operation::JALR {
+            (rs1 + imm) & !0b1
+        } else {
+            rf.read_reg(Register::PC).unwrap() + 4
+        };
+
+        self.executing.push_back((
+            ExecuteLatch {
+                rob_entry: r.rob_entry,
+                pc: pc_val,
+                rd: Some(rd_val),
             },
             ExecutionLen::from(r.op)
         ))
@@ -350,65 +405,6 @@ impl ExecuteUnit {
 
 
 
-
-    // /// Executes an I type instruction, modifying the borrowed state.
-    // fn ex_i_type(state: &mut State, instruction: Instruction) {
-    //     let rd  = instruction.rd
-    //         .expect("Invalid I type instruction (no rd) failed to execute.") as usize;
-    //     let rs1 = instruction.rs1
-    //         .expect("Invalid I type instruction (no rs1) failed to execute.") as usize;
-    //     let imm = instruction.imm
-    //         .expect("Invalid I type instruction (no imm) failed to execute.");
-
-    //     // Shorthand, should hopefully be optimised out
-    //     let r = &mut state.register;
-    //     let m = &mut state.memory;
-
-    //     if instruction.op == Operation::JALR {
-    //         if rd != 0 {
-    //             r[rd] = r[Register::PC as usize] + 4;
-    //         }
-    //         r[Register::PC as usize] += r[rs1] + imm;
-    //         r[Register::PC as usize] &= !0b1;
-    //         return;
-    //     }
-
-    //     // Early exit, assigning to 0 is a nop as there are no side effect status
-    //     // registers at this point in time.
-    //     if rd == 0 {
-    //         return;
-    //     }
-
-    //     r[rd] = match instruction.op {
-    //         Operation::LB     => m[(r[rs1] + imm) as usize] as i8 as i32,
-    //         Operation::LH     => m.read_i16((r[rs1] + imm) as usize).word as i32,
-    //         Operation::LW     => m.read_i32((r[rs1] + imm) as usize).word,
-    //         Operation::LBU    => m[(r[rs1] + imm) as usize] as i32,
-    //         Operation::LHU    => m.read_u16((r[rs1] + imm) as usize).word as i32,
-    //         Operation::ADDI   => r[rs1] + imm,
-    //         Operation::SLTI   => (r[rs1] < imm) as i32,
-    //         Operation::SLTIU  => ((r[rs1] as u32) < (imm as u32)) as i32,
-    //         Operation::XORI   => r[rs1] ^ imm,
-    //         Operation::ORI    => r[rs1] | imm,
-    //         Operation::ANDI   => r[rs1] & imm,
-    //         Operation::SLLI   => r[rs1] << imm,
-    //         Operation::SRLI   => ((r[rs1] as u32) >> (imm as u32)) as i32,
-    //         Operation::SRAI   => r[rs1] >> (imm & 0b11111),
-    //         Operation::FENCE  => unimplemented!(),
-    //         Operation::FENCEI => unimplemented!(),
-    //         Operation::ECALL  => unimplemented!(),
-    //         Operation::EBREAK => unimplemented!(),
-    //         Operation::CSRRW  => unimplemented!(),
-    //         Operation::CSRRS  => unimplemented!(),
-    //         Operation::CSRRC  => unimplemented!(),
-    //         Operation::CSRRWI => unimplemented!(),
-    //         Operation::CSRRSI => unimplemented!(),
-    //         Operation::CSRRCI => unimplemented!(),
-    //         _ => panic!("Unknown I type instruction failed to execute.")
-    //     };
-
-    //     r[Register::PC as usize] += 4;
-    // }
 
     // /// Executes an S type instruction, modifying the borrowed state.
     // fn ex_s_type(state: &mut State, instruction: Instruction) {
