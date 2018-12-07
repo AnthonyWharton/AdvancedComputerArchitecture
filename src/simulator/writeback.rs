@@ -1,6 +1,6 @@
-use isa::{Format, Instruction};
-use isa::op_code::Operation;
-use isa::operand::Register;
+// use isa::{Format, Instruction};
+// use isa::op_code::Operation;
+// use isa::operand::Register;
 use simulator::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -11,17 +11,17 @@ use simulator::state::State;
 /// ['ReorderBuffer'](../reorder/struct.ReorderBuffer.html), and then commit
 /// them to the new state.
 pub fn handle_writeback(
-    state_p: &State,
-    state_n: &mut State,
+    _state_p: &State,
+    _state_n: &mut State,
 ) {
-    match Format::from(Operation::ADD) {
-        Format::R => unimplemented!(),
-        Format::I => unimplemented!(),
-        Format::S => unimplemented!(),
-        Format::B => unimplemented!(),
-        Format::U => unimplemented!(),
-        Format::J => unimplemented!(),
-    }
+    // match Format::from(Operation::ADD) {
+    //     Format::R => unimplemented!(),
+    //     Format::I => unimplemented!(),
+    //     Format::S => unimplemented!(),
+    //     Format::B => unimplemented!(),
+    //     Format::U => unimplemented!(),
+    //     Format::J => unimplemented!(),
+    // }
 }
 
 // /// Writeback for an R type instruction, modifying the borrowed state.

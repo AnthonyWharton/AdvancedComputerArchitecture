@@ -37,7 +37,7 @@ impl BranchPredictor {
     /// The feedback from the fetch stage as to last instruction that was
     /// loaded from memory, used to make the next prediction. Returns the next
     /// prediction to allow for easy implementation of the forward bypass.
-    pub fn predict(&mut self, next_instr: i32) {
+    pub fn predict(&mut self, _next_instr: i32) {
         self.old_pc = self.pc;
         self.pc += 4;
     }

@@ -10,7 +10,7 @@ use super::tui::style::{Color, Modifier, Style};
 use super::tui::widgets::{Block, Borders, List, Paragraph, Text, Widget};
 
 use isa::Instruction;
-use isa::operand::Register;
+// use isa::operand::Register;
 use simulator::state::State;
 use super::TuiApp;
 
@@ -71,8 +71,6 @@ fn draw_stats(
         Text::raw(format!("cycles:   {}\n", state.stats.cycles)),
         Text::raw(format!("avg. executions/cycle: {:.3}\n", epc)),
         Text::raw("\n"),
-        Text::raw(format_option!("Fetch:  ", "{}", "\n", state.l_fetch)),
-        Text::raw(format_option!("Decode: ", "{}", "\n", state.l_decode)),
     ];
     Paragraph::new(tmp.iter())
         .block(standard_block("Statistics"))
@@ -82,34 +80,34 @@ fn draw_stats(
 
 /// Draws the register file.
 fn draw_registers(
-    f: &mut Frame<Backend>,
-    area: Rect,
+    _f: &mut Frame<Backend>,
+    _area: Rect,
     app: &TuiApp,
     default: &State
 ) {
-    let state_prev = app.states.get(app.hist_display+1).unwrap_or(default);
-    let state = app.states.get(app.hist_display).unwrap_or(default);
-    let registers = state.register.iter().enumerate().map(|(name, value)| {
-        let reg = Register::from(name as i32);
-        Text::styled(
-            format!(
-                "{n:>#04}-{n:<03} :: {v:08x} - {v}",
-                n=reg,
-                v=value
-            ),
-            if reg == Register::PC {
-                Style::default().fg(Color::LightBlue).modifier(Modifier::Bold)
-            } else if state.register[name] != state_prev.register[name] {
-                Style::default().fg(Color::Black).bg(Color::LightYellow)
-            } else {
-                Style::default().fg(Color::White)
-            }
-        )
-    });
+    let _state_prev = app.states.get(app.hist_display+1).unwrap_or(default);
+    let _state = app.states.get(app.hist_display).unwrap_or(default);
+    // let registers = state.register.iter().enumerate().map(|(name, value)| {
+    //     let reg = Register::from(name as i32);
+    //     Text::styled(
+    //         format!(
+    //             "{n:>#04}-{n:<03} :: {v:08x} - {v}",
+    //             n=reg,
+    //             v=value
+    //         ),
+    //         if reg == Register::PC {
+    //             Style::default().fg(Color::LightBlue).modifier(Modifier::Bold)
+    //         } else if state.register.read_at_name(name).unwrap() != state_prev.register.read_at_name(name).unwrap() {
+    //             Style::default().fg(Color::Black).bg(Color::LightYellow)
+    //         } else {
+    //             Style::default().fg(Color::White)
+    //         }
+    //     )
+    // });
 
-    List::new(registers)
-        .block(standard_block("Register File"))
-        .render(f, area);
+    // List::new(registers)
+    //     .block(standard_block("Register File"))
+    //     .render(f, area);
 }
 
 /// Draws a section of the memory around the PC.
@@ -120,7 +118,7 @@ fn draw_memory(
     default: &State
 ) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
-    let pc = state.register[Register::PC as usize];
+    let pc = state.branch_predictor.get_prediction() as i32;
     let skip_amount = cmp::max(
         0,
         (pc - ((4 * area.height as i32) / 2)) / 4
