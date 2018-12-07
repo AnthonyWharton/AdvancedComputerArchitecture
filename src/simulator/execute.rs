@@ -432,6 +432,42 @@ impl ExecuteUnit {
         ))
     }
 
+    /// Executes an B type instruction, modifying the borrowed state.
+    fn ex_b_type(&mut self, rf: &RegisterFile, r: &Reservation) {
+        let rs1 = match r.rs1 {
+            Left(val)   => val,
+            Right(name) => rf.read_at_name(name)
+                .expect("Execute unit missing rs1!"),
+        };
+        let rs2 = match r.rs2 {
+            Left(val)   => val,
+            Right(name) => rf.read_at_name(name)
+                .expect("Execute unit missing rs2!"),
+        };
+        let imm = r.imm.expect("Execute unit missing imm!");
+
+        let pc_val = rf.read_reg(Register::PC).unwrap() + match r.op {
+            Operation::BEQ  => if rs1 == rs2 { imm } else { 4 },
+            Operation::BNE  => if rs1 != rs2 { imm } else { 4 },
+            Operation::BLT  => if rs1 <  rs2 { imm } else { 4 },
+            Operation::BGE  => if rs1 >= rs2 { imm } else { 4 },
+            Operation::BLTU =>
+                if (rs1 as u32) <  (rs2 as u32) { imm } else { 4 },
+            Operation::BGEU =>
+                if (rs1 as u32) >= (rs2 as u32) { imm } else { 4 },
+            _ => panic!("Unknown B type instruction failed to execute.")
+        };
+
+        self.executing.push_back((
+            ExecuteLatch {
+                rob_entry: r.rob_entry,
+                pc: pc_val,
+                rd: None,
+            },
+            ExecutionLen::from(r.op)
+        ))
+    }
+
 
 
 
@@ -445,31 +481,6 @@ impl ExecuteUnit {
 
 
 
-
-    // /// Executes an B type instruction, modifying the borrowed state.
-    // fn ex_b_type(state: &mut State, instruction: Instruction) {
-    //     let rs1 = instruction.rs1
-    //         .expect("Invalid B type instruction (no rs1) failed to execute.") as usize;
-    //     let rs2 =instruction .rs2
-    //         .expect("Invalid B type instruction (no rs2) failed to execute.") as usize;
-    //     let imm = instruction.imm
-    //         .expect("Invalid B type instruction (no imm) failed to execute.");
-
-    //     // Shorthand, should hopefully be optimised out
-    //     let r = &mut state.register;
-    //     let pc = Register::PC as usize;
-
-    //     match instruction.op {
-    //         Operation::BEQ => if r[rs1] == r[rs2] { r[pc] += imm; return },
-    //         Operation::BNE => if r[rs1] != r[rs2] { r[pc] += imm; return },
-    //         Operation::BLT => if r[rs1] <  r[rs2] { r[pc] += imm; return },
-    //         Operation::BGE => if r[rs1] >= r[rs2] { r[pc] += imm; return },
-    //         Operation::BLTU => if (r[rs1] as u32) <  (r[rs2] as u32) { r[pc] += imm; return },
-    //         Operation::BGEU => if (r[rs1] as u32) >= (r[rs2] as u32) { r[pc] += imm; return },
-    //         _ => panic!("Unknown B type instruction failed to execute.")
-    //     };
-    //     r[pc] += 4;
-    // }
 
     // /// Executes an U type instruction, modifying the borrowed state.
     // fn ex_u_type(state: &mut State, instruction: Instruction) {
