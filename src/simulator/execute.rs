@@ -494,39 +494,24 @@ impl ExecuteUnit {
         ))
     }
 
+    /// Executes an J type instruction, modifying the borrowed state.
+    fn ex_j_type(&mut self, rf: &RegisterFile, r: &Reservation) {
+        let imm = r.imm.expect("Execute unit missing imm!");
 
-
-
-
-    ///////////////////////////////////////////////////////////////////////////
-    ////////////// EVERYTHING BELOW THIS POINT NEEDS HEAVY REFACTORING AND/OR
-    ////////////// RE-WRITING. IT IS ALL PLACEHOLDER FROM THE OLD FILE.
-
-
-
-
-
-
-
-    // /// Executes an J type instruction, modifying the borrowed state.
-    // fn ex_j_type(state: &mut State, instruction: Instruction) {
-    //     let rd  = instruction.rd
-    //         .expect("Invalid U type instruction (no rd) failed to execute.") as usize;
-    //     let imm = instruction.imm
-    //         .expect("Invalid U type instruction (no imm) failed to execute.");
-
-    //     // Shorthand, should hopefully be optimised out
-    //     let r = &mut state.register;
-
-    //     if rd != 0 {
-    //         r[rd] = r[Register::PC as usize] + 4;
-    //     }
-
-    //     match instruction.op {
-    //         Operation::JAL => r[Register::PC as usize] += imm,
-    //         _ => panic!("Unknown U type instruction failed to execute.")
-    //     }
-    // }
-
+        match r.op {
+            Operation::JALR => {
+                let old_pc = rf.read_reg(Register::PC).unwrap();
+                self.executing.push_back((
+                    ExecuteLatch {
+                        rob_entry: r.rob_entry,
+                        pc: old_pc + imm,
+                        rd: Some(old_pc + 4),
+                    },
+                    ExecutionLen::from(r.op)
+                ))
+            },
+            _ => panic!("Unknown J type instruction failed to execute."),
+        }
+    }
 }
 
