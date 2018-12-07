@@ -468,6 +468,32 @@ impl ExecuteUnit {
         ))
     }
 
+    /// Executes an U type instruction, modifying the borrowed state.
+    fn ex_u_type(&mut self, rf: &RegisterFile, r: &Reservation) {
+        let imm = r.imm.expect("Execute unit missing imm!");
+
+        let rd_val = match r.op {
+            Operation::LUI   => Some(imm),
+            Operation::AUIPC => None,
+            _ => panic!("Unknown U type instruction failed to execute.")
+        };
+
+        let pc_val = rf.read_reg(Register::PC).unwrap() + match r.op {
+            Operation::LUI   => 4,
+            Operation::AUIPC => imm,
+            _ => panic!("Unknown U type instruction failed to execute.")
+        };
+
+        self.executing.push_back((
+            ExecuteLatch {
+                rob_entry: r.rob_entry,
+                pc: pc_val,
+                rd: rd_val,
+            },
+            ExecutionLen::from(r.op)
+        ))
+    }
+
 
 
 
@@ -481,25 +507,6 @@ impl ExecuteUnit {
 
 
 
-
-    // /// Executes an U type instruction, modifying the borrowed state.
-    // fn ex_u_type(state: &mut State, instruction: Instruction) {
-    //     let rd  = instruction.rd
-    //         .expect("Invalid U type instruction (no rd) failed to execute.") as usize;
-    //     let imm = instruction.imm
-    //         .expect("Invalid U type instruction (no imm) failed to execute.");
-
-    //     // Shorthand, should hopefully be optimised out
-    //     let r = &mut state.register;
-
-    //     match instruction.op {
-    //         Operation::LUI   => if rd != 0 { r[rd] = imm },
-    //         Operation::AUIPC => r[Register::PC as usize] += imm - 4,
-    //         _ => panic!("Unknown U type instruction failed to execute.")
-    //     };
-
-    //     r[Register::PC as usize] += 4;
-    // }
 
     // /// Executes an J type instruction, modifying the borrowed state.
     // fn ex_j_type(state: &mut State, instruction: Instruction) {
