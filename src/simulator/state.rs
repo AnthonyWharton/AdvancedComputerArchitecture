@@ -1,11 +1,10 @@
 use std::default::Default;
 
-use isa::Instruction;
 use isa::operand::Register;
 use super::branch::BranchPredictor;
 use super::execute::ExecuteUnit;
 use super::fetch::LatchFetch;
-use super::memory::{Access, INIT_MEMORY_SIZE, Memory};
+use super::memory::{INIT_MEMORY_SIZE, Memory};
 use super::register::RegisterFile;
 use super::reorder::ReorderBuffer;
 use super::reservation::ResvStation;
