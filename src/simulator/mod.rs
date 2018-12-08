@@ -8,27 +8,33 @@ use util::loader::load_elf;
 use util::exit::Exit;
 
 use self::decode::decode_and_rename_stage;
+use self::dispatch::dispatch;
 use self::fetch::fetch_stage;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES
 
-/// Logic and data structures regarding the fetch state of the pipeline. This
+/// Logic and data structures regarding the _fetch_ state of the pipeline. This
 /// is responsible for coordinating the retrieval (or fetching) of instructions
 /// from memory.
 mod fetch;
 
-/// Logic regarding the decode and rename section of the pipeline. This is
+/// Logic regarding the _decode/rename_ stage of the pipeline. This is
 /// responsible for decoding instructions and ensuring they have no
 /// dependencies when moving down the pipeline,
 mod decode;
 
-/// All of the execute units, which are responsible for the execute stage in
+/// Logic regarding the _dispatch_ stage in the pipeline. This is responsible
+/// for consuming 'ready' instructions from the reservation station, and
+/// assigning them to execute units for the future _execute_ stage.
+mod dispatch;
+
+/// All of the execute units, which are responsible for the _execute_ stage in
 /// the pipeline, as well as the logic for what should happen at writeback for
 /// a particular instruction.
 mod execute;
 
-/// Logic recarding the writeback section of the pipeline. This is responsible
+/// Logic recarding the _writeback_ stage in the pipeline. This is responsible
 /// for committing the results of instructions that have finished execution.
 pub mod writeback;
 
@@ -85,7 +91,7 @@ pub fn run_simulator(io: IoThread, config: &Config) {
 
         fetch_stage(&state_p, &mut state);
         decode_and_rename_stage(&state_p, &mut state);
-        // TODO Add dispatch stage
+        dispatch(&state_p, &mut state);
         // TODO Add execute stage
         // TODO Add writeback stage
 
