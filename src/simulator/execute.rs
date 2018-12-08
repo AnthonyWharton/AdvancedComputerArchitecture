@@ -524,3 +524,14 @@ impl ExecuteUnit {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//// FUNCTIONS
+
+pub fn execute_and_writeback(state_p: &State, state: &mut State) {
+    for eu in state.execute_units.iter_mut() {
+        // if let Some(el) = eu.advance_pipeline() {
+        unimplemented!();
+        // }
+    }
+}
+

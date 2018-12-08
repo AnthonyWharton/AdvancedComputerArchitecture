@@ -93,7 +93,7 @@ pub fn run_simulator(io: IoThread, config: &Config) {
         decode_and_rename_stage(&state_p, &mut state);
         dispatch(&state_p, &mut state);
         // TODO Add execute stage
-        // TODO Add writeback stage
+        // TODO Add commit stage
 
         // End of cycle, start housekeeping
         state.stats.cycles += 1;
