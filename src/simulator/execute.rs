@@ -236,7 +236,7 @@ impl ExecuteUnit {
     /// add the execution to the pipeline.
     pub fn handle_execute(
         &mut self,
-        _state_p: &State,
+        state_p: &State,
         reservation: &Reservation,
     ) {
         if self.unit_type != UnitType::from(reservation.op) {
@@ -247,12 +247,12 @@ impl ExecuteUnit {
         }
 
         match Format::from(reservation.op) {
-            Format::R => unimplemented!(), //self.ex_r_type(&state_p.register, reservation),
-            Format::I => unimplemented!(),
-            Format::S => unimplemented!(),
-            Format::B => unimplemented!(),
-            Format::U => unimplemented!(),
-            Format::J => unimplemented!(),
+            Format::R => self.ex_r_type(&state_p.register, reservation),
+            Format::I => self.ex_i_type(&state_p.register, reservation),
+            Format::S => self.ex_s_type(&state_p.register, reservation),
+            Format::B => self.ex_b_type(&state_p.register, reservation),
+            Format::U => self.ex_u_type(&state_p.register, reservation),
+            Format::J => self.ex_j_type(&state_p.register, reservation),
         }
     }
 
