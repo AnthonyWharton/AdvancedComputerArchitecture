@@ -63,7 +63,7 @@ impl RegisterFile {
     pub fn new(physical_regs: usize) -> RegisterFile {
         RegisterFile {
             arch: vec![ArchRegEntry::default(); 33],
-            physical: Vec::with_capacity(physical_regs),
+            physical: vec![PhysicalRegEntry::default(); physical_regs],
             free: (33 .. physical_regs + 33).collect(),
         }
     }
