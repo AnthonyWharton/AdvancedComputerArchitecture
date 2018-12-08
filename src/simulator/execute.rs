@@ -47,13 +47,13 @@ pub struct ExecuteUnit {
     pipeline_size: usize,
     /// The pipeline of executing instructions, and how many cycles left in the
     /// execution of the instruction.
-    executing: VecDeque<(ExecuteLatch, ExecutionLen)>,
+    executing: VecDeque<(ExecuteResult, ExecutionLen)>,
 }
 
-/// The latch that contains the resulting information from the execute unit
-/// upon completion.
+/// The resulting bus that holds the results from the execute unit upon
+/// completion. The execute unit will write directly to the reorder buffer.
 #[derive(Copy, Clone, Debug)]
-pub struct ExecuteLatch {
+pub struct ExecuteResult {
     /// The reorder buffer entry that the result is associated with.
     pub rob_entry: usize,
     /// The new program counter after the execution.
@@ -259,7 +259,7 @@ impl ExecuteUnit {
     /// Triggers another execution step, advancing the pipeline of executing
     /// instructions. If an instruction has finished passing the pipeline, it
     /// will be returned by this function.
-    pub fn advance_pipeline(&mut self) -> Option<ExecuteLatch> {
+    pub fn advance_pipeline(&mut self) -> Option<ExecuteResult> {
         self.executing.iter_mut().for_each(|(_, len)| len.steps -= 1);
         match self.executing.pop_front() {
             Some((el, len)) if len.steps == 0 => Some(el),
@@ -326,7 +326,7 @@ impl ExecuteUnit {
         };
 
         self.executing.push_back((
-            ExecuteLatch {
+            ExecuteResult {
                 rob_entry: r.rob_entry,
                 pc: rf.read_reg(Register::PC).unwrap() + 4,
                 rd: Some(rd_val),
@@ -386,7 +386,7 @@ impl ExecuteUnit {
         };
 
         self.executing.push_back((
-            ExecuteLatch {
+            ExecuteResult {
                 rob_entry: r.rob_entry,
                 pc: pc_val,
                 rd: rd_val,
@@ -421,7 +421,7 @@ impl ExecuteUnit {
         };
 
         self.executing.push_back((
-            ExecuteLatch {
+            ExecuteResult {
                 rob_entry: r.rob_entry,
                 pc: rf.read_reg(Register::PC).unwrap() + 4,
                 rd: None,
@@ -457,7 +457,7 @@ impl ExecuteUnit {
         };
 
         self.executing.push_back((
-            ExecuteLatch {
+            ExecuteResult {
                 rob_entry: r.rob_entry,
                 pc: pc_val,
                 rd: None,
@@ -483,7 +483,7 @@ impl ExecuteUnit {
         };
 
         self.executing.push_back((
-            ExecuteLatch {
+            ExecuteResult {
                 rob_entry: r.rob_entry,
                 pc: pc_val,
                 rd: rd_val,
@@ -500,7 +500,7 @@ impl ExecuteUnit {
             Operation::JALR => {
                 let old_pc = rf.read_reg(Register::PC).unwrap();
                 self.executing.push_back((
-                    ExecuteLatch {
+                    ExecuteResult {
                         rob_entry: r.rob_entry,
                         pc: old_pc + imm,
                         rd: Some(old_pc + 4),
