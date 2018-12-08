@@ -15,7 +15,7 @@ use self::backtrace::Backtrace;
 /// `reset`.
 pub fn set_panic_hook() {
     panic::set_hook(Box::new(|i| {
-        println!("Panicked at: {}:{}:{}\r",
+        println!("\r\nPanicked at: {}:{}:{}\r",
                  i.location().unwrap().file(),
                  i.location().unwrap().line(),
                  i.location().unwrap().column());
