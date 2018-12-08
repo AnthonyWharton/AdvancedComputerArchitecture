@@ -1,6 +1,7 @@
-use isa::Instruction;
-use isa::op_code::Operation;
-use isa::operand::Register;
+use crate::isa::Instruction;
+use crate::isa::op_code::Operation;
+use crate::isa::operand::Register;
+
 use super::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -2,10 +2,10 @@ use std::sync::mpsc::TryRecvError;
 use std::time::Duration;
 use std::thread;
 
-use io::{IoEvent, IoThread, SimulatorEvent};
-use util::config::Config;
-use util::loader::load_elf;
-use util::exit::Exit;
+use crate::io::{IoEvent, IoThread, SimulatorEvent};
+use crate::util::config::Config;
+use crate::util::loader::load_elf;
+use crate::util::exit::Exit;
 
 use self::decode::decode_and_rename_stage;
 use self::dispatch::dispatch;

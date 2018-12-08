@@ -2,12 +2,13 @@ use std::collections::VecDeque;
 
 use either::{Left, Right};
 
-use isa::Format;
-use isa::op_code::Operation;
-use isa::operand::Register;
-use simulator::register::RegisterFile;
-use simulator::reservation::Reservation;
-use simulator::state::State;
+use crate::isa::Format;
+use crate::isa::op_code::Operation;
+use crate::isa::operand::Register;
+
+use super::register::RegisterFile;
+use super::reservation::Reservation;
+use super::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// ENUMS

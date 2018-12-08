@@ -1,6 +1,7 @@
 use either::Left;
 
-use isa::Instruction;
+use crate::isa::Instruction;
+
 use super::state::State;
 use super::register::RegisterFile;
 use super::reorder::ReorderBuffer;

@@ -6,15 +6,11 @@
 //!
 //! ![Project Daybreak Simulator Diagram](https://github.com/AnthonyWharton/AdvancedComputerArchitecture/raw/master/resources/diagram.png)
 
-extern crate byteorder;
-extern crate elf;
-extern crate either;
-
 use std::env;
 
-use io::IoThread;
-use util::config::Config;
-use util::exit::Exit;
+use crate::io::IoThread;
+use crate::util::config::Config;
+use crate::util::exit::Exit;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES

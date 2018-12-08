@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use either::{Either, Left};
 
-use isa::operand::Register;
+use crate::isa::operand::Register;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS

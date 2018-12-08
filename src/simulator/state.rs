@@ -1,6 +1,7 @@
 use std::default::Default;
 
-use isa::operand::Register;
+use crate::isa::operand::Register;
+
 use super::branch::BranchPredictor;
 use super::execute::ExecuteUnit;
 use super::fetch::LatchFetch;

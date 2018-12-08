@@ -2,16 +2,17 @@ use std::cmp;
 use std::io::{Error, Stdout, stdout};
 
 use byteorder::{LittleEndian, ReadBytesExt};
-use super::termion::raw::{IntoRawMode, RawTerminal};
-use super::tui::{Frame, Terminal as TuiTerminal};
-use super::tui::backend::TermionBackend;
-use super::tui::layout::{Constraint, Direction, Layout, Rect};
-use super::tui::style::{Color, Modifier, Style};
-use super::tui::widgets::{Block, Borders, List, Paragraph, Text, Widget};
+use termion::raw::{IntoRawMode, RawTerminal};
+use tui::{Frame, Terminal as TuiTerminal};
+use tui::backend::TermionBackend;
+use tui::layout::{Constraint, Direction, Layout, Rect};
+use tui::style::{Color, Modifier, Style};
+use tui::widgets::{Block, Borders, List, Paragraph, Text, Widget};
 
-use isa::Instruction;
-// use isa::operand::Register;
-use simulator::state::State;
+use crate::isa::Instruction;
+// use crate::isa::operand::Register;
+use crate::simulator::state::State;
+
 use super::TuiApp;
 
 ///////////////////////////////////////////////////////////////////////////////

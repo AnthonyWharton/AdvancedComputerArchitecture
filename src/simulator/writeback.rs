@@ -1,7 +1,8 @@
-use isa::{Format, Instruction};
-use isa::op_code::Operation;
-use isa::operand::Register;
-use simulator::state::State;
+use crate::isa::{Format, Instruction};
+use crate::isa::op_code::Operation;
+use crate::isa::operand::Register;
+
+use super::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS

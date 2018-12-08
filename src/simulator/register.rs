@@ -3,7 +3,7 @@ use std::default::Default;
 
 use either::{Either, Left, Right};
 
-use isa::operand::Register;
+use crate::isa::operand::Register;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS

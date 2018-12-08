@@ -2,8 +2,9 @@ use std::collections::VecDeque;
 
 use either::{Either, Left, Right};
 
-use isa::op_code::Operation;
-use isa::operand::Register;
+use crate::isa::op_code::Operation;
+use crate::isa::operand::Register;
+
 use super::execute::{ExecuteUnit, ExecutionLen, UnitType};
 use super::register::RegisterFile;
 

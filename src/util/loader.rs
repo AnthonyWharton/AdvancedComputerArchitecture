@@ -2,8 +2,9 @@ use elf::{File, ParseError};
 use elf::types::{Machine, FileHeader, ProgramHeader, ELFCLASS32, ELFDATA2LSB,
     EV_CURRENT, ELFOSABI_SYSV, ET_EXEC, PT_NULL, PT_LOAD, PT_NOTE, PT_PHDR};
 
-use isa::operand::Register;
-use simulator::state::State;
+use crate::isa::operand::Register;
+use crate::simulator::state::State;
+
 use super::config::Config;
 use super::exit::Exit::{FileLoadError, ElfError};
 

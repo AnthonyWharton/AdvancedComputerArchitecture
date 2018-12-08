@@ -1,11 +1,9 @@
-extern crate backtrace;
-
 use std::env;
 use std::mem;
 use std::panic;
 use std::process;
 
-use self::backtrace::Backtrace;
+use backtrace::Backtrace;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
