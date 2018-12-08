@@ -15,7 +15,7 @@ use super::reservation::{Reservation, ResvStation};
 /// into the next stage in the pipeline.
 ///
 /// If sanitisation is not possible, this will stall the pipeline.
-pub fn decode_and_rename_stage(state_p: &State, state_n: &mut State) {
+pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
     if let Some(access) = state_p.latch_fetch.data {
         let instr = match Instruction::decode(access.word) {
             Some(i) => i,
@@ -25,13 +25,13 @@ pub fn decode_and_rename_stage(state_p: &State, state_n: &mut State) {
         let resv_result = sanitise_and_reserve(
             instr,
             state_p.latch_fetch.pc,
-            &mut state_n.reorder_buffer,
-            &mut state_n.resv_station,
-            &mut state_n.register
+            &mut state.reorder_buffer,
+            &mut state.resv_station,
+            &mut state.register
         );
 
         if resv_result.is_err() {
-            state_n.branch_predictor.stall()
+            state.branch_predictor.stall()
         }
     }
 }
