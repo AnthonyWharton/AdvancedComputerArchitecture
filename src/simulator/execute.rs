@@ -256,18 +256,29 @@ impl ExecuteUnit {
         }
     }
 
-    /// Triggers another execution step, advancing the pipeline of executing
-    /// instructions. If an instruction has finished passing the pipeline, it
-    /// will be returned by this function.
-    pub fn advance_pipeline(&mut self) -> Option<ExecuteResult> {
-        self.executing.iter_mut().for_each(|(_, len)| len.steps -= 1);
-        match self.executing.pop_front() {
-            Some((el, len)) if len.steps == 0 => Some(el),
-            Some(entry) => {
-                self.executing.push_front(entry);
-                None
-            },
-            _ => None,
+    /// Triggers an exection step, only modifying the new execution unit. Will
+    /// advance the exectuion pipeline, and then remove and return any finished
+    /// executions within the new execution unit only.
+    pub fn advance_pipeline(
+        &self,
+        new_eu: &mut ExecuteUnit
+    ) -> Option<ExecuteResult> {
+        {
+            // Ensure we do not minus 1 from an execution added to the new state in
+            // the dispatch stage (which may have touched the execute unit already)
+            let iter = if self.executing.len() == new_eu.executing.len() {
+                new_eu.executing.iter_mut().skip(0)
+            } else {
+                new_eu.executing.iter_mut().skip(1)
+            };
+            // Move on all executions by one
+            iter.for_each(|(_, len)| len.steps -= 1);
+        }
+
+        if new_eu.executing.front()?.1.steps == 0 {
+            Some(new_eu.executing.pop_front().unwrap().0)
+        } else {
+            None
         }
     }
 
