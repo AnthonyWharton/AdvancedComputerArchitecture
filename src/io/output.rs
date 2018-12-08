@@ -47,9 +47,10 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
                 ].as_ref()
             )
             .split(app.size);
-        draw_stats(&mut f, chunks[0], &app, &State::default());
-        draw_registers(&mut f, chunks[1], &app, &State::default());
-        draw_memory(&mut f, chunks[2], &app, &State::default());
+        let default = State::default();
+        draw_stats(&mut f, chunks[0], &app, &default);
+        draw_registers(&mut f, chunks[1], &app, &default);
+        draw_memory(&mut f, chunks[2], &app, &default);
     })
 }
 
@@ -58,7 +59,7 @@ fn draw_stats(
     f: &mut Frame<Backend>,
     area: Rect,
     app: &TuiApp,
-    default: &State
+    default: &State,
 ) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
     let epc = if state.stats.cycles == 0 {
@@ -83,7 +84,7 @@ fn draw_registers(
     _f: &mut Frame<Backend>,
     _area: Rect,
     app: &TuiApp,
-    default: &State
+    default: &State,
 ) {
     let _state_prev = app.states.get(app.hist_display+1).unwrap_or(default);
     let _state = app.states.get(app.hist_display).unwrap_or(default);
@@ -115,19 +116,19 @@ fn draw_memory(
     f: &mut Frame<Backend>,
     area: Rect,
     app: &TuiApp,
-    default: &State
+    default: &State,
 ) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
     let pc = state.branch_predictor.get_prediction() as i32;
     let skip_amount = cmp::max(
         0,
-        (pc - ((4 * area.height as i32) / 2)) / 4
+        (pc - (i32::from(4 * area.height) / 2)) / 4
     ) as usize;
     let memory = state.memory
         .chunks(4)
         .enumerate()
         .map(|(mut addr, mut value)| {
-            addr = addr * 4;
+            addr *= 4;
             let word = value.read_i32::<LittleEndian>().unwrap();
             Text::styled(
                 match Instruction::decode(word) {

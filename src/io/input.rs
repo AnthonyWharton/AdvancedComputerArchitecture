@@ -24,28 +24,23 @@ const EXIT_KEYS: [Key; 4] = [
 /// Spawns the input handler thread. This thread will run in the background
 /// and send key press/exit events to the given Sender.
 pub fn spawn_input_thread(tx: Sender<IoEvent>) -> JoinHandle<()> {
-    spawn(move || input_thread(tx))
+    spawn(move || input_thread(&tx))
 }
 
 /// Function for handling user input, called within it's own thread as this
 /// will loop until either it fails to send an input event, or an exit button
 /// is pressed.
-fn input_thread(tx: Sender<IoEvent>) {
+fn input_thread(tx: &Sender<IoEvent>) {
     let stdin = io::stdin();
     for evt in stdin.keys() {
-        match evt {
-            Ok(key) => {
-                if EXIT_KEYS.contains(&key) {
-                    if let Err(_) = tx.send(IoEvent::Exit) {
-                        return;
-                    }
-                } else {
-                    if let Err(_) = tx.send(IoEvent::Input(key)) {
-                        return;
-                    }
-                };
+        if let Ok(key) = evt {
+            if EXIT_KEYS.contains(&key) {
+                if tx.send(IoEvent::Exit).is_err() {
+                    return;
+                }
+            } else if tx.send(IoEvent::Input(key)).is_err() {
+                return;
             }
-            Err(_) => {}
         }
     }
 }

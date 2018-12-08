@@ -119,9 +119,9 @@ impl Instruction {
                 Some(o) => o,
                 None    => return None,
             },
-            rd:  Register::extract_register(RegisterOperand::RD,  instruction),
-            rs1: Register::extract_register(RegisterOperand::RS1, instruction),
-            rs2: Register::extract_register(RegisterOperand::RS2, instruction),
+            rd:  Register::extract_register(&RegisterOperand::RD,  instruction),
+            rs1: Register::extract_register(&RegisterOperand::RS1, instruction),
+            rs2: Register::extract_register(&RegisterOperand::RS2, instruction),
             imm: extract_immediate(instruction),
         })
     }

@@ -72,7 +72,7 @@ pub const INITIALLY_PAUSED: bool = true;
 ///
 /// Requires an IoThread for sending events to be output to the display, as
 /// well as for receiving any calls to close the simulation.
-pub fn run_simulator(io: IoThread, config: Config) {
+pub fn run_simulator(io: IoThread, config: &Config) {
     let mut state = load_elf(&config);
     let mut paused = INITIALLY_PAUSED;
 
@@ -115,11 +115,11 @@ fn handle_io_and_continue(paused: &mut bool, io: &IoThread) -> bool {
         }
     } else {
         match io.rx.try_recv() {
-            Ok(e) => return handle_message(e, paused),
+            Ok(e) => handle_message(e, paused),
             Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
                 Some("IO Thread missing, assumed dead.")
             ),
-            _ => return true,
+            _ => true,
         }
     }
 }
@@ -128,12 +128,12 @@ fn handle_io_and_continue(paused: &mut bool, io: &IoThread) -> bool {
 /// Returns false when the user closed the simulator.
 fn handle_message(event: SimulatorEvent, paused: &mut bool) -> bool {
     match event {
-        SimulatorEvent::Finish => return false,
+        SimulatorEvent::Finish => false,
         SimulatorEvent::PauseToggle => {
             *paused ^= true;
-            return true
+            true
         },
-        SimulatorEvent::Cycle => return true,
+        SimulatorEvent::Cycle => true,
     }
 }
 

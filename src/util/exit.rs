@@ -19,7 +19,7 @@ impl Exit {
 }
 
 fn exit(code: i32, message: &str) -> ! {
-    if message.len() != 0 {
+    if !message.is_empty() {
         if code != 0 {
             println!("Error: {}", message);
         } else {

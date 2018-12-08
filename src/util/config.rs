@@ -17,12 +17,12 @@ impl Default for Config {
 impl Config {
 
     /// Generates a new Config for the assembler program given the arguments
-    pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
+    pub fn create(mut args: env::Args) -> Result<Config, &'static str> {
         args.next(); // Consume first argument - this is the executable
 
         let mut elf_file: Option<String> = None;
 
-        while let Some(arg) = args.next() {
+        for arg in args {
             match arg.as_str() {
                 "-h" | "--help" => help(),
 
@@ -49,7 +49,7 @@ impl Config {
 /// Prints out a usage/help printout for this simulator.
 fn help() {
     println!("Usage: simulator ELF_EXECUTABLE [-h|--help]");
-    println!("");
+    println!();
     println!("Simulates a RISC V rv32im binary ELF32 file.");
     process::exit(1);
 }

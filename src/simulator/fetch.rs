@@ -31,7 +31,7 @@ pub fn fetch_stage(state_p: &State, state_n: &mut State) {
     // Pass loaded word to following latch and branch predictor.
     state_n.branch_predictor.predict(data.word);
     state_n.latch_fetch = LatchFetch {
-        data: data,
+        data,
         pc,
     };
 }

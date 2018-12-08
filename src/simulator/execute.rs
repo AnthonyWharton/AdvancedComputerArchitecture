@@ -213,11 +213,7 @@ impl ExecuteUnit {
     /// specified instruction.
     pub fn is_free(&self, op: Operation) -> bool {
         if ExecutionLen::from(op).blocking {
-            if self.executing.len() == 0 {
-                return true
-            } else {
-                return false
-            }
+            return self.executing.is_empty()
         }
         // Note: Dispatch is run before the execute/writeback stage, so we need
         // to take into account that even if the pipeline is full, if the front
@@ -277,52 +273,54 @@ impl ExecuteUnit {
 
     /// Executes an R type instruction, putting the results in self.
     fn ex_r_type(&mut self, rf: &RegisterFile, r: &Reservation) {
-        let rs1 = match r.rs1 {
+        let rs1s = match r.rs1 {
             Left(val)   => val,
             Right(name) => rf.read_at_name(name)
                 .expect("Execute unit missing rs1!"),
         };
-        let rs2 = match r.rs2 {
+        let rs2s = match r.rs2 {
             Left(val)   => val,
             Right(name) => rf.read_at_name(name)
                 .expect("Execute unit missing rs2!"),
         };
+        let rs1u = rs1s as u32;
+        let rs2u = rs2s as u32;
         let rd_val = match r.op {
-            Operation::ADD    => rs1.overflowing_add(rs2).0,
-            Operation::SUB    => rs1.overflowing_sub(rs2).0,
-            Operation::SLL    => rs1 << (rs2 & 0b11111),
-            Operation::SLT    => (rs1 < rs2) as i32,
-            Operation::SLTU   => ((rs1 as u32) < (rs2 as u32)) as i32,
-            Operation::XOR    => rs1 ^ rs2,
-            Operation::SRL    => ((rs1 as u32) >> ((rs2 & 0b11111) as u32)) as i32,
-            Operation::SRA    => rs1 >> (rs2 & 0b11111),
-            Operation::OR     => rs1 | rs2,
-            Operation::AND    => rs1 & rs2,
-            Operation::MUL    => rs1.overflowing_mul(rs2).0,
-            Operation::MULH   => (((rs1 as i64) * (rs2 as i64)) >> 32) as i32,
-            Operation::MULHU  => (((rs1 as u64) * (rs2 as u64)) >> 32) as i32,
-            Operation::MULHSU => (((rs1 as i64) * (rs2 as i64).abs()) >> 32) as i32,
-            Operation::DIV    => match rs2 {
+            Operation::ADD    => rs1s.overflowing_add(rs2s).0,
+            Operation::SUB    => rs1s.overflowing_sub(rs2s).0,
+            Operation::SLL    => rs1s << (rs2s & 0b11111),
+            Operation::SLT    => (rs1s < rs2s) as i32,
+            Operation::SLTU   => (rs1u < rs2u) as i32,
+            Operation::XOR    => rs1s ^ rs2s,
+            Operation::SRL    => (rs1u >> (rs2u & 0b11111)) as i32,
+            Operation::SRA    => rs1s >> (rs2s & 0b11111),
+            Operation::OR     => rs1s | rs2s,
+            Operation::AND    => rs1s & rs2s,
+            Operation::MUL    => rs1s.overflowing_mul(rs2s).0,
+            Operation::MULH   => ((i64::from(rs1s) * i64::from(rs2s)) >> 32) as i32,
+            Operation::MULHU  => ((u64::from(rs1u) * u64::from(rs2u)) >> 32) as i32,
+            Operation::MULHSU => ((i64::from(rs1s) * i64::from(rs2u)) >> 32) as i32,
+            Operation::DIV    => match rs2s {
                                      0  => -1i32,
-                                     _  => match rs1.overflowing_div(rs2) {
+                                     _  => match rs1s.overflowing_div(rs2s) {
                                          (_, true) => i32::min_value(),
                                          (v, _)    => v,
                                      },
                                  },
-            Operation::DIVU   => match rs2 {
+            Operation::DIVU   => match rs2s {
                                      0  => i32::max_value(),
-                                     _  => ((rs1 as u32) / (rs2 as u32)) as i32,
+                                     _  => (rs1u / rs2u) as i32,
                                  },
-            Operation::REM    => match rs2 {
-                                     0 => rs1,
-                                     _ => match rs1.overflowing_div(rs2) {
+            Operation::REM    => match rs2s {
+                                     0 => rs1s,
+                                     _ => match rs1s.overflowing_div(rs2s) {
                                          (_, true) => 0,
                                          (v, _)    => v,
                                      }
                                  },
-            Operation::REMU   => match rs2 {
-                                     0 => rs1,
-                                     _ => ((rs1 as u32) % (rs2 as u32)) as i32,
+            Operation::REMU   => match rs2s {
+                                     0 => rs1s,
+                                     _ => (rs1u % rs2u) as i32,
                                  },
             _ => panic!("Unknown R type instruction failed to execute.")
         };

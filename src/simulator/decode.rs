@@ -53,12 +53,11 @@ fn sanitise_and_reserve(
 ) -> Result<(),()> {
     // Reserve a physical register for writeback.
     let mut name_rd = 0;
-    match instruction.rd {
-        Some(rd) => match rf.using_write(rd) {
+    if let Some(rd) = instruction.rd {
+        match rf.using_write(rd) {
             Some(n) => name_rd = n,
             None => return Err(()), // No Available Physical Registers
-        },
-        None => (), // No need to rename as no writeback.
+        }
     }
 
     // Reserve a reorder buffer entry

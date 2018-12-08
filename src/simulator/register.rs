@@ -80,12 +80,10 @@ impl RegisterFile {
             } else {
                 None
             }
+        } else if self.physical[name - 33].valid {
+            Some(self.physical[name - 33].data)
         } else {
-            if self.physical[name - 33].valid {
-                Some(self.physical[name - 33].data)
-            } else {
-                None
-            }
+            None
         }
     }
 
@@ -146,9 +144,9 @@ impl RegisterFile {
             Some(name) => {
                 self.physical[name - 33] = PhysicalRegEntry::default();
                 self.arch[idx].rename = name;
-                return Some(name)
+                Some(name)
             },
-            None => return None,
+            None => None,
         }
     }
 
@@ -158,13 +156,14 @@ impl RegisterFile {
     ///
     /// Returns true if the register was freed, and false otherwise.
     pub fn not_using_write(&mut self, name: usize) -> bool {
-        if 33 < name && name < (self.physical.len() + 33) {
-            if self.physical[name - 33] == PhysicalRegEntry::default() {
-                self.free.push_front(name);
-                return true
-            }
+        if 33 < name && name < (self.physical.len() + 33) &&
+           self.physical[name - 33] == PhysicalRegEntry::default()
+        {
+            self.free.push_front(name);
+            true
+        } else {
+            false
         }
-        false
     }
 
     /// Indicate that the caller is intending to keep a reference to the given
@@ -211,7 +210,7 @@ impl RegisterFile {
     fn remove_ref(&mut self, name: usize) {
         if name >= 33 {
             self.physical[name - 33].ref_count -= 1;
-            if self.physical[name - 33].ref_count <= 0 {
+            if self.physical[name - 33].ref_count == 0 {
                 self.free.push_back(name)
             }
         }

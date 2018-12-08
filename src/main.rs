@@ -39,11 +39,11 @@ mod simulator;
 fn main() {
     util::panic::set_panic_hook();
     let io = IoThread::new();
-    let config = match Config::new(env::args()) {
+    let config = match Config::create(env::args()) {
         Ok(c)  => c,
         Err(e) => Exit::ArgumentError.exit(Some(e)),
     };
-    simulator::run_simulator(io, config);
+    simulator::run_simulator(io, &config);
     println!("Goodbye!\r");
 }
 

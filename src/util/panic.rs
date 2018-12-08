@@ -50,7 +50,7 @@ fn print_backtrace() {
         print!("\n\r{:4}: {:2$?}", idx, ip, hex_width);
 
         let symbols = frame.symbols();
-        if symbols.len() == 0 {
+        if symbols.is_empty() {
             print!(" - <no info>");
         }
 

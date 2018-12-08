@@ -210,8 +210,8 @@ impl Decodable for BaseCode {
 impl BaseCode {
     /// Checks if the instruction format has a destination register encoded
     /// within it, as per the `rv32im` specification.
-    pub fn has_rd(&self) -> bool {
-        match Format::from(*self) {
+    pub fn has_rd(self) -> bool {
+        match Format::from(self) {
             Format::S |
             Format::B => false,
             _         => true
@@ -220,8 +220,8 @@ impl BaseCode {
 
     /// Checks if the instruction format has a source (1) register encoded
     /// within it, as per the `rv32im` specification.
-    pub fn has_rs1(&self) -> bool {
-        match Format::from(*self) {
+    pub fn has_rs1(self) -> bool {
+        match Format::from(self) {
             Format::U |
             Format::J => false,
             _         => true
@@ -230,8 +230,8 @@ impl BaseCode {
 
     /// Checks if the instruction format has a source (2) register encoded
     /// within it, as per the `rv32im` specification.
-    pub fn has_rs2(&self) -> bool {
-        match Format::from(*self) {
+    pub fn has_rs2(self) -> bool {
+        match Format::from(self) {
             Format::I |
             Format::U |
             Format::J => false,
@@ -241,8 +241,8 @@ impl BaseCode {
 
     /// Checks if the instruction format has a function code included within
     /// it, as per the `rv32im` specification.
-    fn has_funct_code(&self) -> bool {
-        match Format::from(*self) {
+    fn has_funct_code(self) -> bool {
+        match Format::from(self) {
             Format::U | Format::J => false,
             _                     => true,
         }
@@ -250,8 +250,8 @@ impl BaseCode {
 
     /// Checks if the instruction format **might** have a `funct7` encoded
     /// within it, as per the `rv32im` specification.
-    fn may_have_funct7(&self) -> bool {
-        match Format::from(*self) {
+    fn may_have_funct7(self) -> bool {
+        match Format::from(self) {
             Format::R | Format::I => true,
             _                     => false,
         }
@@ -330,14 +330,16 @@ impl Decodable for Operation {
             None    => return None,
         };
         // Parse out funct3, if required
-        let funct3 = match base_code.has_funct_code() {
-            true  => (instruction >> 12) & 0b111,
-            false => 0,
+        let funct3 = if base_code.has_funct_code() {
+            (instruction >> 12) & 0b111
+        } else {
+            0
         };
         // Parse out funct7, if required.
-        let funct7 = match base_code.may_have_funct7() {
-            true  => (instruction >> 25) & 0b1111111,
-            false => 0, // Not required
+        let funct7 = if base_code.may_have_funct7() {
+            (instruction >> 25) & 0b111_1111
+        } else {
+            0 // Not required
         };
         // Match on the base code and funct 3, dealing with ambiguities by
         // checking special cases.

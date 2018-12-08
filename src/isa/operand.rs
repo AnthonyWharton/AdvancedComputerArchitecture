@@ -63,73 +63,49 @@ pub enum Register {
 
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Register::X0  =>
-                if f.alternate() { f.pad("zero") } else { f.pad("x0")  },
-            Register::X1  =>
-                if f.alternate() { f.pad("ra")   } else { f.pad("x1")  },
-            Register::X2  =>
-                if f.alternate() { f.pad("sp")   } else { f.pad("x2")  },
-            Register::X3  =>
-                if f.alternate() { f.pad("gp")   } else { f.pad("x3")  },
-            Register::X4  =>
-                if f.alternate() { f.pad("tp")   } else { f.pad("x4")  },
-            Register::X5  =>
-                if f.alternate() { f.pad("t0")   } else { f.pad("x5")  },
-            Register::X6  =>
-                if f.alternate() { f.pad("t1")   } else { f.pad("x6")  },
-            Register::X7  =>
-                if f.alternate() { f.pad("t2")   } else { f.pad("x7")  },
-            Register::X8  =>
-                if f.alternate() { f.pad("s0")   } else { f.pad("x8")  },
-            Register::X9  =>
-                if f.alternate() { f.pad("s1")   } else { f.pad("x9")  },
-            Register::X10 =>
-                if f.alternate() { f.pad("a0")   } else { f.pad("x10") },
-            Register::X11 =>
-                if f.alternate() { f.pad("a1")   } else { f.pad("x11") },
-            Register::X12 =>
-                if f.alternate() { f.pad("a2")   } else { f.pad("x12") },
-            Register::X13 =>
-                if f.alternate() { f.pad("a3")   } else { f.pad("x13") },
-            Register::X14 =>
-                if f.alternate() { f.pad("a4")   } else { f.pad("x14") },
-            Register::X15 =>
-                if f.alternate() { f.pad("a5")   } else { f.pad("x15") },
-            Register::X16 =>
-                if f.alternate() { f.pad("a6")   } else { f.pad("x16") },
-            Register::X17 =>
-                if f.alternate() { f.pad("a7")   } else { f.pad("x17") },
-            Register::X18 =>
-                if f.alternate() { f.pad("s2")   } else { f.pad("x18") },
-            Register::X19 =>
-                if f.alternate() { f.pad("s3")   } else { f.pad("x19") },
-            Register::X20 =>
-                if f.alternate() { f.pad("s4")   } else { f.pad("x20") },
-            Register::X21 =>
-                if f.alternate() { f.pad("s5")   } else { f.pad("x21") },
-            Register::X22 =>
-                if f.alternate() { f.pad("s6")   } else { f.pad("x22") },
-            Register::X23 =>
-                if f.alternate() { f.pad("s7")   } else { f.pad("x23") },
-            Register::X24 =>
-                if f.alternate() { f.pad("s8")   } else { f.pad("x24") },
-            Register::X25 =>
-                if f.alternate() { f.pad("s9")   } else { f.pad("x25") },
-            Register::X26 =>
-                if f.alternate() { f.pad("s10")  } else { f.pad("x26") },
-            Register::X27 =>
-                if f.alternate() { f.pad("s11")  } else { f.pad("x27") },
-            Register::X28 =>
-                if f.alternate() { f.pad("t3")   } else { f.pad("x28") },
-            Register::X29 =>
-                if f.alternate() { f.pad("t4")   } else { f.pad("x29") },
-            Register::X30 =>
-                if f.alternate() { f.pad("t5")   } else { f.pad("x30") },
-            Register::X31 =>
-                if f.alternate() { f.pad("t6")   } else { f.pad("x31") },
-            Register::PC  =>
-                f.pad("pc"),
+        if f.alternate() {
+            match self {
+                Register::X0  => f.pad("zero"),
+                Register::X1  => f.pad("ra"),
+                Register::X2  => f.pad("sp"),
+                Register::X3  => f.pad("gp"),
+                Register::X4  => f.pad("tp"),
+                Register::X5  => f.pad("t0"),
+                Register::X6  => f.pad("t1"),
+                Register::X7  => f.pad("t2"),
+                Register::X8  => f.pad("s0"),
+                Register::X9  => f.pad("s1"),
+                Register::X10 => f.pad("a0"),
+                Register::X11 => f.pad("a1"),
+                Register::X12 => f.pad("a2"),
+                Register::X13 => f.pad("a3"),
+                Register::X14 => f.pad("a4"),
+                Register::X15 => f.pad("a5"),
+                Register::X16 => f.pad("a6"),
+                Register::X17 => f.pad("a7"),
+                Register::X18 => f.pad("s2"),
+                Register::X19 => f.pad("s3"),
+                Register::X20 => f.pad("s4"),
+                Register::X21 => f.pad("s5"),
+                Register::X22 => f.pad("s6"),
+                Register::X23 => f.pad("s7"),
+                Register::X24 => f.pad("s8"),
+                Register::X25 => f.pad("s9"),
+                Register::X26 => f.pad("s10"),
+                Register::X27 => f.pad("s11"),
+                Register::X28 => f.pad("t3"),
+                Register::X29 => f.pad("t4"),
+                Register::X30 => f.pad("t5"),
+                Register::X31 => f.pad("t6"),
+                Register::PC  => f.pad("pc"),
+            }
+        } else {
+            let v = *self as u8;
+            if v < 32 {
+                f.pad((String::from("x") + &v.to_string()).as_str())
+            } else {
+                f.pad("pc")
+            }
         }
     }
 }
@@ -180,7 +156,7 @@ impl Register {
     /// an internal representation.
     /// Returns None on a failure.
     pub fn extract_register(
-       register: RegisterOperand,
+       register: &RegisterOperand,
        instruction: i32
     ) -> Option<Register> {
         let base_code = match BaseCode::from_instruction(instruction) {
@@ -266,9 +242,9 @@ fn imm_ex_1(i: i32, b: u8, cont: bool) -> i32 {
 ///
 /// _Where `e >= 11`. For all values `e <= 11`, `e` is left as `11`._
 fn imm_ex_2(i: i32, e: u8) -> i32 {
-    let imm = (i >> 20) & 0b111111100000;
+    let imm = (i >> 20) & 0b1111_1110_0000;
     if e > 11 {
-        ((imm & 0b10000000000) << (e - 10)) | (imm & 0b011111100000)
+        ((imm & 0b100_0000_0000) << (e - 10)) | (imm & 0b0111_1110_0000)
     } else {
         imm
     }
@@ -283,7 +259,7 @@ fn imm_ex_2(i: i32, e: u8) -> i32 {
 /// |----------------------|--------------------------|
 /// |        `[b:a]`       |         `[b:a]`          |
 fn imm_ex_3(i: i32, a: u8, b: u8) -> i32 {
-    i & (((0b1 << 1+b-a) - 1) << a)
+    i & (((0b1 << (1 + b - a)) - 1) << a)
 }
 
 /// Sign extends the given `word` from the given `msb` onwards.

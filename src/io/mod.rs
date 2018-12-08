@@ -48,6 +48,7 @@ pub enum IoEvent {
 }
 
 /// Events destined for the simulator main thread.
+#[derive(Copy, Clone)]
 pub enum SimulatorEvent {
     /// Signal that the user has asked to stop the simulator.
     Finish,
@@ -79,7 +80,7 @@ pub struct TuiApp {
     pub rx: Receiver<IoEvent>,
     /// Terminal size
     pub size: Rect,
-    /// History of the last KEPT_STATES states
+    /// History of the last `KEPT_STATES` states
     pub states: VecDeque<State>,
     /// Whether or not the simulator has finished
     pub finished: bool,
@@ -115,18 +116,18 @@ impl TuiApp {
     pub fn handle_event(&mut self) -> bool {
         if self.paused || self.finished {
             match self.rx.recv() {
-                Ok(e) => return self.process_event(e),
+                Ok(e) => self.process_event(e),
                 Err(_) => Exit::IoThreadError.exit(
                     Some("Input Thread stopped communicating properly.")
                 ),
             }
         } else {
             match self.rx.try_recv() {
-                Ok(e) => return self.process_event(e),
+                Ok(e) => self.process_event(e),
                 Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
                     Some("Input Thread went missing, assumed dead.")
                 ),
-                _ => return true,
+                _ => true,
             }
         }
     }
