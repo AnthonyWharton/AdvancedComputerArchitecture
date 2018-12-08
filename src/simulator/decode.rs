@@ -16,21 +16,23 @@ use super::reservation::{Reservation, ResvStation};
 ///
 /// If sanitisation is not possible, this will stall the pipeline.
 pub fn decode_and_rename_stage(state_p: &State, state_n: &mut State) {
-    let instr = match Instruction::decode(state_p.latch_fetch.data.word) {
-        Some(i) => i,
-        None => { panic!("Failed to decode instruction.") },
-    };
+    if let Some(access) = state_p.latch_fetch.data {
+        let instr = match Instruction::decode(access.word) {
+            Some(i) => i,
+            None => { panic!("Failed to decode instruction.") },
+        };
 
-    let resv_result = sanitise_and_reserve(
-        instr,
-        state_p.latch_fetch.pc,
-        &mut state_n.reorder_buffer,
-        &mut state_n.resv_station,
-        &mut state_n.register
-    );
+        let resv_result = sanitise_and_reserve(
+            instr,
+            state_p.latch_fetch.pc,
+            &mut state_n.reorder_buffer,
+            &mut state_n.resv_station,
+            &mut state_n.register
+        );
 
-    if resv_result.is_err() {
-        state_n.branch_predictor.stall()
+        if resv_result.is_err() {
+            state_n.branch_predictor.stall()
+        }
     }
 }
 
