@@ -4,7 +4,7 @@ use either::{Either, Left, Right};
 
 use isa::op_code::Operation;
 use isa::operand::Register;
-use super::execute::UnitType;
+use super::execute::{ExecuteUnit, ExecutionLen, UnitType};
 use super::register::RegisterFile;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -80,7 +80,7 @@ impl ResvStation {
     /// checked.
     pub fn consume_next(
         &mut self,
-        unit_type: UnitType,
+        eu: &ExecuteUnit,
         rf: &RegisterFile,
         limit: usize,
     ) -> Option<Reservation> {
@@ -89,13 +89,17 @@ impl ResvStation {
         } else {
             limit
         };
+        let unit_type = eu.get_type();
         let next_valid = self.contents.iter()
                                       .cloned()
                                       .take(act_limit)
                                       .enumerate()
                                       .find(|(_, r)| {
-            // Check operation is supported by unit type
+            // Check operation is supported by execute unit type
             unit_type == UnitType::from(r.op)
+            &&
+            // Check execute unit is free
+            eu.is_free(ExecutionLen::from(r.op))
             &&
             // Check rs1 is ready
             match r.rs1 {

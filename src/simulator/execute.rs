@@ -211,8 +211,8 @@ impl ExecuteUnit {
 
     /// Indicates whether or not this Execute Unit is free to take on another
     /// specified instruction.
-    pub fn is_free(&self, op: Operation) -> bool {
-        if ExecutionLen::from(op).blocking {
+    pub fn is_free(&self, el: ExecutionLen) -> bool {
+        if el.blocking {
             return self.executing.is_empty()
         }
         // Note: Dispatch is run before the execute/writeback stage, so we need
