@@ -35,7 +35,6 @@ pub const KEPT_STATES: usize = 100;
 //// ENUMS
 
 /// Events destined for the IO thread.
-#[allow(dead_code)]
 pub enum IoEvent {
     /// Signal that the user has asked to exit the process.
     Exit,
