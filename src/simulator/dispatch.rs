@@ -12,7 +12,7 @@ pub fn dispatch(state_p: &State, state: &mut State) {
             effective_limit
         );
         if let Some(r) = next {
-            eu.handle_execute(state_p, &r);
+            eu.handle_dispatch(state_p, &r);
             effective_limit -= 1;
             if effective_limit == 0 {
                 break

@@ -234,7 +234,7 @@ impl ExecuteUnit {
     /// [`Operation`](../../isa/op_code/enum.Operation.html) that this execution
     /// unit is responsible for. If the execute unit is pipelined, this will
     /// add the execution to the pipeline.
-    pub fn handle_execute(
+    pub fn handle_dispatch(
         &mut self,
         state_p: &State,
         reservation: &Reservation,
