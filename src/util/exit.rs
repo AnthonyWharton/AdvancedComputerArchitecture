@@ -8,6 +8,7 @@ pub enum Exit {
 }
 
 impl Exit {
+    #[rustfmt::skip]
     pub fn exit(self, message: Option<&str>) -> ! {
         match self {
             Exit::ArgumentError => exit(1, message.unwrap_or("Argument Error!")),

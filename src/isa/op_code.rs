@@ -108,6 +108,7 @@ pub trait Decodable {
 ////////////////////////////////////////////////////////////////////// BaseCode
 
 impl fmt::Display for BaseCode {
+    #[rustfmt::skip]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             BaseCode::LOAD    => f.pad("LOAD"),
@@ -127,6 +128,7 @@ impl fmt::Display for BaseCode {
 
 impl From<Operation> for BaseCode {
     /// Finds the associated BaseCode for a given operation.
+    #[rustfmt::skip]
     fn from(operation: Operation) -> BaseCode {
         match operation {
             Operation::LUI    => BaseCode::LUI,
@@ -189,6 +191,7 @@ impl From<Operation> for BaseCode {
 }
 
 impl Decodable for BaseCode {
+    #[rustfmt::skip]
     fn from_instruction(instruction: i32) -> Option<BaseCode> {
         match instruction & 0x7f {
             0x03 => Some(BaseCode::LOAD),
@@ -210,6 +213,7 @@ impl Decodable for BaseCode {
 impl BaseCode {
     /// Checks if the instruction format has a destination register encoded
     /// within it, as per the `rv32im` specification.
+    #[rustfmt::skip]
     pub fn has_rd(self) -> bool {
         match Format::from(self) {
             Format::S |
@@ -220,6 +224,7 @@ impl BaseCode {
 
     /// Checks if the instruction format has a source (1) register encoded
     /// within it, as per the `rv32im` specification.
+    #[rustfmt::skip]
     pub fn has_rs1(self) -> bool {
         match Format::from(self) {
             Format::U |
@@ -230,6 +235,7 @@ impl BaseCode {
 
     /// Checks if the instruction format has a source (2) register encoded
     /// within it, as per the `rv32im` specification.
+    #[rustfmt::skip]
     pub fn has_rs2(self) -> bool {
         match Format::from(self) {
             Format::I |
@@ -241,6 +247,7 @@ impl BaseCode {
 
     /// Checks if the instruction format has a function code included within
     /// it, as per the `rv32im` specification.
+    #[rustfmt::skip]
     fn has_funct_code(self) -> bool {
         match Format::from(self) {
             Format::U | Format::J => false,
@@ -250,6 +257,7 @@ impl BaseCode {
 
     /// Checks if the instruction format **might** have a `funct7` encoded
     /// within it, as per the `rv32im` specification.
+    #[rustfmt::skip]
     fn may_have_funct7(self) -> bool {
         match Format::from(self) {
             Format::R | Format::I => true,
@@ -261,6 +269,7 @@ impl BaseCode {
 ///////////////////////////////////////////////////////////////////// FunctCode
 
 impl fmt::Display for Operation {
+    #[rustfmt::skip]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Operation::LUI    => f.pad("lui"),

@@ -21,6 +21,7 @@ pub enum RegisterOperand {
 
 /// The ID's of all the registers that are user accesible by executing
 /// programs in the `rv32im` specification.
+#[rustfmt::skip]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Register {
     X0  =  0,
@@ -62,6 +63,7 @@ pub enum Register {
 //// IMPLEMENTATIONS
 
 impl fmt::Display for Register {
+    #[rustfmt::skip]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if f.alternate() {
             match self {
@@ -111,6 +113,7 @@ impl fmt::Display for Register {
 }
 
 impl From<i32> for Register {
+    #[rustfmt::skip]
     fn from(word: i32) -> Register {
         match word {
              0 => Register::X0,
@@ -199,17 +202,12 @@ pub fn extract_immediate(instruction: i32) -> Option<i32> {
     let i = instruction;
     match Format::from(base_code) {
         Format::R => None,
-        Format::I =>
-            Some(sign_extend_from_msb(11, imm_ex_1(i, 20,  true) | imm_ex_2(i, 11))),
-        Format::S =>
-            Some(sign_extend_from_msb(11, imm_ex_1(i,  7,  true) | imm_ex_2(i, 11))),
-        Format::B =>
-            Some(sign_extend_from_msb(12, imm_ex_1(i,  7, false) | imm_ex_2(i, 12))),
-        Format::U =>
-            Some(imm_ex_3(i, 12, 31)),
-        Format::J =>
-            Some(sign_extend_from_msb(20, imm_ex_1(i, 20, false) | imm_ex_2(i, 20) |
-                                          imm_ex_3(i, 12, 19))),
+        Format::I => Some(sign_extend_from_msb(11, imm_ex_1(i, 20,  true) | imm_ex_2(i, 11))),
+        Format::S => Some(sign_extend_from_msb(11, imm_ex_1(i,  7,  true) | imm_ex_2(i, 11))),
+        Format::B => Some(sign_extend_from_msb(12, imm_ex_1(i,  7, false) | imm_ex_2(i, 12))),
+        Format::U => Some(imm_ex_3(i, 12, 31)),
+        Format::J => Some(sign_extend_from_msb(20, imm_ex_1(i, 20, false) | imm_ex_2(i, 20) |
+                                               imm_ex_3(i, 12, 19))),
     }
 }
 

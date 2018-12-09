@@ -76,6 +76,7 @@ pub struct ExecutionLen {
 //// IMPLEMENTATIONS
 
 impl From<Operation> for ExecutionLen {
+    #[rustfmt::skip]
     fn from(op: Operation) -> ExecutionLen {
         match op {
             Operation::LUI    => ExecutionLen { blocking: false, steps: 1 },
@@ -138,6 +139,7 @@ impl From<Operation> for ExecutionLen {
 }
 
 impl From<Operation> for UnitType {
+    #[rustfmt::skip]
     fn from(op: Operation) -> UnitType {
         match op {
             Operation::LUI    => UnitType::ALU,
@@ -297,6 +299,7 @@ impl ExecuteUnit {
         };
         let rs1u = rs1s as u32;
         let rs2u = rs2s as u32;
+        #[rustfmt::skip]
         let rd_val = match r.op {
             Operation::ADD    => rs1s.overflowing_add(rs2s).0,
             Operation::SUB    => rs1s.overflowing_sub(rs2s).0,
@@ -356,6 +359,7 @@ impl ExecuteUnit {
         };
         let imm = r.imm.expect("Execute unit missing imm!");
 
+        #[rustfmt::skip]
         let rd_val = match r.op {
             Operation::JALR   => Some(rf.read_reg(Register::PC).unwrap() + 4),
             // TODO Move to writeback stage
@@ -456,15 +460,14 @@ impl ExecuteUnit {
         };
         let imm = r.imm.expect("Execute unit missing imm!");
 
+        #[rustfmt::skip]
         let pc_val = rf.read_reg(Register::PC).unwrap() + match r.op {
             Operation::BEQ  => if rs1 == rs2 { imm } else { 4 },
             Operation::BNE  => if rs1 != rs2 { imm } else { 4 },
             Operation::BLT  => if rs1 <  rs2 { imm } else { 4 },
             Operation::BGE  => if rs1 >= rs2 { imm } else { 4 },
-            Operation::BLTU =>
-                if (rs1 as u32) <  (rs2 as u32) { imm } else { 4 },
-            Operation::BGEU =>
-                if (rs1 as u32) >= (rs2 as u32) { imm } else { 4 },
+            Operation::BLTU => if (rs1 as u32) <  (rs2 as u32) { imm } else { 4 },
+            Operation::BGEU => if (rs1 as u32) >= (rs2 as u32) { imm } else { 4 },
             _ => panic!("Unknown B type instruction failed to execute.")
         };
 

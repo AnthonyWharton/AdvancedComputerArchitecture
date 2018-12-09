@@ -59,23 +59,19 @@ fn verify_file_header(header: &FileHeader) {
         ElfError.exit(Some("Found 64 bit ELF file, expected 32 bit."));
     }
     if header.data != ELFDATA2LSB {
-        ElfError.exit(Some("Found Big Endian ELF file, expected Little \
-                           Endian."));
+        ElfError.exit(Some("Found Big Endian ELF file, expected Little Endian."));
     }
     if header.version != EV_CURRENT {
         ElfError.exit(Some("Incompatible ELF file version, expected 1."));
     }
     if header.osabi != ELFOSABI_SYSV {
-        ElfError.exit(Some("Incompatible OS ABI in ELF file header, expected \
-                           Unix - System V."));
+        ElfError.exit(Some("Incompatible OS ABI in ELF file header, expected Unix - System V."));
     }
     if header.elftype != ET_EXEC {
-        ElfError.exit(Some("Incompatible object file type in ELF file header, \
-                           expected EXEC."));
+        ElfError.exit(Some("Incompatible object file type in ELF file header, expected EXEC."));
     }
     if header.machine != Machine(0xf3) {
-        ElfError.exit(Some("Incompatible ISA in ELF file header, expected \
-                           RISC-V."));
+        ElfError.exit(Some("Incompatible ISA in ELF file header, expected RISC-V."));
     }
 }
 
@@ -86,8 +82,7 @@ fn verify_file_header(header: &FileHeader) {
 fn verify_prog_header(header: &ProgramHeader) {
     match header.progtype {
         PT_NULL | PT_LOAD | PT_NOTE | PT_PHDR => (),
-        _ => ElfError.exit(Some("Elf file contained unsupported program \
-                                header type.")),
+        _ => ElfError.exit(Some("Elf file contained unsupported program header type.")),
     }
 }
 
