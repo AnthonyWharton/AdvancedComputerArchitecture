@@ -2,9 +2,9 @@ use std::collections::VecDeque;
 
 use either::{Left, Right};
 
-use crate::isa::Format;
 use crate::isa::op_code::Operation;
 use crate::isa::operand::Register;
+use crate::isa::Format;
 
 use super::register::RegisterFile;
 use super::reservation::Reservation;
@@ -216,7 +216,7 @@ impl ExecuteUnit {
     /// specified instruction.
     pub fn is_free(&self, el: ExecutionLen) -> bool {
         if el.blocking {
-            return self.executing.is_empty()
+            return self.executing.is_empty();
         }
         // Note: Dispatch is run before the execute/writeback stage, so we need
         // to take into account that even if the pipeline is full, if the front
@@ -228,7 +228,7 @@ impl ExecuteUnit {
                 // Either the pipeline is free, or is about to be free
                 ((self.executing.len() < self.pipeline_size) ||
                  (len.steps == 1 && self.executing.len() <= self.pipeline_size))
-            },
+            }
             None => true, // Nothing in the queue, so free
         }
     }
@@ -237,16 +237,12 @@ impl ExecuteUnit {
     /// [`Operation`](../../isa/op_code/enum.Operation.html) that this execution
     /// unit is responsible for. If the execute unit is pipelined, this will
     /// add the execution to the pipeline.
-    pub fn handle_dispatch(
-        &mut self,
-        state_p: &State,
-        reservation: &Reservation,
-    ) {
+    pub fn handle_dispatch(&mut self, state_p: &State, reservation: &Reservation) {
         if self.unit_type != UnitType::from(reservation.op) {
             panic!(format!(
-                "Execute Unit {:?} was given Operation {:?}, which it didn't \
-                know how to calculate", self.unit_type, reservation.op)
-            )
+                "Execute Unit {:?} was given Operation {:?} that it is incapable of processing",
+                self.unit_type, reservation.op
+            ))
         }
 
         match Format::from(reservation.op) {
@@ -262,10 +258,7 @@ impl ExecuteUnit {
     /// Triggers an exection step, only modifying the new execution unit. Will
     /// advance the exectuion pipeline, and then remove and return any finished
     /// executions within the new execution unit only.
-    pub fn advance_pipeline(
-        &self,
-        new_eu: &mut ExecuteUnit
-    ) -> Option<ExecuteResult> {
+    pub fn advance_pipeline(&self, new_eu: &mut ExecuteUnit) -> Option<ExecuteResult> {
         {
             // Ensure we do not minus 1 from an execution added to the new state in
             // the dispatch stage (which may have touched the execute unit already)
@@ -287,55 +280,53 @@ impl ExecuteUnit {
 
     /// Executes an R type instruction, putting the results in self.
     fn ex_r_type(&mut self, rf: &RegisterFile, r: &Reservation) {
-        let rs1s = match r.rs1 {
-            Left(val)   => val,
-            Right(name) => rf.read_at_name(name)
-                .expect("Execute unit missing rs1!"),
+        let rs1_s = match r.rs1 {
+            Left(val) => val,
+            Right(name) => rf.read_at_name(name).expect("Execute unit missing rs1!"),
         };
-        let rs2s = match r.rs2 {
-            Left(val)   => val,
-            Right(name) => rf.read_at_name(name)
-                .expect("Execute unit missing rs2!"),
+        let rs2_s = match r.rs2 {
+            Left(val) => val,
+            Right(name) => rf.read_at_name(name).expect("Execute unit missing rs2!"),
         };
-        let rs1u = rs1s as u32;
-        let rs2u = rs2s as u32;
+        let rs1_u = rs1_s as u32;
+        let rs2_u = rs2_s as u32;
         #[rustfmt::skip]
         let rd_val = match r.op {
-            Operation::ADD    => rs1s.overflowing_add(rs2s).0,
-            Operation::SUB    => rs1s.overflowing_sub(rs2s).0,
-            Operation::SLL    => rs1s << (rs2s & 0b11111),
-            Operation::SLT    => (rs1s < rs2s) as i32,
-            Operation::SLTU   => (rs1u < rs2u) as i32,
-            Operation::XOR    => rs1s ^ rs2s,
-            Operation::SRL    => (rs1u >> (rs2u & 0b11111)) as i32,
-            Operation::SRA    => rs1s >> (rs2s & 0b11111),
-            Operation::OR     => rs1s | rs2s,
-            Operation::AND    => rs1s & rs2s,
-            Operation::MUL    => rs1s.overflowing_mul(rs2s).0,
-            Operation::MULH   => ((i64::from(rs1s) * i64::from(rs2s)) >> 32) as i32,
-            Operation::MULHU  => ((u64::from(rs1u) * u64::from(rs2u)) >> 32) as i32,
-            Operation::MULHSU => ((i64::from(rs1s) * i64::from(rs2u)) >> 32) as i32,
-            Operation::DIV    => match rs2s {
+            Operation::ADD    => rs1_s.overflowing_add(rs2_s).0,
+            Operation::SUB    => rs1_s.overflowing_sub(rs2_s).0,
+            Operation::SLL    => rs1_s << (rs2_s & 0b11111),
+            Operation::SLT    => (rs1_s < rs2_s) as i32,
+            Operation::SLTU   => (rs1_u < rs2_u) as i32,
+            Operation::XOR    => rs1_s ^ rs2_s,
+            Operation::SRL    => (rs1_u >> (rs2_u & 0b11111)) as i32,
+            Operation::SRA    => rs1_s >> (rs2_s & 0b11111),
+            Operation::OR     => rs1_s | rs2_s,
+            Operation::AND    => rs1_s & rs2_s,
+            Operation::MUL    => rs1_s.overflowing_mul(rs2_s).0,
+            Operation::MULH   => ((i64::from(rs1_s) * i64::from(rs2_s)) >> 32) as i32,
+            Operation::MULHU  => ((u64::from(rs1_u) * u64::from(rs2_u)) >> 32) as i32,
+            Operation::MULHSU => ((i64::from(rs1_s) * i64::from(rs2_u)) >> 32) as i32,
+            Operation::DIV    => match rs2_s {
                                      0  => -1i32,
-                                     _  => match rs1s.overflowing_div(rs2s) {
+                                     _  => match rs1_s.overflowing_div(rs2_s) {
                                          (_, true) => i32::min_value(),
                                          (v, _)    => v,
                                      },
                                  },
-            Operation::DIVU   => match rs2s {
+            Operation::DIVU   => match rs2_s {
                                      0  => i32::max_value(),
-                                     _  => (rs1u / rs2u) as i32,
+                                     _  => (rs1_u / rs2_u) as i32,
                                  },
-            Operation::REM    => match rs2s {
-                                     0 => rs1s,
-                                     _ => match rs1s.overflowing_div(rs2s) {
+            Operation::REM    => match rs2_s {
+                                     0 => rs1_s,
+                                     _ => match rs1_s.overflowing_div(rs2_s) {
                                          (_, true) => 0,
                                          (v, _)    => v,
                                      }
                                  },
-            Operation::REMU   => match rs2s {
-                                     0 => rs1s,
-                                     _ => (rs1u % rs2u) as i32,
+            Operation::REMU   => match rs2_s {
+                                     0 => rs1_s,
+                                     _ => (rs1_u % rs2_u) as i32,
                                  },
             _ => panic!("Unknown R type instruction failed to execute.")
         };
@@ -346,18 +337,19 @@ impl ExecuteUnit {
                 pc: rf.read_reg(Register::PC).unwrap() + 4,
                 rd: Some(rd_val),
             },
-            ExecutionLen::from(r.op)
+            ExecutionLen::from(r.op),
         ))
     }
 
     /// Executes an I type instruction, modifying the borrowed state.
     fn ex_i_type(&mut self, rf: &RegisterFile, r: &Reservation) {
-        let rs1 = match r.rs1 {
-            Left(val)   => val,
-            Right(name) => rf.read_at_name(name)
-                .expect("Execute unit missing rs1!"),
+        let rs1_s = match r.rs1 {
+            Left(val) => val,
+            Right(name) => rf.read_at_name(name).expect("Execute unit missing rs1!"),
         };
-        let imm = r.imm.expect("Execute unit missing imm!");
+        let rs1_u = rs1_s as u32;
+        let imm_s = r.imm.expect("Execute unit missing imm!");
+        let imm_u = imm_s as u32;
 
         #[rustfmt::skip]
         let rd_val = match r.op {
@@ -373,15 +365,15 @@ impl ExecuteUnit {
             Operation::LW     => None,
             Operation::LBU    => None,
             Operation::LHU    => None,
-            Operation::ADDI   => Some(rs1 + imm),
-            Operation::SLTI   => Some((rs1 < imm) as i32),
-            Operation::SLTIU  => Some(((rs1 as u32) < (imm as u32)) as i32),
-            Operation::XORI   => Some(rs1 ^ imm),
-            Operation::ORI    => Some(rs1 | imm),
-            Operation::ANDI   => Some(rs1 & imm),
-            Operation::SLLI   => Some(rs1 << imm),
-            Operation::SRLI   => Some(((rs1 as u32) >> (imm as u32)) as i32),
-            Operation::SRAI   => Some(rs1 >> (imm & 0b11111)),
+            Operation::ADDI   => Some( rs1_s +  imm_s),
+            Operation::SLTI   => Some((rs1_s <  imm_s) as i32),
+            Operation::SLTIU  => Some((rs1_u <  imm_u) as i32),
+            Operation::XORI   => Some( rs1_s ^  imm_s),
+            Operation::ORI    => Some( rs1_s |  imm_s),
+            Operation::ANDI   => Some( rs1_s &  imm_s),
+            Operation::SLLI   => Some( rs1_s << imm_s),
+            Operation::SRLI   => Some((rs1_u >> imm_u) as i32),
+            Operation::SRAI   => Some( rs1_s >> (imm_s & 0b11111)),
             Operation::FENCE  => unimplemented!(),
             Operation::FENCEI => unimplemented!(),
             Operation::ECALL  => unimplemented!(),
@@ -396,7 +388,7 @@ impl ExecuteUnit {
         };
 
         let pc_val = if r.op == Operation::JALR {
-            (rs1 + imm) & !0b1
+            (rs1_s + imm_s) & !0b1
         } else {
             rf.read_reg(Register::PC).unwrap() + 4
         };
@@ -407,7 +399,7 @@ impl ExecuteUnit {
                 pc: pc_val,
                 rd: rd_val,
             },
-            ExecutionLen::from(r.op)
+            ExecutionLen::from(r.op),
         ))
     }
 
@@ -433,7 +425,7 @@ impl ExecuteUnit {
             Operation::SB => (),
             Operation::SH => (),
             Operation::SW => (),
-            _ => panic!("Unknown s type instruction failed to execute.")
+            _ => panic!("Unknown s type instruction failed to execute."),
         };
 
         self.executing.push_back((
@@ -442,32 +434,32 @@ impl ExecuteUnit {
                 pc: rf.read_reg(Register::PC).unwrap() + 4,
                 rd: None,
             },
-            ExecutionLen::from(r.op)
+            ExecutionLen::from(r.op),
         ))
     }
 
     /// Executes an B type instruction, modifying the borrowed state.
     fn ex_b_type(&mut self, rf: &RegisterFile, r: &Reservation) {
-        let rs1 = match r.rs1 {
-            Left(val)   => val,
-            Right(name) => rf.read_at_name(name)
-                .expect("Execute unit missing rs1!"),
+        let rs1_s = match r.rs1 {
+            Left(val) => val,
+            Right(name) => rf.read_at_name(name).expect("Execute unit missing rs1!"),
         };
-        let rs2 = match r.rs2 {
-            Left(val)   => val,
-            Right(name) => rf.read_at_name(name)
-                .expect("Execute unit missing rs2!"),
+        let rs2_s = match r.rs2 {
+            Left(val) => val,
+            Right(name) => rf.read_at_name(name).expect("Execute unit missing rs2!"),
         };
+        let rs1_u = rs1_s as u32;
+        let rs2_u = rs2_s as u32;
         let imm = r.imm.expect("Execute unit missing imm!");
 
         #[rustfmt::skip]
         let pc_val = rf.read_reg(Register::PC).unwrap() + match r.op {
-            Operation::BEQ  => if rs1 == rs2 { imm } else { 4 },
-            Operation::BNE  => if rs1 != rs2 { imm } else { 4 },
-            Operation::BLT  => if rs1 <  rs2 { imm } else { 4 },
-            Operation::BGE  => if rs1 >= rs2 { imm } else { 4 },
-            Operation::BLTU => if (rs1 as u32) <  (rs2 as u32) { imm } else { 4 },
-            Operation::BGEU => if (rs1 as u32) >= (rs2 as u32) { imm } else { 4 },
+            Operation::BEQ  => if rs1_s == rs2_s { imm } else { 4 },
+            Operation::BNE  => if rs1_s != rs2_s { imm } else { 4 },
+            Operation::BLT  => if rs1_s <  rs2_s { imm } else { 4 },
+            Operation::BGE  => if rs1_s >= rs2_s { imm } else { 4 },
+            Operation::BLTU => if rs1_u <  rs2_u { imm } else { 4 },
+            Operation::BGEU => if rs1_u >= rs2_u { imm } else { 4 },
             _ => panic!("Unknown B type instruction failed to execute.")
         };
 
@@ -477,7 +469,7 @@ impl ExecuteUnit {
                 pc: pc_val,
                 rd: None,
             },
-            ExecutionLen::from(r.op)
+            ExecutionLen::from(r.op),
         ))
     }
 
@@ -486,16 +478,17 @@ impl ExecuteUnit {
         let imm = r.imm.expect("Execute unit missing imm!");
 
         let rd_val = match r.op {
-            Operation::LUI   => Some(imm),
+            Operation::LUI => Some(imm),
             Operation::AUIPC => None,
-            _ => panic!("Unknown U type instruction failed to execute.")
+            _ => panic!("Unknown U type instruction failed to execute."),
         };
 
-        let pc_val = rf.read_reg(Register::PC).unwrap() + match r.op {
-            Operation::LUI   => 4,
-            Operation::AUIPC => imm,
-            _ => panic!("Unknown U type instruction failed to execute.")
-        };
+        let pc_val = rf.read_reg(Register::PC).unwrap()
+            + match r.op {
+                Operation::LUI => 4,
+                Operation::AUIPC => imm,
+                _ => panic!("Unknown U type instruction failed to execute."),
+            };
 
         self.executing.push_back((
             ExecuteResult {
@@ -503,7 +496,7 @@ impl ExecuteUnit {
                 pc: pc_val,
                 rd: rd_val,
             },
-            ExecutionLen::from(r.op)
+            ExecutionLen::from(r.op),
         ))
     }
 
@@ -520,9 +513,9 @@ impl ExecuteUnit {
                         pc: old_pc + imm,
                         rd: Some(old_pc + 4),
                     },
-                    ExecutionLen::from(r.op)
+                    ExecutionLen::from(r.op),
                 ))
-            },
+            }
             _ => panic!("Unknown J type instruction failed to execute."),
         }
     }
@@ -538,4 +531,3 @@ pub fn execute_and_writeback(state_p: &State, state: &mut State) {
         // }
     }
 }
-

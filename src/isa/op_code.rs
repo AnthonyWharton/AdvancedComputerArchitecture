@@ -98,7 +98,8 @@ pub enum Operation {
 pub trait Decodable {
     /// Decodes a full instruction word, into an internal representation.
     /// Returns None on a failure.
-    fn from_instruction(instruction: i32) -> Option<Self> where
+    fn from_instruction(instruction: i32) -> Option<Self>
+    where
         Self: Sized;
 }
 
@@ -336,7 +337,7 @@ impl Decodable for Operation {
         // To match Function Code, we first need the base code
         let base_code = match BaseCode::from_instruction(instruction) {
             Some(b) => b,
-            None    => return None,
+            None => return None,
         };
         // Parse out funct3, if required
         let funct3 = if base_code.has_funct_code() {
@@ -353,118 +354,102 @@ impl Decodable for Operation {
         // Match on the base code and funct 3, dealing with ambiguities by
         // checking special cases.
         match base_code {
-            BaseCode::LOAD =>
-                match funct3 {
-                    0x0 => Some(Operation::LB),
-                    0x1 => Some(Operation::LH),
-                    0x2 => Some(Operation::LW),
-                    0x4 => Some(Operation::LBU),
-                    0x5 => Some(Operation::LHU),
-                    _   => None, // Unrecognised funct 3
+            BaseCode::LOAD => match funct3 {
+                0x0 => Some(Operation::LB),
+                0x1 => Some(Operation::LH),
+                0x2 => Some(Operation::LW),
+                0x4 => Some(Operation::LBU),
+                0x5 => Some(Operation::LHU),
+                _ => None, // Unrecognised funct 3
+            },
+            BaseCode::MISCMEM => match funct3 {
+                0x0 => Some(Operation::FENCE),
+                0x1 => Some(Operation::FENCEI),
+                _ => None, // Unrecognised funct 3
+            },
+            BaseCode::OPIMM => match funct3 {
+                0x0 => Some(Operation::ADDI),
+                0x2 => Some(Operation::SLTI),
+                0x3 => Some(Operation::SLTIU),
+                0x4 => Some(Operation::XORI),
+                0x6 => Some(Operation::ORI),
+                0x7 => Some(Operation::ANDI),
+                0x1 => Some(Operation::SLLI),
+                0x5 => match funct7 {
+                    // Ambiguous Case; Match on func7
+                    0x00 => Some(Operation::SRLI),
+                    0x20 => Some(Operation::SRAI),
+                    _ => None, // Unrecognised funct7
                 },
-            BaseCode::MISCMEM =>
-                match funct3 {
-                    0x0 => Some(Operation::FENCE),
-                    0x1 => Some(Operation::FENCEI),
-                    _   => None, // Unrecognised funct 3
+                _ => None, // Unrecognised funct 3
+            },
+            BaseCode::AUIPC => Some(Operation::AUIPC),
+            BaseCode::STORE => match funct3 {
+                0x0 => Some(Operation::SB),
+                0x1 => Some(Operation::SH),
+                0x2 => Some(Operation::SW),
+                _ => None, // Unrecognised funct 3
+            },
+            BaseCode::OP => match funct7 {
+                0x00 => match funct3 {
+                    0x0 => Some(Operation::ADD),
+                    0x1 => Some(Operation::SLL),
+                    0x2 => Some(Operation::SLT),
+                    0x3 => Some(Operation::SLTU),
+                    0x4 => Some(Operation::XOR),
+                    0x5 => Some(Operation::SRL),
+                    0x6 => Some(Operation::OR),
+                    0x7 => Some(Operation::AND),
+                    _ => None, // Unrecognised funct3
                 },
-            BaseCode::OPIMM =>
-                match funct3 {
-                    0x0 => Some(Operation::ADDI),
-                    0x2 => Some(Operation::SLTI),
-                    0x3 => Some(Operation::SLTIU),
-                    0x4 => Some(Operation::XORI),
-                    0x6 => Some(Operation::ORI),
-                    0x7 => Some(Operation::ANDI),
-                    0x1 => Some(Operation::SLLI),
-                    0x5 => // Ambiguous Case; Match on func7
-                        match funct7 {
-                            0x00 => Some(Operation::SRLI),
-                            0x20 => Some(Operation::SRAI),
-                            _    => None // Unrecognised funct7
-                        },
-                    _   => None, // Unrecognised funct 3
+                0x20 => match funct3 {
+                    0x0 => Some(Operation::SUB),
+                    0x5 => Some(Operation::SRA),
+                    _ => None, // Unrecognised funct3
                 },
-            BaseCode::AUIPC =>
-                Some(Operation::AUIPC),
-            BaseCode::STORE =>
-                match funct3 {
-                    0x0 => Some(Operation::SB),
-                    0x1 => Some(Operation::SH),
-                    0x2 => Some(Operation::SW),
-                    _   => None, // Unrecognised funct 3
+                0x01 => match funct3 {
+                    0x0 => Some(Operation::MUL),
+                    0x1 => Some(Operation::MULH),
+                    0x2 => Some(Operation::MULHSU),
+                    0x3 => Some(Operation::MULHU),
+                    0x4 => Some(Operation::DIV),
+                    0x5 => Some(Operation::DIVU),
+                    0x6 => Some(Operation::REM),
+                    0x7 => Some(Operation::REMU),
+                    _ => None, // Unrecognised funct3
                 },
-            BaseCode::OP =>
-                match funct7 {
-                    0x00 =>
-                        match funct3 {
-                            0x0 => Some(Operation::ADD),
-                            0x1 => Some(Operation::SLL),
-                            0x2 => Some(Operation::SLT),
-                            0x3 => Some(Operation::SLTU),
-                            0x4 => Some(Operation::XOR),
-                            0x5 => Some(Operation::SRL),
-                            0x6 => Some(Operation::OR),
-                            0x7 => Some(Operation::AND),
-                            _   => None, // Unrecognised funct3
-                        },
-                    0x20 =>
-                        match funct3 {
-                            0x0 => Some(Operation::SUB),
-                            0x5 => Some(Operation::SRA),
-                            _   => None, // Unrecognised funct3
-                        },
-                    0x01 =>
-                        match funct3 {
-                            0x0 => Some(Operation::MUL),
-                            0x1 => Some(Operation::MULH),
-                            0x2 => Some(Operation::MULHSU),
-                            0x3 => Some(Operation::MULHU),
-                            0x4 => Some(Operation::DIV),
-                            0x5 => Some(Operation::DIVU),
-                            0x6 => Some(Operation::REM),
-                            0x7 => Some(Operation::REMU),
-                            _   => None // Unrecognised funct3
-                        },
-                    _ => None // Unrecognised funct7
-
+                _ => None, // Unrecognised funct7
+            },
+            BaseCode::LUI => Some(Operation::LUI),
+            BaseCode::BRANCH => match funct3 {
+                0x0 => Some(Operation::BEQ),
+                0x1 => Some(Operation::BNE),
+                0x4 => Some(Operation::BLT),
+                0x5 => Some(Operation::BGE),
+                0x6 => Some(Operation::BLTU),
+                0x7 => Some(Operation::BGEU),
+                _ => None, // Unrecognised funct 3
+            },
+            BaseCode::JALR => match funct3 {
+                0x0 => Some(Operation::JALR),
+                _ => None, // Unrecognised funct 3
+            },
+            BaseCode::JAL => Some(Operation::JAL),
+            BaseCode::SYSTEM => match funct3 {
+                0x0 => match instruction >> 20 {
+                    // Ambiguous Case (PRIV); Match on funct12
+                    0x0 => Some(Operation::ECALL),
+                    0x1 => Some(Operation::EBREAK),
+                    _ => None, // Unrecognised funct12
                 },
-            BaseCode::LUI =>
-                Some(Operation::LUI),
-            BaseCode::BRANCH =>
-                match funct3 {
-                    0x0 => Some(Operation::BEQ),
-                    0x1 => Some(Operation::BNE),
-                    0x4 => Some(Operation::BLT),
-                    0x5 => Some(Operation::BGE),
-                    0x6 => Some(Operation::BLTU),
-                    0x7 => Some(Operation::BGEU),
-                    _   => None, // Unrecognised funct 3
-                },
-            BaseCode::JALR =>
-                match funct3 {
-                    0x0 => Some(Operation::JALR),
-                    _   => None, // Unrecognised funct 3
-                },
-            BaseCode::JAL =>
-                Some(Operation::JAL),
-            BaseCode::SYSTEM =>
-                match funct3 {
-                    0x0 => // Ambiguous Case (PRIV); Match on funct12
-                        match instruction >> 20 {
-                            0x0 => Some(Operation::ECALL),
-                            0x1 => Some(Operation::EBREAK),
-                            _   => None, // Unrecognised funct12
-                        },
-                    0x1 => Some(Operation::CSRRW),
-                    0x2 => Some(Operation::CSRRS),
-                    0x3 => Some(Operation::CSRRC),
-                    0x5 => Some(Operation::CSRRWI),
-                    0x6 => Some(Operation::CSRRSI),
-                    0x7 => Some(Operation::CSRRCI),
-                    _   => None, // Unrecognised funct3
-                },
+                0x1 => Some(Operation::CSRRW),
+                0x2 => Some(Operation::CSRRS),
+                0x3 => Some(Operation::CSRRC),
+                0x5 => Some(Operation::CSRRWI),
+                0x6 => Some(Operation::CSRRSI),
+                0x7 => Some(Operation::CSRRCI),
+                _ => None, // Unrecognised funct3
+            },
         }
     }
 }
-

@@ -63,7 +63,7 @@ impl Memory {
     /// Creates a new `Memory` struct of given capacity with a 0-initialised
     /// byte-data.
     pub fn create_empty(capacity: usize) -> Memory {
-        Memory(vec!(0u8; capacity))
+        Memory(vec![0u8; capacity])
     }
 
     /// Reads a signed 32 bit word from `Memory` at a given index, returning
@@ -143,8 +143,9 @@ impl Memory {
     /// required, performs no operation.
     pub fn load_elf_section(&mut self, section: &Section) {
         // Check if we actually want to load this section
-        if section.shdr.name == ".shstrtab" { return }
-        if section.shdr.size == 0 { return }
+        if section.shdr.name == ".shstrtab" || section.shdr.size == 0 {
+            return;
+        }
 
         // Extend the size of memory to contain new data
         self.zero_extend((section.shdr.addr + section.shdr.size) as usize);
@@ -162,7 +163,7 @@ impl Memory {
         // Check if memory data structure is large enough, if not extend
         let (diff, sufficient) = (index).overflowing_sub(self.len());
         if !sufficient {
-            self.0.append(&mut vec!(0; diff));
+            self.0.append(&mut vec![0; diff]);
         }
     }
 
@@ -176,6 +177,4 @@ impl Memory {
             (index + size - 1).overflowing_sub(self.len()).1
         }
     }
-
 }
-

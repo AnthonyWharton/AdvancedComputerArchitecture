@@ -2,10 +2,10 @@ use either::Left;
 
 use crate::isa::Instruction;
 
-use super::state::State;
 use super::register::RegisterFile;
 use super::reorder::ReorderBuffer;
 use super::reservation::{Reservation, ResvStation};
+use super::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
@@ -20,7 +20,7 @@ pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
     if let Some(access) = state_p.latch_fetch.data {
         let instr = match Instruction::decode(access.word) {
             Some(i) => i,
-            None => { panic!("Failed to decode instruction.") },
+            None => panic!("Failed to decode instruction."),
         };
 
         let resv_result = sanitise_and_reserve(
@@ -28,7 +28,7 @@ pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
             state_p.latch_fetch.pc,
             &mut state.reorder_buffer,
             &mut state.resv_station,
-            &mut state.register
+            &mut state.register,
         );
 
         if resv_result.is_err() {
@@ -48,12 +48,12 @@ pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
 ///
 /// Returns whether or not all reservations were made succesffully.
 fn sanitise_and_reserve(
-        instruction: Instruction,
-        pc: usize,
-        rob: &mut ReorderBuffer,
-        rs: &mut ResvStation,
-        rf: &mut RegisterFile,
-) -> Result<(),()> {
+    instruction: Instruction,
+    pc: usize,
+    rob: &mut ReorderBuffer,
+    rs: &mut ResvStation,
+    rf: &mut RegisterFile,
+) -> Result<(), ()> {
     // Reserve a physical register for writeback.
     let mut name_rd = 0;
     if let Some(rd) = instruction.rd {
@@ -68,14 +68,14 @@ fn sanitise_and_reserve(
         Some(entry) => entry,
         None => {
             rf.not_using_write(name_rd);
-            return Err(())
-        },
+            return Err(());
+        }
     };
 
     // Check reservation station has availability and if so reserve an
     // instruction.
     if !rs.free_capactiy() {
-        return Err(())
+        return Err(());
     }
 
     let reservation = Reservation {
@@ -84,20 +84,19 @@ fn sanitise_and_reserve(
         op: instruction.op,
         reg_rd: instruction.rd,
         name_rd: match instruction.rd {
-                Some(_) => Some(name_rd),
-                None => None,
-            },
+            Some(_) => Some(name_rd),
+            None => None,
+        },
         rs1: match instruction.rs1 {
-                Some(rs1) => rf.using_read(rs1),
-                None => Left(0),
-            },
+            Some(rs1) => rf.using_read(rs1),
+            None => Left(0),
+        },
         rs2: match instruction.rs2 {
-                Some(rs2) => rf.using_read(rs2),
-                None => Left(0),
-            },
+            Some(rs2) => rf.using_read(rs2),
+            None => Left(0),
+        },
         imm: instruction.imm,
     };
 
     rs.reserve(reservation)
 }
-

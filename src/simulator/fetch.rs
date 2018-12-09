@@ -30,9 +30,5 @@ pub fn fetch_stage(state_p: &State, state_n: &mut State) {
     let data = Some(state_p.memory.read_i32(pc));
     // Pass loaded word to following latch and branch predictor.
     state_n.branch_predictor.predict(data.unwrap().word);
-    state_n.latch_fetch = LatchFetch {
-        data,
-        pc,
-    };
+    state_n.latch_fetch = LatchFetch { data, pc };
 }
-

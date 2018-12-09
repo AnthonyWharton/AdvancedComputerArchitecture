@@ -53,7 +53,6 @@ pub struct PhysicalRegEntry {
     ref_count: u8,
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
 
@@ -64,7 +63,7 @@ impl RegisterFile {
         RegisterFile {
             arch: vec![ArchRegEntry::default(); 33],
             physical: vec![PhysicalRegEntry::default(); physical_regs],
-            free: (33 .. physical_regs + 33).collect(),
+            free: (33..physical_regs + 33).collect(),
         }
     }
 
@@ -145,7 +144,7 @@ impl RegisterFile {
                 self.physical[name - 33] = PhysicalRegEntry::default();
                 self.arch[idx].rename = name;
                 Some(name)
-            },
+            }
             None => None,
         }
     }
@@ -156,8 +155,9 @@ impl RegisterFile {
     ///
     /// Returns true if the register was freed, and false otherwise.
     pub fn not_using_write(&mut self, name: usize) -> bool {
-        if 33 < name && name < (self.physical.len() + 33) &&
-           self.physical[name - 33] == PhysicalRegEntry::default()
+        if 33 < name
+            && name < (self.physical.len() + 33)
+            && self.physical[name - 33] == PhysicalRegEntry::default()
         {
             self.free.push_front(name);
             true

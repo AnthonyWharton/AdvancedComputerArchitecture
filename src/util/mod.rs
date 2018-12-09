@@ -19,12 +19,11 @@ pub mod panic;
 /// Formats the contents of an Option if possible, and prints with the given
 /// format specifier. Otherwise formats as "None".
 macro_rules! format_option {
-    ($fmt_lhs:expr, $fmt_str:expr, $fmt_rhs:expr, $option:expr) => (
+    ($fmt_lhs:expr, $fmt_str:expr, $fmt_rhs:expr, $option:expr) => {
         if $option.is_some() {
             format!(concat!($fmt_lhs, $fmt_str, $fmt_rhs), $option.unwrap())
         } else {
             format!(concat!($fmt_lhs, "{:?}", $fmt_rhs), $option)
         }
-    )
+    };
 }
-

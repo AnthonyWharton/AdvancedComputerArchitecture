@@ -1,7 +1,7 @@
 use std::fmt;
 
-use super::Format;
 use super::op_code::{BaseCode, Decodable};
+use super::Format;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// CONST/STATIC
@@ -158,33 +158,33 @@ impl Register {
     /// Decodes a given register operand out of a full instruction word, into
     /// an internal representation.
     /// Returns None on a failure.
-    pub fn extract_register(
-       register: &RegisterOperand,
-       instruction: i32
-    ) -> Option<Register> {
+    pub fn extract_register(register: &RegisterOperand, instruction: i32) -> Option<Register> {
         let base_code = match BaseCode::from_instruction(instruction) {
             Some(c) => c,
-            None    => return None,
+            None => return None,
         };
         match register {
-            RegisterOperand::RD  =>
+            RegisterOperand::RD => {
                 if base_code.has_rd() {
                     Some(Register::from((instruction >> 7) & REG_OP_MASK))
                 } else {
                     None
-                },
-            RegisterOperand::RS1 =>
+                }
+            }
+            RegisterOperand::RS1 => {
                 if base_code.has_rs1() {
                     Some(Register::from((instruction >> 15) & REG_OP_MASK))
                 } else {
                     None
-                },
-            RegisterOperand::RS2 =>
+                }
+            }
+            RegisterOperand::RS2 => {
                 if base_code.has_rs2() {
                     Some(Register::from((instruction >> 20) & REG_OP_MASK))
                 } else {
                     None
-                },
+                }
+            }
         }
     }
 }
@@ -197,17 +197,28 @@ impl Register {
 pub fn extract_immediate(instruction: i32) -> Option<i32> {
     let base_code = match BaseCode::from_instruction(instruction) {
         Some(c) => c,
-        None    => return None,
+        None => return None,
     };
     let i = instruction;
     match Format::from(base_code) {
         Format::R => None,
-        Format::I => Some(sign_extend_from_msb(11, imm_ex_1(i, 20,  true) | imm_ex_2(i, 11))),
-        Format::S => Some(sign_extend_from_msb(11, imm_ex_1(i,  7,  true) | imm_ex_2(i, 11))),
-        Format::B => Some(sign_extend_from_msb(12, imm_ex_1(i,  7, false) | imm_ex_2(i, 12))),
+        Format::I => Some(sign_extend_from_msb(
+            11,
+            imm_ex_1(i, 20, true) | imm_ex_2(i, 11),
+        )),
+        Format::S => Some(sign_extend_from_msb(
+            11,
+            imm_ex_1(i, 7, true) | imm_ex_2(i, 11),
+        )),
+        Format::B => Some(sign_extend_from_msb(
+            12,
+            imm_ex_1(i, 7, false) | imm_ex_2(i, 12),
+        )),
         Format::U => Some(imm_ex_3(i, 12, 31)),
-        Format::J => Some(sign_extend_from_msb(20, imm_ex_1(i, 20, false) | imm_ex_2(i, 20) |
-                                               imm_ex_3(i, 12, 19))),
+        Format::J => Some(sign_extend_from_msb(
+            20,
+            imm_ex_1(i, 20, false) | imm_ex_2(i, 20) | imm_ex_3(i, 12, 19),
+        )),
     }
 }
 
@@ -268,4 +279,3 @@ fn sign_extend_from_msb(msb: u8, word: i32) -> i32 {
         word
     }
 }
-

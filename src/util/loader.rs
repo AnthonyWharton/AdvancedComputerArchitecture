@@ -1,12 +1,14 @@
+use elf::types::{
+    FileHeader, Machine, ProgramHeader, ELFCLASS32, ELFDATA2LSB, ELFOSABI_SYSV, ET_EXEC,
+    EV_CURRENT, PT_LOAD, PT_NOTE, PT_NULL, PT_PHDR,
+};
 use elf::{File, ParseError};
-use elf::types::{Machine, FileHeader, ProgramHeader, ELFCLASS32, ELFDATA2LSB,
-    EV_CURRENT, ELFOSABI_SYSV, ET_EXEC, PT_NULL, PT_LOAD, PT_NOTE, PT_PHDR};
 
 use crate::isa::operand::Register;
 use crate::simulator::state::State;
 
 use super::config::Config;
-use super::exit::Exit::{FileLoadError, ElfError};
+use super::exit::Exit::{ElfError, FileLoadError};
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
@@ -14,16 +16,20 @@ use super::exit::Exit::{FileLoadError, ElfError};
 /// Loads the elf file into a Memory data structure.
 pub fn load_elf(config: &Config) -> State {
     let file: File = match File::open_path(&config.elf_file) {
-        Ok(f)  => f,
+        Ok(f) => f,
         Err(e) => match e {
-            ParseError::IoError(ee)  => FileLoadError
-                .exit(Some(&format!("Failed to load elf file:\n{}", ee))),
-            ParseError::InvalidMagic => FileLoadError
-                .exit(Some("That's no elf file! (Invalid Magic)")),
-            ParseError::InvalidFormat(ee) => FileLoadError
-                .exit(Some(&format!("Invalid Format! {:?}", ee))),
-            ParseError::NotImplemented => FileLoadError
-                .exit(Some("Something went wrong loading the elf file.")),
+            ParseError::IoError(ee) => {
+                FileLoadError.exit(Some(&format!("Failed to load elf file:\n{}", ee)))
+            }
+            ParseError::InvalidMagic => {
+                FileLoadError.exit(Some("That's no elf file! (Invalid Magic)"))
+            }
+            ParseError::InvalidFormat(ee) => {
+                FileLoadError.exit(Some(&format!("Invalid Format! {:?}", ee)))
+            }
+            ParseError::NotImplemented => {
+                FileLoadError.exit(Some("Something went wrong loading the elf file."))
+            }
         },
     };
 
@@ -34,7 +40,7 @@ pub fn load_elf(config: &Config) -> State {
     }
 
     // Declare state and memory
-    let mut state  = State::default();
+    let mut state = State::default();
 
     // Initialise and load in memory
     for s in file.sections.iter() {
@@ -42,11 +48,12 @@ pub fn load_elf(config: &Config) -> State {
     }
 
     // Load in initial program counter
-    state.register.write_to_name(
-        Register::PC as usize,
-        file.ehdr.entry as i32
-    );
-    state.branch_predictor.force_update(file.ehdr.entry as usize);
+    state
+        .register
+        .write_to_name(Register::PC as usize, file.ehdr.entry as i32);
+    state
+        .branch_predictor
+        .force_update(file.ehdr.entry as usize);
 
     state
 }
@@ -65,13 +72,19 @@ fn verify_file_header(header: &FileHeader) {
         ElfError.exit(Some("Incompatible ELF file version, expected 1."));
     }
     if header.osabi != ELFOSABI_SYSV {
-        ElfError.exit(Some("Incompatible OS ABI in ELF file header, expected Unix - System V."));
+        ElfError.exit(Some(
+            "Incompatible OS ABI in ELF file header, expected Unix - System V.",
+        ));
     }
     if header.elftype != ET_EXEC {
-        ElfError.exit(Some("Incompatible object file type in ELF file header, expected EXEC."));
+        ElfError.exit(Some(
+            "Incompatible object file type in ELF file header, expected EXEC.",
+        ));
     }
     if header.machine != Machine(0xf3) {
-        ElfError.exit(Some("Incompatible ISA in ELF file header, expected RISC-V."));
+        ElfError.exit(Some(
+            "Incompatible ISA in ELF file header, expected RISC-V.",
+        ));
     }
 }
 
@@ -85,4 +98,3 @@ fn verify_prog_header(header: &ProgramHeader) {
         _ => ElfError.exit(Some("Elf file contained unsupported program header type.")),
     }
 }
-

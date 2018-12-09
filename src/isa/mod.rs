@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 
 use self::op_code::{BaseCode, Decodable, Operation};
-use self::operand::{Register, RegisterOperand, extract_immediate};
+use self::operand::{extract_immediate, Register, RegisterOperand};
 
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES
@@ -33,8 +33,8 @@ pub enum Format {
 /// Struct to encapsulate a decoded instruction.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Instruction {
-    pub op:  Operation,
-    pub rd:  Option<Register>,
+    pub op: Operation,
+    pub rd: Option<Register>,
     pub rs1: Option<Register>,
     pub rs2: Option<Register>,
     pub imm: Option<i32>,
@@ -60,6 +60,7 @@ impl Display for Format {
 
 impl From<op_code::BaseCode> for Format {
     /// Provides an Instruction Format given the `BaseCode` of an instruction.
+    #[rustfmt::skip]
     fn from(code: BaseCode) -> Format {
         match code {
             op_code::BaseCode::OP      => Format::R,
@@ -91,7 +92,7 @@ impl Default for Instruction {
     fn default() -> Instruction {
         Instruction {
             op: Operation::ADDI,
-            rd:  Some(Register::X0),
+            rd: Some(Register::X0),
             rs1: Some(Register::X0),
             rs2: None,
             imm: Some(0),
@@ -102,10 +103,18 @@ impl Default for Instruction {
 impl Display for Instruction {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "{}", self.op)?;
-        if self.rd.is_some()  { write!(f, " {:#}", self.rd.as_ref().unwrap())? };
-        if self.rs1.is_some() { write!(f, " {:#}", self.rs1.as_ref().unwrap())? };
-        if self.rs2.is_some() { write!(f, " {:#}", self.rs2.as_ref().unwrap())? };
-        if self.imm.is_some() { write!(f, " {}", self.imm.unwrap())? };
+        if self.rd.is_some() {
+            write!(f, " {:#}", self.rd.as_ref().unwrap())?
+        };
+        if self.rs1.is_some() {
+            write!(f, " {:#}", self.rs1.as_ref().unwrap())?
+        };
+        if self.rs2.is_some() {
+            write!(f, " {:#}", self.rs2.as_ref().unwrap())?
+        };
+        if self.imm.is_some() {
+            write!(f, " {}", self.imm.unwrap())?
+        };
         Ok(())
     }
 }
@@ -117,9 +126,9 @@ impl Instruction {
         Some(Instruction {
             op: match Operation::from_instruction(instruction) {
                 Some(o) => o,
-                None    => return None,
+                None => return None,
             },
-            rd:  Register::extract_register(&RegisterOperand::RD,  instruction),
+            rd: Register::extract_register(&RegisterOperand::RD, instruction),
             rs1: Register::extract_register(&RegisterOperand::RS1, instruction),
             rs2: Register::extract_register(&RegisterOperand::RS2, instruction),
             imm: extract_immediate(instruction),
@@ -127,13 +136,13 @@ impl Instruction {
     }
 
     pub fn is_ret(&self) -> bool {
-        *self == Instruction {
-            op:  Operation::JALR,
-            rd:  Some(Register::X0),
-            rs1: Some(Register::X1),
-            rs2: None,
-            imm: Some(0i32),
-        }
+        *self
+            == Instruction {
+                op: Operation::JALR,
+                rd: Some(Register::X0),
+                rs1: Some(Register::X1),
+                rs2: None,
+                imm: Some(0i32),
+            }
     }
 }
-

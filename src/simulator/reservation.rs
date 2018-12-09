@@ -31,7 +31,7 @@ pub struct Reservation {
     /// the branch predictor made.
     pub pc: usize,
     /// The pending operation
-    pub op:  Operation,
+    pub op: Operation,
     /// The pending writeback register.
     pub reg_rd: Option<Register>,
     /// The pending writeback register name.
@@ -67,9 +67,9 @@ impl ResvStation {
     /// Reserves an entry within the reservation station for future out of
     /// order execution. Returns whether or not the reservation was made
     /// successfully.
-    pub fn reserve(&mut self, reservation: Reservation) -> Result<(),()> {
+    pub fn reserve(&mut self, reservation: Reservation) -> Result<(), ()> {
         if self.contents.len() + 1 >= self.capacity {
-            return Err(())
+            return Err(());
         }
         self.contents.push_back(reservation);
         Ok(())
@@ -91,13 +91,15 @@ impl ResvStation {
             limit
         };
         let unit_type = eu.get_type();
-        let next_valid = self.contents.iter()
-                                      .cloned()
-                                      .take(act_limit)
-                                      .enumerate()
-                                      .find(|(_, r)| {
-            // Check operation is supported by execute unit type
-            unit_type == UnitType::from(r.op)
+        let next_valid = self
+            .contents
+            .iter()
+            .cloned()
+            .take(act_limit)
+            .enumerate()
+            .find(|(_, r)| {
+                // Check operation is supported by execute unit type
+                unit_type == UnitType::from(r.op)
             &&
             // Check execute unit is free
             eu.is_free(ExecutionLen::from(r.op))
@@ -113,13 +115,12 @@ impl ResvStation {
                 Left(_)  => true,
                 Right(n) => rf.read_at_name(n).is_some(),
             }
-        });
+            });
 
         // Consume the reservation, if a valid one was found.
         match next_valid {
             Some((idx, _)) => self.contents.remove(idx),
-            None           => None,
+            None => None,
         }
     }
 }
-

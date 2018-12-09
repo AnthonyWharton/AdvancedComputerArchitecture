@@ -1,6 +1,6 @@
-use crate::isa::{Format, Instruction};
 use crate::isa::op_code::Operation;
 use crate::isa::operand::Register;
+use crate::isa::{Format, Instruction};
 
 use super::state::State;
 
@@ -11,10 +11,7 @@ use super::state::State;
 /// finished instructions from the
 /// ['ReorderBuffer'](../reorder/struct.ReorderBuffer.html), and then commit
 /// them to the new state.
-pub fn handle_writeback(
-    _state_p: &State,
-    _state_n: &mut State,
-) {
+pub fn handle_writeback(_state_p: &State, _state_n: &mut State) {
     match Format::from(Operation::ADD) {
         Format::R => unimplemented!(),
         Format::I => unimplemented!(),
@@ -265,4 +262,3 @@ pub fn handle_writeback(
 //         _ => panic!("Unknown J type instruction failed to execute."),
 //     }
 // }
-

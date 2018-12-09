@@ -5,7 +5,7 @@ use crate::isa::operand::Register;
 use super::branch::BranchPredictor;
 use super::execute::ExecuteUnit;
 use super::fetch::LatchFetch;
-use super::memory::{INIT_MEMORY_SIZE, Memory};
+use super::memory::{Memory, INIT_MEMORY_SIZE};
 use super::register::RegisterFile;
 use super::reorder::ReorderBuffer;
 use super::reservation::ResvStation;
@@ -72,4 +72,3 @@ impl Default for State {
         }
     }
 }
-

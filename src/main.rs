@@ -36,10 +36,9 @@ fn main() {
     util::panic::set_panic_hook();
     let io = IoThread::new();
     let config = match Config::create(env::args()) {
-        Ok(c)  => c,
+        Ok(c) => c,
         Err(e) => Exit::ArgumentError.exit(Some(e)),
     };
     simulator::run_simulator(io, &config);
     println!("Goodbye!\r");
 }
-

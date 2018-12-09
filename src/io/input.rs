@@ -1,6 +1,6 @@
 use std::io;
 use std::sync::mpsc::Sender;
-use std::thread::{JoinHandle, spawn};
+use std::thread::{spawn, JoinHandle};
 
 use termion::event::Key;
 use termion::input::TermRead;
@@ -11,12 +11,7 @@ use super::IoEvent;
 //// CONST/STATIC
 
 /// The key presses that will exit the simulator.
-const EXIT_KEYS: [Key; 4] = [
-    Key::Esc,
-    Key::Char('q'),
-    Key::Ctrl('c'),
-    Key::Ctrl('d'),
-];
+const EXIT_KEYS: [Key; 4] = [Key::Esc, Key::Char('q'), Key::Ctrl('c'), Key::Ctrl('d')];
 
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
@@ -44,4 +39,3 @@ fn input_thread(tx: &Sender<IoEvent>) {
         }
     }
 }
-

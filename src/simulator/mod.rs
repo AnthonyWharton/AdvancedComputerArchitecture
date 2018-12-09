@@ -1,11 +1,11 @@
 use std::sync::mpsc::TryRecvError;
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 
 use crate::io::{IoEvent, IoThread, SimulatorEvent};
 use crate::util::config::Config;
-use crate::util::loader::load_elf;
 use crate::util::exit::Exit;
+use crate::util::loader::load_elf;
 
 use self::decode::decode_and_rename_stage;
 use self::dispatch::dispatch;
@@ -64,7 +64,6 @@ pub mod reservation;
 /// almost all of the submodules within this module.
 pub mod state;
 
-
 ///////////////////////////////////////////////////////////////////////////////
 //// CONST/STATIC
 
@@ -104,7 +103,9 @@ pub fn run_simulator(io: IoThread, config: &Config) {
     }
 
     #[allow(unused_must_use)]
-    { io.handle.join(); }
+    {
+        io.handle.join();
+    }
 }
 
 /// Handles any messages from the input/output thread. Will block if paused, &
@@ -114,17 +115,17 @@ fn handle_io_and_continue(paused: &mut bool, io: &IoThread) -> bool {
         loop {
             match io.rx.recv() {
                 Ok(e) => return handle_message(e, paused),
-                Err(_) => Exit::IoThreadError.exit(
-                    Some("IO Thread stopped communication properly.")
-                ),
+                Err(_) => {
+                    Exit::IoThreadError.exit(Some("IO Thread stopped communication properly."))
+                }
             };
         }
     } else {
         match io.rx.try_recv() {
             Ok(e) => handle_message(e, paused),
-            Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
-                Some("IO Thread missing, assumed dead.")
-            ),
+            Err(TryRecvError::Disconnected) => {
+                Exit::IoThreadError.exit(Some("IO Thread missing, assumed dead."))
+            }
             _ => true,
         }
     }
@@ -138,8 +139,7 @@ fn handle_message(event: SimulatorEvent, paused: &mut bool) -> bool {
         SimulatorEvent::PauseToggle => {
             *paused ^= true;
             true
-        },
+        }
         SimulatorEvent::Cycle => true,
     }
 }
-

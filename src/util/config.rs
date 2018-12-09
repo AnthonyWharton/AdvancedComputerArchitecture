@@ -15,7 +15,6 @@ impl Default for Config {
 }
 
 impl Config {
-
     /// Generates a new Config for the assembler program given the arguments
     pub fn create(mut args: env::Args) -> Result<Config, &'static str> {
         args.next(); // Consume first argument - this is the executable
@@ -32,12 +31,12 @@ impl Config {
                     } else {
                         return Err("More than one binary elf file specified");
                     }
-                },
+                }
             }
         }
 
         if elf_file == None {
-            return Err("No binary elf file specified!")
+            return Err("No binary elf file specified!");
         }
 
         Ok(Config {
@@ -53,4 +52,3 @@ fn help() {
     println!("Simulates a RISC V rv32im binary ELF32 file.");
     process::exit(1);
 }
-

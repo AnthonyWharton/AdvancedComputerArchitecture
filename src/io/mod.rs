@@ -1,13 +1,13 @@
 use std::cmp;
 use std::collections::VecDeque;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
-use std::thread::{JoinHandle, spawn};
+use std::thread::{spawn, JoinHandle};
 
 use termion::event::Key;
 use tui::layout::Rect;
 
-use crate::simulator::INITIALLY_PAUSED;
 use crate::simulator::state::State;
+use crate::simulator::INITIALLY_PAUSED;
 use crate::util::exit::Exit;
 
 use self::input::spawn_input_thread;
@@ -66,7 +66,7 @@ pub enum SimulatorEvent {
 pub struct IoThread {
     pub tx: Sender<IoEvent>,
     pub rx: Receiver<SimulatorEvent>,
-    pub handle: JoinHandle<()>
+    pub handle: JoinHandle<()>,
 }
 
 /// Encapsulation of the state for the TuiApp front-end.
@@ -87,7 +87,6 @@ pub struct TuiApp {
     /// 0 is current, 1 is the state before, 2 is the state before 1, etc
     pub hist_display: usize,
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
@@ -114,16 +113,16 @@ impl TuiApp {
         if self.paused || self.finished {
             match self.rx.recv() {
                 Ok(e) => self.process_event(e),
-                Err(_) => Exit::IoThreadError.exit(
-                    Some("Input Thread stopped communicating properly.")
-                ),
+                Err(_) => {
+                    Exit::IoThreadError.exit(Some("Input Thread stopped communicating properly."))
+                }
             }
         } else {
             match self.rx.try_recv() {
                 Ok(e) => self.process_event(e),
-                Err(TryRecvError::Disconnected) => Exit::IoThreadError.exit(
-                    Some("Input Thread went missing, assumed dead.")
-                ),
+                Err(TryRecvError::Disconnected) => {
+                    Exit::IoThreadError.exit(Some("Input Thread went missing, assumed dead."))
+                }
                 _ => true,
             }
         }
@@ -154,7 +153,7 @@ impl TuiApp {
             Key::Char(' ') => self.toggle_pause(),
             Key::Left => self.state_backward(),
             Key::Right => self.state_forward(),
-            _ => {},
+            _ => (),
         }
     }
 
@@ -165,7 +164,7 @@ impl TuiApp {
         }
         self.hist_display = cmp::min(
             cmp::min(self.hist_display + 1, KEPT_STATES),
-            self.states.len()
+            self.states.len(),
         );
     }
 
@@ -193,10 +192,7 @@ impl TuiApp {
 
 /// Main entry point for the display thread that handles display updates and
 /// user input.
-fn display_thread(
-    tx: Sender<SimulatorEvent>,
-    rx: Receiver<IoEvent>,
-) {
+fn display_thread(tx: Sender<SimulatorEvent>, rx: Receiver<IoEvent>) {
     // Initalise
     let mut terminal = new_terminal().expect("Could not start fancy UI.");
     let mut app = TuiApp {
@@ -221,13 +217,11 @@ fn display_thread(
         // Draw output
         match draw_state(&mut terminal, &app) {
             Ok(()) => (),
-            Err(_) => Exit::IoThreadError.exit(
-                Some("Error when drawing simulation state. {:?}")
-            ),
+            Err(_) => Exit::IoThreadError.exit(Some("Error when drawing simulation state. {:?}")),
         }
 
         if !app.handle_event() {
-            break
+            break;
         }
     }
 
@@ -243,4 +237,3 @@ fn display_thread(
     // not reset. Explicit call to drop just in case.
     std::mem::drop(terminal)
 }
-

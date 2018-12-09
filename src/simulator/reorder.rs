@@ -64,9 +64,8 @@ impl ReorderBuffer {
             front: 0,
             back: 0,
             count: 1,
-            capacity
+            capacity,
         }
-
     }
 
     /// If available, allocate a free entry in the reorder buffer with the
@@ -75,7 +74,7 @@ impl ReorderBuffer {
     pub fn reserve_entry(&mut self, pc: usize) -> Option<usize> {
         // Check we have space
         if self.count == self.capacity {
-            return None
+            return None;
         }
 
         let e = self.front;
@@ -89,7 +88,7 @@ impl ReorderBuffer {
     /// Placeholder implementation.
     fn free_entry(&mut self) {
         if self.count == 0 {
-            return
+            return;
         }
         self.count -= 1;
         self.back = (self.back + 1) % self.capacity;
