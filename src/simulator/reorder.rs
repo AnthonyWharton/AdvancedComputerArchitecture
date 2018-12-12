@@ -98,22 +98,18 @@ impl ReorderBuffer {
 impl Index<usize> for ReorderBuffer {
     type Output = ReorderEntry;
 
-    /// Access a reorder buffer entry, panics if entry is out of bound.
+    /// Access a reorder buffer entry. If an index is too large, it will wrap
+    /// around to the 0th entry.
     fn index(&self, entry: usize) -> &ReorderEntry {
-        if entry >= self.capacity {
-            panic!("Tried to access out of bounds reorder entry.");
-        }
-        &self.rob[entry]
+        &self.rob[entry % self.capacity]
     }
 }
 
 impl IndexMut<usize> for ReorderBuffer {
-    /// Mutably access a reorder buffer entry, panics if entry is out of bound.
+    /// Mutably access a reorder buffer entry. If an index is too large, it
+    /// will wrap around to the 0th entry.
     fn index_mut(&mut self, entry: usize) -> &mut ReorderEntry {
-        if entry >= self.capacity {
-            panic!("Tried to access out of bounds reorder entry.");
-        }
-        &mut self.rob[entry]
+        &mut self.rob[entry % self.capacity]
     }
 }
 
