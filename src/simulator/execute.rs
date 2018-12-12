@@ -234,9 +234,9 @@ impl ExecuteUnit {
     }
 
     /// Handles the logic for the execution of an
-    /// [`Operation`](../../isa/op_code/enum.Operation.html) that this execution
-    /// unit is responsible for. If the execute unit is pipelined, this will
-    /// add the execution to the pipeline.
+    /// [`Operation`](../../isa/op_code/enum.Operation.html) that this
+    /// execution unit is responsible for. If the execute unit is pipelined,
+    /// this will add the execution to the pipeline.
     pub fn handle_dispatch(&mut self, state_p: &State, reservation: &Reservation) {
         if self.unit_type != UnitType::from(reservation.op) {
             panic!(format!(
