@@ -7,6 +7,7 @@ use crate::isa::operand::Register;
 use crate::isa::Format;
 
 use super::register::RegisterFile;
+use super::reorder::ReorderBuffer;
 use super::reservation::Reservation;
 use super::state::State;
 
@@ -54,7 +55,7 @@ pub struct ExecuteUnit {
 /// The resulting bus that holds the results from the execute unit upon
 /// completion. The execute unit will write directly to the reorder buffer.
 #[derive(Copy, Clone, Debug)]
-pub struct ExecuteResult {
+struct ExecuteResult {
     /// The reorder buffer entry that the result is associated with.
     pub rob_entry: usize,
     /// The new program counter after the execution.
@@ -255,26 +256,33 @@ impl ExecuteUnit {
         }
     }
 
-    /// Triggers an exection step, only modifying the new execution unit. Will
-    /// advance the exectuion pipeline, and then remove and return any finished
-    /// executions within the new execution unit only.
-    pub fn advance_pipeline(&self, new_eu: &mut ExecuteUnit) -> Option<ExecuteResult> {
-        {
-            // Ensure we do not minus 1 from an execution added to the new state in
-            // the dispatch stage (which may have touched the execute unit already)
-            let iter = if self.executing.len() == new_eu.executing.len() {
-                new_eu.executing.iter_mut().skip(0)
-            } else {
-                new_eu.executing.iter_mut().skip(1)
-            };
-            // Move on all executions by one
-            iter.for_each(|(_, len)| len.steps -= 1);
-        }
-
-        if new_eu.executing.front()?.1.steps == 0 {
-            Some(new_eu.executing.pop_front().unwrap().0)
+    /// Triggers an exection step, only modifying the given new execution unit.
+    /// Will advance the exectuion pipeline, writing any completed executions
+    /// to the reorder buffer, also setting the finished bit.
+    pub fn advance_pipeline(&self, new_eu: &mut ExecuteUnit, rob: &mut ReorderBuffer) {
+        // Ensure we do not minus 1 from an execution added to the new state in
+        // the dispatch stage (which may have touched the execute unit already)
+        let iter = if self.executing.len() == new_eu.executing.len() {
+            new_eu.executing.iter_mut().skip(0)
         } else {
-            None
+            new_eu.executing.iter_mut().skip(1)
+        };
+
+        // Progress all executions in pipeline
+        iter.for_each(|(_, len)| {
+            if len.steps > 0 {
+                len.steps -= 1
+            }
+        });
+
+        // If instruction has finished, write back to reorder buffer
+        if let Some((_, el)) = new_eu.executing.front() {
+            if el.steps == 0 {
+                let result: ExecuteResult = new_eu.executing.pop_front().unwrap().0;
+                rob[result.rob_entry].act_pc = result.pc as usize;
+                rob[result.rob_entry].act_rd = result.rd.unwrap_or(0);
+                rob[result.rob_entry].finished = true;
+            }
         }
     }
 
@@ -524,10 +532,13 @@ impl ExecuteUnit {
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
+/// Runs the execute & writeback stage on every execution unit in the given
+/// previous state, `state_p`, while putting the new results in the current 
+/// state, `state`.
 pub fn execute_and_writeback(state_p: &State, state: &mut State) {
-    for eu in state.execute_units.iter_mut() {
-        // if let Some(el) = eu.advance_pipeline() {
-        unimplemented!();
-        // }
+    let iter_p = state_p.execute_units.iter();
+    let iter = state.execute_units.iter_mut();
+    for (eu_p, mut eu) in iter_p.zip(iter) {
+        eu_p.advance_pipeline(&mut eu, &mut state.reorder_buffer)
     }
 }
