@@ -63,7 +63,7 @@ impl ReorderBuffer {
             rob: vec![ReorderEntry::default(); capacity + 1],
             front: 0,
             back: 0,
-            count: 1,
+            count: 0,
             capacity,
         }
     }
