@@ -9,6 +9,7 @@ use crate::util::loader::load_elf;
 
 use self::decode::decode_and_rename_stage;
 use self::dispatch::dispatch;
+use self::execute::execute_and_writeback;
 use self::fetch::fetch_stage;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -91,7 +92,7 @@ pub fn run_simulator(io: IoThread, config: &Config) {
         fetch_stage(&state_p, &mut state);
         decode_and_rename_stage(&state_p, &mut state);
         dispatch(&state_p, &mut state);
-        // TODO Add execute stage
+        execute_and_writeback(&state_p, &mut state);
         // TODO Add commit stage
 
         // End of cycle, start housekeeping
