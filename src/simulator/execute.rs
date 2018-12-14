@@ -538,6 +538,7 @@ impl ExecuteUnit {
 pub fn execute_and_writeback(state_p: &State, state: &mut State) {
     let iter_p = state_p.execute_units.iter();
     let iter = state.execute_units.iter_mut();
+    // Loop over both past and current execute units at the same time
     for (eu_p, mut eu) in iter_p.zip(iter) {
         eu_p.advance_pipeline(&mut eu, &mut state.reorder_buffer)
     }
