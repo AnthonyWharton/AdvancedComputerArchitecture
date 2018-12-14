@@ -77,9 +77,9 @@ impl ReorderBuffer {
             return None;
         }
 
-        let e = self.front;
+        let e = self.back;
         self.count += 1;
-        self.front = (self.front + 1) % self.capacity;
+        self.back = (self.back + 1) % self.capacity;
         self.rob[e] = ReorderEntry::default();
         self.rob[e].pc = pc;
         Some(e)
@@ -91,23 +91,23 @@ impl ReorderBuffer {
             return;
         }
         self.count -= 1;
-        self.back = (self.back + 1) % self.capacity;
+        self.front = (self.front + 1) % self.capacity;
     }
 }
 
 impl Index<usize> for ReorderBuffer {
     type Output = ReorderEntry;
 
-    /// Access a reorder buffer entry. If an index is too large, it will wrap
-    /// around to the 0th entry.
+    /// Absolute access to a reorder buffer entry. If an index is too large, it
+    /// will wrap around to the 0th entry.
     fn index(&self, entry: usize) -> &ReorderEntry {
         &self.rob[entry % self.capacity]
     }
 }
 
 impl IndexMut<usize> for ReorderBuffer {
-    /// Mutably access a reorder buffer entry. If an index is too large, it
-    /// will wrap around to the 0th entry.
+    /// Absolute mutable access to a reorder buffer entry. If an index is too
+    /// large, it will wrap around to the 0th entry.
     fn index_mut(&mut self, entry: usize) -> &mut ReorderEntry {
         &mut self.rob[entry % self.capacity]
     }
