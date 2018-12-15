@@ -101,8 +101,9 @@ impl State {
     }
     /// Flushes the entire pipeline, restarting from the given Program Counter.
     pub fn flush_pipeline(&mut self, actual_pc: usize) {
-        self.branch_predictor.force_update(actual_pc);
+        self.finish_rob_entry = None;
         self.register.flush();
+        self.branch_predictor.force_update(actual_pc);
         self.latch_fetch.data = None;
         self.resv_station.flush();
         self.reorder_buffer.flush();
@@ -127,7 +128,7 @@ impl Default for State {
             latch_fetch: LatchFetch::default(),
             resv_station: ResvStation::new(16),
             reorder_buffer: ReorderBuffer::new(32),
-            execute_units: Vec::new(), // TODO address lack of execute units
+            execute_units: Vec::new(),
         }
     }
 }
