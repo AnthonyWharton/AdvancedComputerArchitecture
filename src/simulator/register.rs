@@ -15,13 +15,13 @@ use crate::isa::operand::Register;
 #[derive(Clone)]
 pub struct RegisterFile {
     /// The architectural register lookup table.
-    arch: Vec<ArchRegEntry>,
+    pub arch: Vec<ArchRegEntry>,
     /// The physical registers that hold register data, and a count of how many
     /// references are making current use of it.
-    physical: Vec<PhysicalRegEntry>,
+    pub physical: Vec<PhysicalRegEntry>,
     /// A queue of registers that are free for rename usage in the physical
     /// register file.
-    free: VecDeque<usize>,
+    pub free: VecDeque<usize>,
 }
 
 /// The contents of a line in the Architectural Register File.
@@ -31,12 +31,12 @@ pub struct RegisterFile {
 #[derive(Clone)]
 pub struct ArchRegEntry {
     /// The latest committed value of the register.
-    data: i32,
+    pub data: i32,
     /// The 'valid' bit, i.e. the data is directly usable.
-    valid: bool,
+    pub valid: bool,
     /// The renamed name of the register in the physical register file, used
     /// when the valid bit is not set.
-    rename: usize,
+    pub rename: usize,
 }
 
 /// The contents of a line in the Phsyical Register File.
@@ -45,12 +45,12 @@ pub struct ArchRegEntry {
 #[derive(Clone, PartialEq)]
 pub struct PhysicalRegEntry {
     /// The data stored in the line of the physical register file.
-    data: i32,
+    pub data: i32,
     /// The 'valid' bit, i.e. the data is directly usable.
-    valid: bool,
+    pub valid: bool,
     /// The number of components that have a reference to this physical
     /// register entry.
-    ref_count: u8,
+    pub ref_count: u8,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -233,7 +233,7 @@ impl Default for ArchRegEntry {
         ArchRegEntry {
             data: 0,
             valid: true,
-            rename: 0,
+            rename: 33,
         }
     }
 }
