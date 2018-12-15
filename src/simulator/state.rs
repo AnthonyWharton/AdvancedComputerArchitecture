@@ -20,6 +20,8 @@ use super::reservation::ResvStation;
 pub struct State {
     /// Statistics collected over the simulator's lifetime.
     pub stats: Stats,
+    /// Used to display debug prints in the debug thread.
+    pub debug_msg: Vec<String>,
     /// The reorder buffer entry of the finish instruction, if seen yet.
     pub finish_rob_entry: Option<usize>,
     /// The virtual memory module, holding data and instructions in the
@@ -81,6 +83,7 @@ impl State {
         // Create state
         let mut state = State {
             stats: Stats::default(),
+            debug_msg: Vec::new(),
             finish_rob_entry: None,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,
@@ -117,6 +120,7 @@ impl Default for State {
         State {
             stats: Stats::default(),
             finish_rob_entry: None,
+            debug_msg: Vec::new(),
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register: regs,
             branch_predictor: BranchPredictor::new(0),
