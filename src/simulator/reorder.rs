@@ -94,18 +94,25 @@ impl ReorderBuffer {
     /// If finished, pops the front ready entries off of the reorder buffer. If
     /// an empty Vec is returned, no entries have finished execution.
     /// Modifications are only made to the new reorder buffer.
-    pub fn pop_finished_entry(&self, new_rob: &mut ReorderBuffer) -> Vec<ReorderEntry> {
+    pub fn pop_finished_entries(
+        &self,
+        new_rob: &mut ReorderBuffer,
+        finish_rob_entry: Option<usize>,
+    ) -> (Vec<ReorderEntry>, bool) {
         if self.count == 0 {
-            return vec![];
+            return (vec![], false);
         }
 
         if self.rob[self.front].finished {
             new_rob.count -= 1;
             new_rob.front = (self.front + 1) % self.capacity;
 
-            vec![new_rob.rob[self.front].clone()]
+            (
+                vec![new_rob.rob[self.front].clone()],
+                self.front == finish_rob_entry.unwrap_or(self.capacity + 1)
+            )
         } else {
-            vec![]
+            (vec![], false)
         }
     }
 

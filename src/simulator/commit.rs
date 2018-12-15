@@ -1,7 +1,7 @@
 use either::{Left, Right};
 
-use crate::isa::op_code::Operation;
 use crate::isa::Format;
+use crate::isa::op_code::Operation;
 
 use super::reorder::ReorderEntry;
 use super::state::State;
@@ -13,20 +13,22 @@ use super::state::State;
 /// finished instructions from the
 /// ['ReorderBuffer'](../reorder/struct.ReorderBuffer.html), and then commits
 /// them to the new [`State`](../state/struct.State.html).
-pub fn commit_stage(state_p: &State, state: &mut State) {
-    let entries = state_p
+pub fn commit_stage(state_p: &State, state: &mut State) -> bool {
+    let (entries, finished) = state_p
         .reorder_buffer
-        .pop_finished_entry(&mut state.reorder_buffer);
+        .pop_finished_entries(&mut state.reorder_buffer, state_p.finish_rob_entry);
     for entry in entries {
         match Format::from(entry.op) {
-            Format::R => unimplemented!(),
-            Format::I => unimplemented!(),
-            Format::S => unimplemented!(),
-            Format::B => unimplemented!(),
-            Format::U => unimplemented!(),
-            Format::J => unimplemented!(),
+            Format::R => cm_r_type(state, &entry),
+            Format::I => cm_i_type(state, &entry),
+            Format::S => cm_s_type(state, &entry),
+            Format::B => cm_b_type(state, &entry),
+            Format::U => cm_u_type(state, &entry),
+            Format::J => cm_j_type(state, &entry),
         }
+        state.stats.executed += 1;
     }
+    finished
 }
 
 /// Commits an R type instruction from a reorder buffer entry to the given

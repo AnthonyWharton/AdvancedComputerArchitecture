@@ -94,13 +94,16 @@ pub fn run_simulator(io: IoThread, config: &Config) {
         decode_and_rename_stage(&state_p, &mut state);
         dispatch_stage(&state_p, &mut state);
         execute_and_writeback_stage(&state_p, &mut state);
-        commit_stage(&state_p, &mut state);
+        let finished = commit_stage(&state_p, &mut state);
 
         // End of cycle, start housekeeping
         state.stats.cycles += 1;
 
         // Update IO thread and sleep for a moment
         io.tx.send(IoEvent::UpdateState(state.clone())).unwrap();
+        if finished {
+            io.tx.send(IoEvent::Finish).unwrap();
+        }
         thread::sleep(Duration::from_millis(50));
     }
 
