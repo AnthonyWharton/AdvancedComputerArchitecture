@@ -89,6 +89,7 @@ pub fn run_simulator(io: IoThread, config: &Config) {
     while handle_io_and_continue(&mut paused, &io) {
         // Maintain immutable past state
         let state_p = state.clone();
+        state.debug_msg.clear();
 
         fetch_stage(&state_p, &mut state);
         decode_and_rename_stage(&state_p, &mut state);

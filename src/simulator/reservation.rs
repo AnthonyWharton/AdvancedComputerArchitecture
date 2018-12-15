@@ -14,16 +14,16 @@ use super::register::RegisterFile;
 /// The reservation station is the cache between the decode and dispatch stage.
 /// It is responsible for holding instructions that are ready, or waiting for
 /// dependencies, before they are dispatched to execution units.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ResvStation {
     /// The amount of reservations the Reservation Station can hold.
     capacity: usize,
     /// The contents of the Reservation Station.
-    contents: VecDeque<Reservation>,
+    pub(crate) contents: VecDeque<Reservation>,
 }
 
 /// A single Reservation within the Reservation Station.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Reservation {
     /// The entry in the reorder buffer that corresponds to this entry.
     pub rob_entry: usize,

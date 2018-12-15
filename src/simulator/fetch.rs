@@ -5,7 +5,7 @@ use super::state::State;
 //// STRUCTS
 
 /// The contents of the latch that the fetch stage feeds into.
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct LatchFetch {
     /// The data fetched.
     pub data: Option<Access<i32>>,
