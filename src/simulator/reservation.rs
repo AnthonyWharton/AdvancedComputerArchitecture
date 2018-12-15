@@ -60,15 +60,15 @@ impl ResvStation {
 
     /// Returns whether the reservation station has free capacity to add more
     /// reservations.
-    pub fn free_capactiy(&self) -> bool {
-        self.contents.len() + 1 < self.capacity
+    pub fn free_capacity(&self) -> bool {
+        self.contents.len() < self.capacity
     }
 
     /// Reserves an entry within the reservation station for future out of
     /// order execution. Returns whether or not the reservation was made
     /// successfully.
     pub fn reserve(&mut self, reservation: Reservation) -> Result<(), ()> {
-        if self.contents.len() + 1 >= self.capacity {
+        if self.contents.len() == self.capacity {
             return Err(());
         }
         self.contents.push_back(reservation);

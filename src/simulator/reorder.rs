@@ -2,6 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use either::{Either, Left};
 
+use crate::isa::op_code::Operation;
 use crate::isa::operand::Register;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -70,10 +71,14 @@ impl ReorderBuffer {
         }
     }
 
-    /// If available, allocate a free entry in the reorder buffer with the
-    /// (speculative) program counter chosen by the branch predictor for the
-    /// instruction destined in the entry.
-    pub fn reserve_entry(&mut self, pc: usize) -> Option<usize> {
+    /// Returns whether the reorder buffer has free capacity to allocate more
+    /// entries.
+    pub fn free_capacity(&self) -> bool {
+        self.count < self.capacity
+    }
+
+    /// If available, reserves a slot for a given reorder buffer entry.
+    pub fn reserve_entry(&mut self, entry: ReorderEntry) -> Option<usize> {
         // Check we have space
         if self.count == self.capacity {
             return None;
@@ -82,8 +87,7 @@ impl ReorderBuffer {
         let e = self.back;
         self.count += 1;
         self.back = (self.back + 1) % self.capacity;
-        self.rob[e] = ReorderEntry::default();
-        self.rob[e].pc = pc;
+        self.rob[e] = entry;
         Some(e)
     }
 
@@ -136,6 +140,7 @@ impl Default for ReorderEntry {
     fn default() -> ReorderEntry {
         ReorderEntry {
             finished: false,
+            op: Operation::ADDI,
             pc: 0,
             act_pc: 0,
             act_rd: 0,
