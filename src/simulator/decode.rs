@@ -19,6 +19,10 @@ use super::state::State;
 ///
 /// If sanitisation is not possible, this will stall the pipeline.
 pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
+    if state_p.finish_rob_entry.is_some() {
+        return
+    }
+
     if let Some(access) = state_p.latch_fetch.data {
         let instr = match Instruction::decode(access.word) {
             Some(i) => i,
