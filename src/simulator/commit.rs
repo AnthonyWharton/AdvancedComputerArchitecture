@@ -182,20 +182,17 @@ fn cm_u_type(state: &mut State, rob_entry: &ReorderEntry) {
 /// Commits an J type instruction from a reorder buffer entry to the given
 /// state.
 fn cm_j_type(state: &mut State, rob_entry: &ReorderEntry) {
-    // let imm = r.imm.expect("Execute unit missing imm!");
+    if rob_entry.pc == rob_entry.act_pc {
+        // Write back to register file
+        state
+            .register
+            .write_to_name(rob_entry.name_rd.unwrap(), rob_entry.act_rd);
+        state
+            .register
+            .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+    } else {
+        // Branch prediction failure
 
-    // match r.op {
-    //     Operation::JALR => {
-    //         let old_pc = rf.read_reg(Register::PC).unwrap();
-    //         self.executing.push_back((
-    //             ExecuteResult {
-    //                 rob_entry: r.rob_entry,
-    //                 pc: old_pc + imm,
-    //                 rd: Some(old_pc + 4),
-    //             },
-    //             ExecutionLen::from(r.op),
-    //         ))
-    //     }
-    //     _ => panic!("Unknown J type instruction failed to execute."),
-    // }
+        // TODO
+    }
 }
