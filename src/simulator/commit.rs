@@ -165,29 +165,18 @@ fn cm_b_type(state: &mut State, rob_entry: &ReorderEntry) {
 /// Commits an U type instruction from a reorder buffer entry to the given
 /// state.
 fn cm_u_type(state: &mut State, rob_entry: &ReorderEntry) {
-    // let imm = r.imm.expect("Execute unit missing imm!");
-
-    // let rd_val = match r.op {
-    //     Operation::LUI => Some(imm),
-    //     Operation::AUIPC => None,
-    //     _ => panic!("Unknown U type instruction failed to execute."),
-    // };
-
-    // let pc_val = rf.read_reg(Register::PC).unwrap()
-    //     + match r.op {
-    //         Operation::LUI => 4,
-    //         Operation::AUIPC => imm,
-    //         _ => panic!("Unknown U type instruction failed to execute."),
-    //     };
-
-    // self.executing.push_back((
-    //     ExecuteResult {
-    //         rob_entry: r.rob_entry,
-    //         pc: pc_val,
-    //         rd: rd_val,
-    //     },
-    //     ExecutionLen::from(r.op),
-    // ))
+    if rob_entry.pc == rob_entry.act_pc {
+        // Write back to register file
+        state
+            .register
+            .write_to_name(rob_entry.name_rd.unwrap(), rob_entry.act_rd);
+        state
+            .register
+            .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+    } else {
+        // Branch prediction failure
+        panic!("Did not expect U type instruction to have mismatching PC!")
+    }
 }
 
 /// Commits an J type instruction from a reorder buffer entry to the given
