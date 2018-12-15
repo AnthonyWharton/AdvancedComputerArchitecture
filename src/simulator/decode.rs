@@ -62,15 +62,6 @@ fn sanitise_and_reserve(
         return Err(());
     }
 
-    // Reserve a physical register for writeback.
-    let mut name_rd = 0;
-    if let Some(rd) = instruction.rd {
-        match state.register.using_write(rd) {
-            Some(n) => name_rd = n,
-            None => return Err(()), // No Available Physical Registers
-        }
-    }
-
     // Get renamed registers for instruction (if required)
     let rs1 = match instruction.rs1 {
         Some(rs1) => state.register.using_read(rs1),
@@ -80,6 +71,15 @@ fn sanitise_and_reserve(
         Some(rs2) => state.register.using_read(rs2),
         None => Left(0),
     };
+
+    // Reserve a physical register for writeback.
+    let mut name_rd = 0;
+    if let Some(rd) = instruction.rd {
+        match state.register.using_write(rd) {
+            Some(n) => name_rd = n,
+            None => return Err(()), // No Available Physical Registers
+        }
+    }
 
     // Reserve a reorder buffer entry
     let reorder_entry = ReorderEntry {
