@@ -92,8 +92,7 @@ fn cm_i_type(state: &mut State, rob_entry: &ReorderEntry) {
         }
     } else {
         // Branch prediction failure
-
-        // TODO
+        state.flush_pipeline(rob_entry.act_pc);
     }
 }
 
@@ -157,8 +156,7 @@ fn cm_b_type(state: &mut State, rob_entry: &ReorderEntry) {
         }
     } else {
         // Branch prediction failure
-
-        // TODO
+        state.flush_pipeline(rob_entry.act_pc);
     }
 }
 
@@ -192,7 +190,6 @@ fn cm_j_type(state: &mut State, rob_entry: &ReorderEntry) {
             .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
     } else {
         // Branch prediction failure
-
-        // TODO
+        state.flush_pipeline(rob_entry.act_pc);
     }
 }
