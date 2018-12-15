@@ -17,8 +17,10 @@ pub struct LatchFetch {
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
-/// The fetch stage of the pipeline. This will fetch the next instruction(s)
-/// from memory, and put them into a latch ready for the next pipeline stage.
+/// The _Fetch_ stage of the pipeline. This will fetch the next instruction(s)
+/// from [`Memory`](../memory/struct.Memory.html), and put them into the
+/// [`LatchFetch`](../fetch/struct.LatchFetch.html) ready for the next pipeline
+/// stage.
 ///
 /// Requires previous self to be mutable due to mutable requirement on
 /// [`Memory.read_i32()`](../memory/struct.Memory.html#method.write_i32).
