@@ -123,4 +123,10 @@ impl ResvStation {
             None => None,
         }
     }
+
+    /// Flushes the reservation station, this would happen when the pipeline is
+    /// invalidated and needs to be restarted from scratch.
+    pub fn flush(&mut self) {
+        self.contents.clear()
+    }
 }
