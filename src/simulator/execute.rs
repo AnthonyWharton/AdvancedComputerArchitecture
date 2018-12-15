@@ -515,10 +515,11 @@ impl ExecuteUnit {
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
-/// Runs the execute & writeback stage on every execution unit in the given
-/// previous state, `state_p`, while putting the new results in the current
-/// state, `state`.
-pub fn execute_and_writeback(state_p: &State, state: &mut State) {
+/// Runs the _Execute & Writeback_ stage on every
+/// [`ExecuteUnit`](../execute/struct.ExecuteUnit.html) in the given previous
+/// [`State`](../state/struct.State.html), `state_p`, while putting the new
+/// results in the current [`State`](../state/struct.State.html), `state`.
+pub fn execute_and_writeback_stage(state_p: &State, state: &mut State) {
     let iter_p = state_p.execute_units.iter();
     let iter = state.execute_units.iter_mut();
     // Loop over both past and current execute units at the same time
