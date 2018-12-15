@@ -3,7 +3,11 @@ use super::state::State;
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
-pub fn dispatch(state_p: &State, state: &mut State) {
+/// This is responsible for the _Dispatch_ stage of the pipeline, taking
+/// pending instructions from the
+/// [`ResvStation`](../reservation/struct.ResvStation.html) to free
+/// [`ExecuteUnit`s](../execute/struct.ExecuteUnit.html).
+pub fn dispatch_stage(state_p: &State, state: &mut State) {
     let mut effective_limit = state_p.execute_units.len();
     for eu in state.execute_units.iter_mut() {
         let next = state
