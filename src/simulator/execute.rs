@@ -282,6 +282,12 @@ impl ExecuteUnit {
         }
     }
 
+    /// Flushes the execute unit, this would happen when the pipeline is
+    /// invalidated and needs to be restarted from scratch.
+    pub fn flush(&mut self) {
+        self.executing.clear()
+    }
+
     /// Executes an R type instruction, putting the results in self.
     fn ex_r_type(&mut self, rf: &RegisterFile, r: &Reservation) {
         let rs1_s = match r.rs1 {
