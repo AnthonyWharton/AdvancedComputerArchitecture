@@ -109,6 +109,13 @@ impl ReorderBuffer {
         }
     }
 
+    /// Flushes the reorder buffer, this would happen when the pipeline is
+    /// invalidated and needs to be restarted from scratch.
+    pub fn flush(&mut self) {
+        self.front = 0;
+        self.back = 0;
+        self.count = 0;
+    }
 }
 
 impl Index<usize> for ReorderBuffer {
