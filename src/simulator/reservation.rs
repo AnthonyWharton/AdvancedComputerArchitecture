@@ -68,7 +68,7 @@ impl ResvStation {
     /// order execution. Returns whether or not the reservation was made
     /// successfully.
     pub fn reserve(&mut self, reservation: Reservation) -> Result<(), ()> {
-        if self.contents.len() == self.capacity {
+        if self.contents.len() >= self.capacity {
             return Err(());
         }
         self.contents.push_back(reservation);
