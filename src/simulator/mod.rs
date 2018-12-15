@@ -6,6 +6,7 @@ use crate::io::{IoEvent, IoThread, SimulatorEvent};
 use crate::util::config::Config;
 use crate::util::exit::Exit;
 
+use self::commit::commit_stage;
 use self::decode::decode_and_rename_stage;
 use self::dispatch::dispatch_stage;
 use self::execute::execute_and_writeback_stage;
@@ -93,7 +94,7 @@ pub fn run_simulator(io: IoThread, config: &Config) {
         decode_and_rename_stage(&state_p, &mut state);
         dispatch_stage(&state_p, &mut state);
         execute_and_writeback_stage(&state_p, &mut state);
-        // TODO Add commit stage
+        commit_stage(&state_p, &mut state);
 
         // End of cycle, start housekeeping
         state.stats.cycles += 1;

@@ -9,11 +9,11 @@ use super::state::State;
 ///////////////////////////////////////////////////////////////////////////////
 //// FUNCTIONS
 
-/// The writeback state in the pipeline. This is responsible for taking
+/// The _commit_ state in the pipeline. This is responsible for taking
 /// finished instructions from the
-/// ['ReorderBuffer'](../reorder/struct.ReorderBuffer.html), and then commit
-/// them to the new state.
-pub fn handle_writeback(state_p: &State, state: &mut State) {
+/// ['ReorderBuffer'](../reorder/struct.ReorderBuffer.html), and then commits
+/// them to the new [`State`](../state/struct.State.html).
+pub fn commit_stage(state_p: &State, state: &mut State) {
     let entries = state_p
         .reorder_buffer
         .pop_finished_entry(&mut state.reorder_buffer);
