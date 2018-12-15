@@ -27,11 +27,11 @@ pub struct ResvStation {
 pub struct Reservation {
     /// The entry in the reorder buffer that corresponds to this entry.
     pub rob_entry: usize,
+    /// The pending operation
+    pub op: Operation,
     /// The program counter value for this instruction, indicating the choice
     /// the branch predictor made.
     pub pc: usize,
-    /// The pending operation
-    pub op: Operation,
     /// The pending writeback register.
     pub reg_rd: Option<Register>,
     /// The pending writeback register name.

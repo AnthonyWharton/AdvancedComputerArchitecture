@@ -30,6 +30,8 @@ pub struct ReorderEntry {
     /// The 'finished' bit, i.e. the data is directly usable, and the entry is
     /// ready for writeback.
     pub finished: bool,
+    /// The operation that executed
+    pub op: Operation,
     /// The program counter for this instruction, indicating the choice that
     /// the branch predictor made.
     pub pc: usize,
