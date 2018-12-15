@@ -147,37 +147,19 @@ fn cm_s_type(state: &mut State, rob_entry: &ReorderEntry) {
 /// Commits an B type instruction from a reorder buffer entry to the given
 /// state.
 fn cm_b_type(state: &mut State, rob_entry: &ReorderEntry) {
-    // let rs1_s = match r.rs1 {
-    //     Left(val) => val,
-    //     Right(name) => rf.read_at_name(name).expect("Execute unit missing rs1!"),
-    // };
-    // let rs2_s = match r.rs2 {
-    //     Left(val) => val,
-    //     Right(name) => rf.read_at_name(name).expect("Execute unit missing rs2!"),
-    // };
-    // let rs1_u = rs1_s as u32;
-    // let rs2_u = rs2_s as u32;
-    // let imm = r.imm.expect("Execute unit missing imm!");
+    if rob_entry.pc == rob_entry.act_pc {
+        // Nothing to write back, just free resources
+        if let Right(name) = rob_entry.rs1 {
+            state.register.finished_read(name);
+        }
+        if let Right(name) = rob_entry.rs2 {
+            state.register.finished_read(name);
+        }
+    } else {
+        // Branch prediction failure
 
-    // #[rustfmt::skip]
-    // let pc_val = rf.read_reg(Register::PC).unwrap() + match r.op {
-    //     Operation::BEQ  => if rs1_s == rs2_s { imm } else { 4 },
-    //     Operation::BNE  => if rs1_s != rs2_s { imm } else { 4 },
-    //     Operation::BLT  => if rs1_s <  rs2_s { imm } else { 4 },
-    //     Operation::BGE  => if rs1_s >= rs2_s { imm } else { 4 },
-    //     Operation::BLTU => if rs1_u <  rs2_u { imm } else { 4 },
-    //     Operation::BGEU => if rs1_u >= rs2_u { imm } else { 4 },
-    //     _ => panic!("Unknown B type instruction failed to execute.")
-    // };
-
-    // self.executing.push_back((
-    //     ExecuteResult {
-    //         rob_entry: r.rob_entry,
-    //         pc: pc_val,
-    //         rd: None,
-    //     },
-    //     ExecutionLen::from(r.op),
-    // ))
+        // TODO
+    }
 }
 
 /// Commits an U type instruction from a reorder buffer entry to the given
