@@ -55,6 +55,20 @@ pub struct Stats {
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
 
+impl State {
+    /// Flushes the entire pipeline, restarting from the given Program Counter.
+    pub fn flush_pipeline(&mut self, actual_pc: usize) {
+        self.branch_predictor.force_update(actual_pc);
+        self.register.flush();
+        self.latch_fetch.data = None;
+        self.resv_station.flush();
+        self.reorder_buffer.flush();
+        for eu in self.execute_units.iter_mut() {
+            eu.flush();
+        }
+    }
+}
+
 impl Default for State {
     fn default() -> State {
         let mut regs = RegisterFile::new(64);
