@@ -262,18 +262,14 @@ impl ExecuteUnit {
     pub fn advance_pipeline(&self, new_eu: &mut ExecuteUnit, rob: &mut ReorderBuffer) {
         // Ensure we do not minus 1 from an execution added to the new state in
         // the dispatch stage (which may have touched the execute unit already)
-        let iter = if self.executing.len() == new_eu.executing.len() {
-            new_eu.executing.iter_mut().skip(0)
-        } else {
-            new_eu.executing.iter_mut().skip(1)
-        };
+        let iter = new_eu.executing.iter_mut().take(self.executing.len());
 
         // Progress all executions in pipeline
-        iter.for_each(|(_, len)| {
+        for (_, len) in iter {
             if len.steps > 0 {
                 len.steps -= 1
             }
-        });
+        };
 
         // If instruction has finished, write back to reorder buffer
         if let Some((_, el)) = new_eu.executing.front() {
@@ -533,7 +529,7 @@ impl ExecuteUnit {
 //// FUNCTIONS
 
 /// Runs the execute & writeback stage on every execution unit in the given
-/// previous state, `state_p`, while putting the new results in the current 
+/// previous state, `state_p`, while putting the new results in the current
 /// state, `state`.
 pub fn execute_and_writeback(state_p: &State, state: &mut State) {
     let iter_p = state_p.execute_units.iter();
