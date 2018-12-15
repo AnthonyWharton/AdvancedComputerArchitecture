@@ -203,6 +203,15 @@ impl From<Operation> for UnitType {
 }
 
 impl ExecuteUnit {
+    /// Constructs a new execute unit with given properties.
+    pub fn new(unit_type: UnitType, pipeline_size: usize) -> ExecuteUnit {
+        ExecuteUnit {
+            unit_type,
+            pipeline_size,
+            executing: VecDeque::new(),
+        }
+    }
+
     /// Returns what type of execution unit this is.
     pub fn get_type(&self) -> UnitType {
         self.unit_type

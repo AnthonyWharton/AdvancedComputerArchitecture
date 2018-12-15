@@ -14,7 +14,7 @@ use super::exit::Exit::{ElfError, FileLoadError};
 //// FUNCTIONS
 
 /// Loads the elf file into a Memory data structure.
-pub fn load_elf(config: &Config) -> State {
+pub fn load_elf(state: &mut State, config: &Config) {
     let file: File = match File::open_path(&config.elf_file) {
         Ok(f) => f,
         Err(e) => match e {
@@ -39,9 +39,6 @@ pub fn load_elf(config: &Config) -> State {
         verify_prog_header(h);
     }
 
-    // Declare state and memory
-    let mut state = State::default();
-
     // Initialise and load in memory
     for s in file.sections.iter() {
         state.memory.load_elf_section(s);
@@ -54,8 +51,6 @@ pub fn load_elf(config: &Config) -> State {
     state
         .branch_predictor
         .force_update(file.ehdr.entry as usize);
-
-    state
 }
 
 /// Verifies the given ELF file header is compatible with the simulator, and

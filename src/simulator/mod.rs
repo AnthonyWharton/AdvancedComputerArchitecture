@@ -5,12 +5,12 @@ use std::time::Duration;
 use crate::io::{IoEvent, IoThread, SimulatorEvent};
 use crate::util::config::Config;
 use crate::util::exit::Exit;
-use crate::util::loader::load_elf;
 
 use self::decode::decode_and_rename_stage;
 use self::dispatch::dispatch;
 use self::execute::execute_and_writeback;
 use self::fetch::fetch_stage;
+use self::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES
@@ -79,7 +79,7 @@ pub const INITIALLY_PAUSED: bool = true;
 /// Requires an IoThread for sending events to be output to the display, as
 /// well as for receiving any calls to close the simulation.
 pub fn run_simulator(io: IoThread, config: &Config) {
-    let mut state = load_elf(&config);
+    let mut state = State::new(&config);
     let mut paused = INITIALLY_PAUSED;
 
     // Send the initial state to the UI to be displayed
