@@ -43,19 +43,19 @@ pub enum UnitType {
 #[derive(Clone, Debug)]
 pub struct ExecuteUnit {
     /// The type of execute unit this instantiated struct is.
-    unit_type: UnitType,
+    pub unit_type: UnitType,
     /// The depth of the pipeline size for this execute unit. A value of 1 is
     /// a non-pipelined unit.
-    pipeline_size: usize,
+    pub pipeline_size: usize,
     /// The pipeline of executing instructions, and how many cycles left in the
     /// execution of the instruction.
-    executing: VecDeque<(ExecuteResult, ExecutionLen)>,
+    pub executing: VecDeque<(ExecuteResult, ExecutionLen)>,
 }
 
 /// The resulting bus that holds the results from the execute unit upon
 /// completion. The execute unit will write directly to the reorder buffer.
 #[derive(Copy, Clone, Debug)]
-struct ExecuteResult {
+pub struct ExecuteResult {
     /// The reorder buffer entry that the result is associated with.
     pub rob_entry: usize,
     /// The new program counter after the execution.
@@ -250,18 +250,18 @@ impl ExecuteUnit {
     pub fn handle_dispatch(&mut self, state_p: &State, reservation: &Reservation) {
         if self.unit_type != UnitType::from(reservation.op) {
             panic!(format!(
-                "Execute Unit {:?} was given Operation {:?} that it is incapable of processing",
+                "Execute Unit ({:?}) was given Operation ({:?}) that it is incapable of processing",
                 self.unit_type, reservation.op
             ))
         }
 
         match Format::from(reservation.op) {
-            Format::R => self.ex_r_type(&state_p.register, reservation),
-            Format::I => self.ex_i_type(&state_p.register, reservation),
-            Format::S => self.ex_s_type(&state_p.register, reservation),
-            Format::B => self.ex_b_type(&state_p.register, reservation),
-            Format::U => self.ex_u_type(&state_p.register, reservation),
-            Format::J => self.ex_j_type(&state_p.register, reservation),
+            Format::R => self.ex_r_type(reservation, &state_p.register),
+            Format::I => self.ex_i_type(reservation, &state_p.register),
+            Format::S => self.ex_s_type(reservation),
+            Format::B => self.ex_b_type(reservation, &state_p.register),
+            Format::U => self.ex_u_type(reservation),
+            Format::J => self.ex_j_type(reservation),
         }
     }
 
@@ -298,7 +298,7 @@ impl ExecuteUnit {
     }
 
     /// Executes an R type instruction, putting the results in self.
-    fn ex_r_type(&mut self, rf: &RegisterFile, r: &Reservation) {
+    fn ex_r_type(&mut self, r: &Reservation, rf: &RegisterFile) {
         let rs1_s = match r.rs1 {
             Left(val) => val,
             Right(name) => rf.read_at_name(name).expect("Execute unit missing rs1!"),
@@ -353,7 +353,7 @@ impl ExecuteUnit {
         self.executing.push_back((
             ExecuteResult {
                 rob_entry: r.rob_entry,
-                pc: rf.read_reg(Register::PC).unwrap() + 4,
+                pc: r.pc as i32 + 4,
                 rd: Some(rd_val),
             },
             ExecutionLen::from(r.op),
@@ -361,7 +361,7 @@ impl ExecuteUnit {
     }
 
     /// Executes an I type instruction, modifying the borrowed state.
-    fn ex_i_type(&mut self, rf: &RegisterFile, r: &Reservation) {
+    fn ex_i_type(&mut self, r: &Reservation, rf: &RegisterFile) {
         let rs1_s = match r.rs1 {
             Left(val) => val,
             Right(name) => rf.read_at_name(name).expect("Execute unit missing rs1!"),
@@ -372,7 +372,7 @@ impl ExecuteUnit {
 
         #[rustfmt::skip]
         let rd_val = match r.op {
-            Operation::JALR   => Some(rf.read_reg(Register::PC).unwrap() + 4),
+            Operation::JALR   => Some(r.pc as i32 + 4),
             Operation::LB     => None, //
             Operation::LH     => None, //
             Operation::LW     => None, // All done in commit stage
@@ -403,7 +403,7 @@ impl ExecuteUnit {
         let pc_val = if r.op == Operation::JALR {
             (rs1_s + imm_s) & !0b1
         } else {
-            rf.read_reg(Register::PC).unwrap() + 4
+            r.pc as i32 + 4
         };
 
         self.executing.push_back((
@@ -417,7 +417,7 @@ impl ExecuteUnit {
     }
 
     /// Executes an S type instruction, modifying the borrowed state.
-    fn ex_s_type(&mut self, rf: &RegisterFile, r: &Reservation) {
+    fn ex_s_type(&mut self, r: &Reservation) {
         match r.op {
             Operation::SB => (), //
             Operation::SH => (), // All done in commit stage
@@ -428,7 +428,7 @@ impl ExecuteUnit {
         self.executing.push_back((
             ExecuteResult {
                 rob_entry: r.rob_entry,
-                pc: rf.read_reg(Register::PC).unwrap() + 4,
+                pc: r.pc as i32 + 4,
                 rd: None,
             },
             ExecutionLen::from(r.op),
@@ -436,7 +436,7 @@ impl ExecuteUnit {
     }
 
     /// Executes an B type instruction, modifying the borrowed state.
-    fn ex_b_type(&mut self, rf: &RegisterFile, r: &Reservation) {
+    fn ex_b_type(&mut self, r: &Reservation, rf: &RegisterFile) {
         let rs1_s = match r.rs1 {
             Left(val) => val,
             Right(name) => rf.read_at_name(name).expect("Execute unit missing rs1!"),
@@ -450,7 +450,7 @@ impl ExecuteUnit {
         let imm = r.imm.expect("Execute unit missing imm!");
 
         #[rustfmt::skip]
-        let pc_val = rf.read_reg(Register::PC).unwrap() + match r.op {
+        let pc_val = r.pc as i32 + match r.op {
             Operation::BEQ  => if rs1_s == rs2_s { imm } else { 4 },
             Operation::BNE  => if rs1_s != rs2_s { imm } else { 4 },
             Operation::BLT  => if rs1_s <  rs2_s { imm } else { 4 },
@@ -471,8 +471,8 @@ impl ExecuteUnit {
     }
 
     /// Executes an U type instruction, modifying the borrowed state.
-    fn ex_u_type(&mut self, rf: &RegisterFile, r: &Reservation) {
-        let pc = rf.read_reg(Register::PC).unwrap();
+    fn ex_u_type(&mut self, r: &Reservation) {
+        let pc = r.pc as i32;
         let imm = r.imm.expect("Execute unit missing imm!");
 
         let rd_val = match r.op {
@@ -492,12 +492,12 @@ impl ExecuteUnit {
     }
 
     /// Executes an J type instruction, modifying the borrowed state.
-    fn ex_j_type(&mut self, rf: &RegisterFile, r: &Reservation) {
+    fn ex_j_type(&mut self, r: &Reservation) {
         let imm = r.imm.expect("Execute unit missing imm!");
 
         match r.op {
             Operation::JALR => {
-                let old_pc = rf.read_reg(Register::PC).unwrap();
+                let old_pc = r.pc as i32;
                 self.executing.push_back((
                     ExecuteResult {
                         rob_entry: r.rob_entry,
