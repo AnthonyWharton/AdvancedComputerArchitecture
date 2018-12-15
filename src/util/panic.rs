@@ -13,8 +13,16 @@ use backtrace::Backtrace;
 /// `reset`.
 pub fn set_panic_hook() {
     panic::set_hook(Box::new(|i| {
+        let message = if let Some(s) = i.payload().downcast_ref::<String>() {
+            s
+        } else if let Some(s) = i.payload().downcast_ref::<&str>() {
+            s
+        } else {
+            "Unable to decode panic message. You're on your own, good luck."
+        };
         println!(
-            "\r\nPanicked at: {}:{}:{}\r",
+            "\r\n\r\nPanic! {}\r\nPanicked at: {}:{}:{}\r",
+            message,
             i.location().unwrap().file(),
             i.location().unwrap().line(),
             i.location().unwrap().column()
