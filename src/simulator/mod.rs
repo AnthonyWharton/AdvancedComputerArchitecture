@@ -104,6 +104,7 @@ pub fn run_simulator(io: IoThread, config: &Config) {
         io.tx.send(IoEvent::UpdateState(state.clone())).unwrap();
         if finished {
             io.tx.send(IoEvent::Finish).unwrap();
+            break;
         }
         thread::sleep(Duration::from_millis(50));
     }
