@@ -63,7 +63,7 @@ impl ReorderBuffer {
     /// Creates a new reorder buffer with given capacity.
     pub fn new(capacity: usize) -> ReorderBuffer {
         ReorderBuffer {
-            rob: vec![ReorderEntry::default(); capacity + 1],
+            rob: vec![ReorderEntry::default(); capacity],
             front: 0,
             back: 0,
             count: 0,
@@ -80,7 +80,7 @@ impl ReorderBuffer {
     /// If available, reserves a slot for a given reorder buffer entry.
     pub fn reserve_entry(&mut self, entry: ReorderEntry) -> Option<usize> {
         // Check we have space
-        if self.count == self.capacity {
+        if self.count >= self.capacity {
             return None;
         }
 
@@ -100,21 +100,15 @@ impl ReorderBuffer {
         }
 
         if self.rob[self.front].finished {
-            new_rob.free_entry();
+            new_rob.count -= 1;
+            new_rob.front = (self.front + 1) % self.capacity;
+
             vec![new_rob.rob[self.front].clone()]
         } else {
             vec![]
         }
     }
 
-    /// Placeholder implementation.
-    fn free_entry(&mut self) {
-        if self.count == 0 {
-            return;
-        }
-        self.count -= 1;
-        self.front = (self.front + 1) % self.capacity;
-    }
 }
 
 impl Index<usize> for ReorderBuffer {
