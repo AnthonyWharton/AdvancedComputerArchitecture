@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::collections::VecDeque;
 
 use either::{Either, Left, Right};
@@ -17,9 +18,9 @@ use super::register::RegisterFile;
 #[derive(Clone, Debug)]
 pub struct ResvStation {
     /// The amount of reservations the Reservation Station can hold.
-    capacity: usize,
+    pub capacity: usize,
     /// The contents of the Reservation Station.
-    pub(crate) contents: VecDeque<Reservation>,
+    pub contents: VecDeque<Reservation>,
 }
 
 /// A single Reservation within the Reservation Station.
@@ -80,7 +81,8 @@ impl ResvStation {
     /// field reduces how many entries of the reservation station will be
     /// checked.
     pub fn consume_next(
-        &mut self,
+        &self,
+        new_rs: &mut ResvStation,
         eu: &ExecuteUnit,
         rf: &RegisterFile,
         limit: usize,
@@ -88,10 +90,10 @@ impl ResvStation {
         let act_limit = if limit == 0 {
             self.contents.len()
         } else {
-            limit
+            min(limit, self.contents.len())
         };
         let unit_type = eu.get_type();
-        let next_valid = self
+        let next_valid = new_rs
             .contents
             .iter()
             .cloned()
@@ -100,26 +102,26 @@ impl ResvStation {
             .find(|(_, r)| {
                 // Check operation is supported by execute unit type
                 unit_type == UnitType::from(r.op)
-            &&
-            // Check execute unit is free
-            eu.is_free(ExecutionLen::from(r.op))
-            &&
-            // Check rs1 is ready
-            match r.rs1 {
-                Left(_)  => true,
-                Right(n) => rf.read_at_name(n).is_some(),
-            }
-            // Check rs2 is ready
-            &&
-            match r.rs2 {
-                Left(_)  => true,
-                Right(n) => rf.read_at_name(n).is_some(),
-            }
+                &&
+                // Check execute unit is free
+                eu.is_free(ExecutionLen::from(r.op))
+                &&
+                // Check rs1 is ready
+                match r.rs1 {
+                    Left(_)  => true,
+                    Right(n) => rf.read_at_name(n).is_some(),
+                }
+                // Check rs2 is ready
+                &&
+                match r.rs2 {
+                    Left(_)  => true,
+                    Right(n) => rf.read_at_name(n).is_some(),
+                }
             });
 
         // Consume the reservation, if a valid one was found.
         match next_valid {
-            Some((idx, _)) => self.contents.remove(idx),
+            Some((idx, _)) => new_rs.contents.remove(idx),
             None => None,
         }
     }
