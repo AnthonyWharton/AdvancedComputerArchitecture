@@ -25,12 +25,13 @@ pub struct LatchFetch {
 /// Requires previous self to be mutable due to mutable requirement on
 /// [`Memory.read_i32()`](../memory/struct.Memory.html#method.write_i32).
 /// Nothing else in the state will be changed.
-pub fn fetch_stage(state_p: &State, state_n: &mut State) {
-    // Get branch prediction fed in
-    let pc = state_p.branch_predictor.get_prediction();
-    // Load word
-    let data = Some(state_p.memory.read_i32(pc));
-    // Pass loaded word to following latch and branch predictor.
-    state_n.branch_predictor.predict(data.unwrap().word);
-    state_n.latch_fetch = LatchFetch { data, pc };
+pub fn fetch_stage(state_p: &State, state: &mut State) {
+    if state_p.finish_rob_entry.is_none() {
+        let pc = state_p.branch_predictor.get_prediction();
+        let data = Some(state_p.memory.read_i32(pc));
+        state.branch_predictor.predict(data.unwrap().word);
+        state.latch_fetch = LatchFetch { data, pc };
+    } else {
+        state.latch_fetch.data = None;
+    }
 }
