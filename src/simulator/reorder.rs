@@ -11,22 +11,22 @@ use crate::isa::operand::Register;
 /// The reorder buffer is responsible for keeping an in-order list of
 /// instructions that are being executed out of order, and their states. This
 /// can then be used to 'commit' results back in order, when they are ready.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ReorderBuffer {
     /// All the reorder buffer entries.
-    rob: Vec<ReorderEntry>,
+    pub rob: Vec<ReorderEntry>,
     /// A pointer to the start of the circular buffer.
-    front: usize,
+    pub front: usize,
     /// A pointer to the end of the circular buffer.
-    back: usize,
+    pub back: usize,
     /// The amount of items in the circular buffer.
-    count: usize,
+    pub count: usize,
     /// The capacity of the circular buffer.
-    capacity: usize,
+    pub capacity: usize,
 }
 
 /// The contents of a line in the Register File.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ReorderEntry {
     /// The 'finished' bit, i.e. the data is directly usable, and the entry is
     /// ready for writeback.
@@ -98,7 +98,7 @@ impl ReorderBuffer {
         &self,
         new_rob: &mut ReorderBuffer,
         finish_rob_entry: Option<usize>,
-    ) -> (Vec<ReorderEntry>, bool) {
+    ) -> (Vec<usize>, bool) {
         if self.count == 0 {
             return (vec![], false);
         }
@@ -108,7 +108,7 @@ impl ReorderBuffer {
             new_rob.front = (self.front + 1) % self.capacity;
 
             (
-                vec![new_rob.rob[self.front].clone()],
+                vec![self.front],
                 self.front == finish_rob_entry.unwrap_or(self.capacity + 1)
             )
         } else {

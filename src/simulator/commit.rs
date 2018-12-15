@@ -17,14 +17,17 @@ pub fn commit_stage(state_p: &State, state: &mut State) -> bool {
     let (entries, finished) = state_p
         .reorder_buffer
         .pop_finished_entries(&mut state.reorder_buffer, state_p.finish_rob_entry);
+    if finished {
+        return finished;
+    }
     for entry in entries {
-        match Format::from(entry.op) {
-            Format::R => cm_r_type(state, &entry),
-            Format::I => cm_i_type(state, &entry),
-            Format::S => cm_s_type(state, &entry),
-            Format::B => cm_b_type(state, &entry),
-            Format::U => cm_u_type(state, &entry),
-            Format::J => cm_j_type(state, &entry),
+        match Format::from(state_p.reorder_buffer[entry].op) {
+            Format::R => cm_r_type(state_p, state, entry),
+            Format::I => cm_i_type(state_p, state, entry),
+            Format::S => cm_s_type(state_p, state, entry),
+            Format::B => cm_b_type(state_p, state, entry),
+            Format::U => cm_u_type(state_p, state, entry),
+            Format::J => cm_j_type(state_p, state, entry),
         }
         state.stats.executed += 1;
     }
@@ -33,8 +36,9 @@ pub fn commit_stage(state_p: &State, state: &mut State) -> bool {
 
 /// Commits an R type instruction from a reorder buffer entry to the given
 /// state.
-fn cm_r_type(state: &mut State, rob_entry: &ReorderEntry) {
-    if rob_entry.pc == rob_entry.act_pc {
+fn cm_r_type(state_p: &State, state: &mut State, entry: usize) {
+    let rob_entry = &state_p.reorder_buffer.rob[entry];
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
         // Write back to register file
         state
             .register
@@ -48,15 +52,19 @@ fn cm_r_type(state: &mut State, rob_entry: &ReorderEntry) {
         if let Right(name) = rob_entry.rs2 {
             state.register.finished_read(name);
         }
+        state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
-        panic!("Did not expect R type instruction to have mismatching PC!")
+        panic!(
+            format!("Did not expect R type instruction to have mismatching PC! - {:?}", rob_entry)
+        )
     }
 }
 
 /// Commits an I type instruction from a reorder buffer entry to the given
 /// state.
-fn cm_i_type(state: &mut State, rob_entry: &ReorderEntry) {
+fn cm_i_type(state_p: &State, state: &mut State, entry: usize) {
+    let rob_entry = &state_p.reorder_buffer.rob[entry];
     let rs1_s = match rob_entry.rs1 {
         Left(val) => val,
         Right(name) => {
@@ -70,7 +78,7 @@ fn cm_i_type(state: &mut State, rob_entry: &ReorderEntry) {
     };
     let imm_s = rob_entry.imm.expect("Commit unit missing imm!");
 
-    if rob_entry.pc == rob_entry.act_pc {
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
         #[rustfmt::skip]
         let rd_val = match rob_entry.op {
             Operation::LB  => state.memory[(rs1_s + imm_s) as usize] as i8 as i32,
@@ -92,15 +100,18 @@ fn cm_i_type(state: &mut State, rob_entry: &ReorderEntry) {
         if let Right(name) = rob_entry.rs2 {
             state.register.finished_read(name);
         }
+        state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
         state.flush_pipeline(rob_entry.act_pc);
+        state.debug_msg.push(format!("BP FAIL, Flush {:?}", rob_entry));
     }
 }
 
 /// Commits an S type instruction from a reorder buffer entry to the given
 /// state.
-fn cm_s_type(state: &mut State, rob_entry: &ReorderEntry) {
+fn cm_s_type(state_p: &State, state: &mut State, entry: usize) {
+    let rob_entry = &state_p.reorder_buffer.rob[entry];
     let rs1 = match rob_entry.rs1 {
         Left(val) => val,
         Right(name) => {
@@ -125,7 +136,7 @@ fn cm_s_type(state: &mut State, rob_entry: &ReorderEntry) {
     };
     let imm = rob_entry.imm.expect("Commit unit missing imm!");
 
-    if rob_entry.pc == rob_entry.act_pc {
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
         // Write back value to memory
         match rob_entry.op {
             Operation::SB => state.memory[(rs1 + imm) as usize] = rs2 as u8,
@@ -139,16 +150,20 @@ fn cm_s_type(state: &mut State, rob_entry: &ReorderEntry) {
             }
             _ => panic!("Unknown s type instruction failed to commit."),
         };
+        state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
-        panic!("Did not expect S type instruction to have mismatching PC!")
+        panic!(
+            format!("Did not expect S type instruction to have mismatching PC! - {:?}", rob_entry)
+        )
     }
 }
 
 /// Commits an B type instruction from a reorder buffer entry to the given
 /// state.
-fn cm_b_type(state: &mut State, rob_entry: &ReorderEntry) {
-    if rob_entry.pc == rob_entry.act_pc {
+fn cm_b_type(state_p: &State, state: &mut State, entry: usize) {
+    let rob_entry = &state_p.reorder_buffer.rob[entry];
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
         // Nothing to write back, just free resources
         if let Right(name) = rob_entry.rs1 {
             state.register.finished_read(name);
@@ -156,16 +171,19 @@ fn cm_b_type(state: &mut State, rob_entry: &ReorderEntry) {
         if let Right(name) = rob_entry.rs2 {
             state.register.finished_read(name);
         }
+        state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
         state.flush_pipeline(rob_entry.act_pc);
+        state.debug_msg.push(format!("BP FAIL, Flush {:?}", rob_entry));
     }
 }
 
 /// Commits an U type instruction from a reorder buffer entry to the given
 /// state.
-fn cm_u_type(state: &mut State, rob_entry: &ReorderEntry) {
-    if rob_entry.pc == rob_entry.act_pc {
+fn cm_u_type(state_p: &State, state: &mut State, entry: usize) {
+    let rob_entry = &state_p.reorder_buffer.rob[entry];
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
         // Write back to register file
         state
             .register
@@ -173,16 +191,20 @@ fn cm_u_type(state: &mut State, rob_entry: &ReorderEntry) {
         state
             .register
             .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+        state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
-        panic!("Did not expect U type instruction to have mismatching PC!")
+        panic!(
+            format!("Did not expect U type instruction to have mismatching PC! - {:?}", rob_entry)
+        )
     }
 }
 
 /// Commits an J type instruction from a reorder buffer entry to the given
 /// state.
-fn cm_j_type(state: &mut State, rob_entry: &ReorderEntry) {
-    if rob_entry.pc == rob_entry.act_pc {
+fn cm_j_type(state_p: &State, state: &mut State, entry: usize) {
+    let rob_entry = &state_p.reorder_buffer.rob[entry];
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
         // Write back to register file
         state
             .register
@@ -190,8 +212,10 @@ fn cm_j_type(state: &mut State, rob_entry: &ReorderEntry) {
         state
             .register
             .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+        state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
+        state.debug_msg.push(format!("BP FAIL, Flush {:?}", rob_entry));
         state.flush_pipeline(rob_entry.act_pc);
     }
 }
