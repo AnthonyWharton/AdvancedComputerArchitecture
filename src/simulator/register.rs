@@ -149,23 +149,6 @@ impl RegisterFile {
         }
     }
 
-    /// Used to free a renamed register if it was not actually needed. The
-    /// renamed register must be completely untouched for this to be a valid
-    /// operation.
-    ///
-    /// Returns true if the register was freed, and false otherwise.
-    pub fn not_using_write(&mut self, name: usize) -> bool {
-        if 33 < name
-            && name < (self.physical.len() + 33)
-            && self.physical[name - 33] == PhysicalRegEntry::default()
-        {
-            self.free.push_front(name);
-            true
-        } else {
-            false
-        }
-    }
-
     /// Indicate that the caller is intending to keep a reference to the given
     /// register. If the register is valid, this will have no effect, however
     /// if invalid (i.e. a renamed register), this will increment the reference
