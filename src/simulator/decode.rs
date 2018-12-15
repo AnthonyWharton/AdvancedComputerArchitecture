@@ -2,9 +2,8 @@ use either::Left;
 
 use crate::isa::Instruction;
 
-use super::register::RegisterFile;
-use super::reorder::{ReorderBuffer, ReorderEntry};
-use super::reservation::{Reservation, ResvStation};
+use super::reorder::ReorderEntry;
+use super::reservation::Reservation;
 use super::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -29,13 +28,12 @@ pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
         let resv_result = sanitise_and_reserve(
             instr,
             state_p.latch_fetch.pc,
-            &mut state.reorder_buffer,
-            &mut state.resv_station,
-            &mut state.register,
+            state,
         );
 
         if resv_result.is_err() {
-            state.branch_predictor.stall()
+            state.branch_predictor.stall();
+            state.stats.stalls += 1;
         }
     }
 }
@@ -53,19 +51,17 @@ pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
 fn sanitise_and_reserve(
     instruction: Instruction,
     pc: usize,
-    rob: &mut ReorderBuffer,
-    rs: &mut ResvStation,
-    rf: &mut RegisterFile,
+    state: &mut State,
 ) -> Result<(), ()> {
     // Check RS and ROB both have free capacity for a reservation
-    if !rs.free_capacity() || !rob.free_capacity() {
+    if !state.resv_station.free_capacity() || !state.reorder_buffer.free_capacity() {
         return Err(());
     }
 
     // Reserve a physical register for writeback.
     let mut name_rd = 0;
     if let Some(rd) = instruction.rd {
-        match rf.using_write(rd) {
+        match state.register.using_write(rd) {
             Some(n) => name_rd = n,
             None => return Err(()), // No Available Physical Registers
         }
@@ -73,11 +69,11 @@ fn sanitise_and_reserve(
 
     // Get renamed registers for instruction (if required)
     let rs1 = match instruction.rs1 {
-        Some(rs1) => rf.using_read(rs1),
+        Some(rs1) => state.register.using_read(rs1),
         None => Left(0),
     };
     let rs2 = match instruction.rs2 {
-        Some(rs2) => rf.using_read(rs2),
+        Some(rs2) => state.register.using_read(rs2),
         None => Left(0),
     };
 
@@ -97,10 +93,15 @@ fn sanitise_and_reserve(
         rs2,
         imm: instruction.imm,
     };
-    let rob_entry = match rob.reserve_entry(reorder_entry) {
+    let rob_entry = match state.reorder_buffer.reserve_entry(reorder_entry) {
         Some(entry) => entry,
         None => panic!("ROB was free at start of reservation stage but not at the end!"),
     };
+
+    // Check if the instruction was a finish instruction
+    if instruction.is_ret() {
+        state.finish_rob_entry = Some(rob_entry);
+    }
 
     // Finally, reserve the instruction in the reservation station
     let reservation = Reservation {
@@ -116,7 +117,7 @@ fn sanitise_and_reserve(
         rs2,
         imm: instruction.imm,
     };
-    match rs.reserve(reservation) {
+    match state.resv_station.reserve(reservation) {
         Ok(()) => Ok(()),
         Err(()) => panic!("RS was free at start of reservation stage but not at the end!"),
     }
