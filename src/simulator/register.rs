@@ -215,6 +215,15 @@ impl RegisterFile {
             }
         }
     }
+
+    /// Flushes the register file, this would happen when the pipeline is
+    /// invalidated and needs to be restarted from scratch.
+    pub fn flush(&mut self) {
+        for arch in self.arch.iter_mut() {
+            arch.valid = true;
+        }
+        self.free = (33..self.arch.len() + 33).collect();
+    }
 }
 
 impl Default for ArchRegEntry {
