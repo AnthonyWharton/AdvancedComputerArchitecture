@@ -358,17 +358,11 @@ impl ExecuteUnit {
         #[rustfmt::skip]
         let rd_val = match r.op {
             Operation::JALR   => Some(rf.read_reg(Register::PC).unwrap() + 4),
-            // TODO Move to writeback stage
-            // Operation::LB     => m[(rs1 + imm) as usize] as i8 as i32,
-            // Operation::LH     => m.read_i16((rs1 + imm) as usize).word as i32,
-            // Operation::LW     => m.read_i32((rs1 + imm) as usize).word,
-            // Operation::LBU    => m[(rs1 + imm) as usize] as i32,
-            // Operation::LHU    => m.read_u16((rs1 + imm) as usize).word as i32,
-            Operation::LB     => None,
-            Operation::LH     => None,
-            Operation::LW     => None,
-            Operation::LBU    => None,
-            Operation::LHU    => None,
+            Operation::LB     => None, //
+            Operation::LH     => None, //
+            Operation::LW     => None, // All done in commit stage
+            Operation::LBU    => None, //
+            Operation::LHU    => None, //
             Operation::ADDI   => Some( rs1_s +  imm_s),
             Operation::SLTI   => Some((rs1_s <  imm_s) as i32),
             Operation::SLTIU  => Some((rs1_u <  imm_u) as i32),
@@ -409,26 +403,10 @@ impl ExecuteUnit {
 
     /// Executes an S type instruction, modifying the borrowed state.
     fn ex_s_type(&mut self, rf: &RegisterFile, r: &Reservation) {
-        // let rs1 = match r.rs1 {
-        //     Left(val)   => val,
-        //     Right(name) => rf.read_at_name(name)
-        //         .expect("Execute unit missing rs1!"),
-        // };
-        // let rs2 = match r.rs2 {
-        //     Left(val)   => val,
-        //     Right(name) => rf.read_at_name(name)
-        //         .expect("Execute unit missing rs2!"),
-        // };
-        // let imm = r.imm.expect("Execute unit missing imm!");
-
         match r.op {
-            // TODO Move to writeback stage
-            // Operation::SB => { m[(rs1 + imm) as usize] = rs2 as u8 },
-            // Operation::SH => { m.write_i16((rs1 + imm) as usize, rs2 as i16); () },
-            // Operation::SW => { m.write_i32((rs1 + imm) as usize, rs2); () },
-            Operation::SB => (),
-            Operation::SH => (),
-            Operation::SW => (),
+            Operation::SB => (), //
+            Operation::SH => (), // All done in commit stage
+            Operation::SW => (), //
             _ => panic!("Unknown s type instruction failed to execute."),
         };
 
@@ -479,25 +457,19 @@ impl ExecuteUnit {
 
     /// Executes an U type instruction, modifying the borrowed state.
     fn ex_u_type(&mut self, rf: &RegisterFile, r: &Reservation) {
+        let pc = rf.read_reg(Register::PC).unwrap();
         let imm = r.imm.expect("Execute unit missing imm!");
 
         let rd_val = match r.op {
             Operation::LUI => Some(imm),
-            Operation::AUIPC => None,
+            Operation::AUIPC => Some(pc + imm),
             _ => panic!("Unknown U type instruction failed to execute."),
         };
-
-        let pc_val = rf.read_reg(Register::PC).unwrap()
-            + match r.op {
-                Operation::LUI => 4,
-                Operation::AUIPC => imm,
-                _ => panic!("Unknown U type instruction failed to execute."),
-            };
 
         self.executing.push_back((
             ExecuteResult {
                 rob_entry: r.rob_entry,
-                pc: pc_val,
+                pc: pc + 4,
                 rd: rd_val,
             },
             ExecutionLen::from(r.op),
