@@ -40,6 +40,12 @@ fn cm_r_type(state: &mut State, rob_entry: &ReorderEntry) {
         state
             .register
             .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+        if let Right(name) = rob_entry.rs1 {
+            state.register.finished_read(name);
+        }
+        if let Right(name) = rob_entry.rs2 {
+            state.register.finished_read(name);
+        }
     } else {
         // Branch prediction failure
         panic!("Did not expect R type instruction to have mismatching PC!")
@@ -119,6 +125,7 @@ fn cm_s_type(state: &mut State, rob_entry: &ReorderEntry) {
     let imm = rob_entry.imm.expect("Commit unit missing imm!");
 
     if rob_entry.pc == rob_entry.act_pc {
+        // Write back value to memory
         match rob_entry.op {
             Operation::SB => state.memory[(rs1 + imm) as usize] = rs2 as u8,
             Operation::SH => {
