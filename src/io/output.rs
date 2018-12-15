@@ -38,7 +38,7 @@ pub fn new_terminal() -> Result<Terminal, Error> {
 /// Entry point for the drawing of the current stored simulate state.
 pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> {
     terminal.draw(|mut f| {
-        let chunks = Layout::default()
+        let horz_chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(
                 [
@@ -49,10 +49,21 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
                 .as_ref(),
             )
             .split(app.size);
+        let vert_chunks_0 = Layout::default()
+            .direction(Direction::Vertical)
+            . constraints(
+                [
+                    Constraint::Percentage(80),
+                    Constraint::Percentage(20),
+                ]
+                .as_ref()
+            )
+            .split(horz_chunks[0]);
         let default = State::default();
-        draw_stats(&mut f, chunks[0], &app, &default);
-        draw_registers(&mut f, chunks[1], &app, &default);
-        draw_memory(&mut f, chunks[2], &app, &default);
+        draw_stats(&mut f, vert_chunks_0[0], &app, &default);
+        draw_debug(&mut f, vert_chunks_0[1], &app, &default);
+        draw_registers(&mut f, horz_chunks[1], &app, &default);
+        draw_memory(&mut f, horz_chunks[2], &app, &default);
     })
 }
 
@@ -72,6 +83,16 @@ fn draw_stats(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State)
     ];
     Paragraph::new(tmp.iter())
         .block(standard_block("Statistics"))
+        .wrap(true)
+        .render(f, area);
+}
+
+/// Draws the TuiApp state statistics on screen.
+fn draw_debug(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
+    let state = app.states.get(app.hist_display).unwrap_or(default);
+    let messages: Vec<Text> = state.debug_msg.iter().map(|str| Text::raw(str)).collect();
+    Paragraph::new(messages.iter())
+        .block(standard_block("Debug Prints"))
         .wrap(true)
         .render(f, area);
 }
