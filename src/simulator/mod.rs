@@ -35,9 +35,9 @@ mod dispatch;
 /// a particular instruction.
 mod execute;
 
-/// Logic recarding the _writeback_ stage in the pipeline. This is responsible
+/// Logic recarding the _commit_ stage in the pipeline. This is responsible
 /// for committing the results of instructions that have finished execution.
-pub mod writeback;
+pub mod commit;
 
 /// Locic and datastructures for the branch predictor, used to inform the
 /// _fetch_ stage of which instruction to fetch next for speculative execution.
