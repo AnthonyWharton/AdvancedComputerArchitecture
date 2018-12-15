@@ -14,7 +14,9 @@ use super::state::State;
 /// ['ReorderBuffer'](../reorder/struct.ReorderBuffer.html), and then commit
 /// them to the new state.
 pub fn handle_writeback(state_p: &State, state: &mut State) {
-    let entries = state_p.reorder_buffer.pop_finished_entry(&mut state.reorder_buffer);
+    let entries = state_p
+        .reorder_buffer
+        .pop_finished_entry(&mut state.reorder_buffer);
     for entry in entries {
         match Format::from(entry.op) {
             Format::R => unimplemented!(),
@@ -32,8 +34,12 @@ pub fn handle_writeback(state_p: &State, state: &mut State) {
 fn cm_r_type(state: &mut State, rob_entry: &ReorderEntry) {
     if rob_entry.pc == rob_entry.act_pc {
         // Write back to register file
-        state.register.write_to_name(rob_entry.name_rd.unwrap(), rob_entry.act_rd);
-        state.register.finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+        state
+            .register
+            .write_to_name(rob_entry.name_rd.unwrap(), rob_entry.act_rd);
+        state
+            .register
+            .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
     } else {
         // Branch prediction failure
         panic!("Did not expect R type instruction to have mismatching PC!")
@@ -46,7 +52,10 @@ fn cm_i_type(state: &mut State, rob_entry: &ReorderEntry) {
     let rs1_s = match rob_entry.rs1 {
         Left(val) => val,
         Right(name) => {
-            let r = state.register.read_at_name(name).expect("Commit unit missing rs1!");
+            let r = state
+                .register
+                .read_at_name(name)
+                .expect("Commit unit missing rs1!");
             state.register.finished_read(name);
             r
         }
@@ -65,8 +74,12 @@ fn cm_i_type(state: &mut State, rob_entry: &ReorderEntry) {
         };
 
         // Write back to register file
-        state.register.write_to_name(rob_entry.name_rd.unwrap(), rd_val);
-        state.register.finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+        state
+            .register
+            .write_to_name(rob_entry.name_rd.unwrap(), rd_val);
+        state
+            .register
+            .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
         // rs1 finished_read() above
         if let Right(name) = rob_entry.rs2 {
             state.register.finished_read(name);
@@ -82,28 +95,40 @@ fn cm_i_type(state: &mut State, rob_entry: &ReorderEntry) {
 /// state.
 fn cm_s_type(state: &mut State, rob_entry: &ReorderEntry) {
     let rs1 = match rob_entry.rs1 {
-        Left(val)   => val,
+        Left(val) => val,
         Right(name) => {
-            let r = state.register.read_at_name(name).expect("Commit unit missing rs1!");
+            let r = state
+                .register
+                .read_at_name(name)
+                .expect("Commit unit missing rs1!");
             state.register.finished_read(name);
             r
-        },
+        }
     };
     let rs2 = match rob_entry.rs2 {
-        Left(val)   => val,
+        Left(val) => val,
         Right(name) => {
-            let r = state.register.read_at_name(name).expect("Commit unit missing rs2!");
+            let r = state
+                .register
+                .read_at_name(name)
+                .expect("Commit unit missing rs2!");
             state.register.finished_read(name);
             r
-        },
+        }
     };
     let imm = rob_entry.imm.expect("Commit unit missing imm!");
 
     if rob_entry.pc == rob_entry.act_pc {
         match rob_entry.op {
-            Operation::SB => { state.memory[(rs1 + imm) as usize] = rs2 as u8 },
-            Operation::SH => { state.memory.write_i16((rs1 + imm) as usize, rs2 as i16); () },
-            Operation::SW => { state.memory.write_i32((rs1 + imm) as usize, rs2); () },
+            Operation::SB => state.memory[(rs1 + imm) as usize] = rs2 as u8,
+            Operation::SH => {
+                state.memory.write_i16((rs1 + imm) as usize, rs2 as i16);
+                ()
+            }
+            Operation::SW => {
+                state.memory.write_i32((rs1 + imm) as usize, rs2);
+                ()
+            }
             _ => panic!("Unknown s type instruction failed to commit."),
         };
     } else {

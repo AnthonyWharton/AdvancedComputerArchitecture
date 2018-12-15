@@ -269,7 +269,7 @@ impl ExecuteUnit {
             if len.steps > 0 {
                 len.steps -= 1
             }
-        };
+        }
 
         // If instruction has finished, write back to reorder buffer
         if let Some((_, el)) = new_eu.executing.front() {

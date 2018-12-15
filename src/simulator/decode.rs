@@ -96,7 +96,7 @@ fn sanitise_and_reserve(
     };
     let rob_entry = match rob.reserve_entry(reorder_entry) {
         Some(entry) => entry,
-        None => panic!("ROB was free at start of reservation stage but not at the end!")
+        None => panic!("ROB was free at start of reservation stage but not at the end!"),
     };
 
     // Finally, reserve the instruction in the reservation station
@@ -115,6 +115,6 @@ fn sanitise_and_reserve(
     };
     match rs.reserve(reservation) {
         Ok(()) => Ok(()),
-        Err(()) => panic!("RS was free at start of reservation stage but not at the end!")
+        Err(()) => panic!("RS was free at start of reservation stage but not at the end!"),
     }
 }
