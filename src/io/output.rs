@@ -10,7 +10,7 @@ use tui::widgets::{Block, Borders, List, Paragraph, Text, Widget};
 use tui::{Frame, Terminal as TuiTerminal};
 
 use crate::isa::Instruction;
-// use crate::isa::operand::Register;
+use crate::isa::operand::Register;
 use crate::simulator::state::State;
 
 use super::TuiApp;
@@ -42,9 +42,9 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
             .direction(Direction::Horizontal)
             .constraints(
                 [
-                    Constraint::Percentage(50),
-                    Constraint::Percentage(25),
-                    Constraint::Percentage(25),
+                    Constraint::Percentage(60),
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(20),
                 ]
                 .as_ref(),
             )
@@ -53,8 +53,8 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
             .direction(Direction::Vertical)
             . constraints(
                 [
-                    Constraint::Percentage(80),
-                    Constraint::Percentage(20),
+                    Constraint::Percentage(70),
+                    Constraint::Percentage(30),
                 ]
                 .as_ref()
             )
@@ -75,12 +75,49 @@ fn draw_stats(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State)
     } else {
         state.stats.executed as f32 / state.stats.cycles as f32
     };
-    let tmp = vec![
+    let bpr = if state.stats.bp_success + state.stats.bp_failure == 0 {
+        0f32
+    } else {
+        state.stats.bp_success as f32 / (state.stats.bp_success + state.stats.bp_failure) as f32
+    };
+    let mut tmp: Vec<Text> = vec![
         Text::raw(format!("executed: {}\n", state.stats.executed)),
         Text::raw(format!("cycles:   {}\n", state.stats.cycles)),
         Text::raw(format!("avg. executions/cycle: {:.3}\n", epc)),
+        Text::raw(format!("stalls:   {}\n", state.stats.stalls)),
+        Text::raw(format!("bp_succ:  {}\n", state.stats.bp_success)),
+        Text::raw(format!("bp_fail:  {}\n", state.stats.bp_failure)),
+        Text::raw(format!("bp_rate:  {}\n", bpr)),
         Text::raw("\n"),
+        Text::raw(format_option!("FRBE: ", "{}", state.finish_rob_entry)),
+        Text::raw("\n"),
+        Text::raw(format!("LF: {:x?}\n", state.latch_fetch)),
+        Text::raw("\n"),
+        Text::raw("RS:\n"),
     ];
+    for resv in state.resv_station.contents.iter() {
+        tmp.push(Text::raw(format!("{:?}\n", resv)));
+    }
+    tmp.push(Text::raw("\n"));
+    tmp.push(Text::raw("EU's\n"));
+    for eu in state.execute_units.iter() {
+        tmp.push(Text::raw(format!("{:?}: {:?}\n", eu.unit_type, eu.executing)));
+    }
+    tmp.push(Text::raw("\n"));
+    tmp.push(Text::raw("RB:\n"));
+    let mut i = state.reorder_buffer.front;
+    while i % state.reorder_buffer.capacity != state.reorder_buffer.back {
+        tmp.push(
+            Text::raw(
+                format!(
+                    "{}: {:?}\n",
+                    i,
+                    state.reorder_buffer.rob[i % state.reorder_buffer.capacity]
+                )
+            )
+        );
+        i += 1;
+    }
     Paragraph::new(tmp.iter())
         .block(standard_block("Statistics"))
         .wrap(true)
@@ -90,7 +127,11 @@ fn draw_stats(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State)
 /// Draws the TuiApp state statistics on screen.
 fn draw_debug(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
-    let messages: Vec<Text> = state.debug_msg.iter().map(|str| Text::raw(str)).collect();
+    let messages: Vec<Text> = state
+        .debug_msg
+        .iter()
+        .map(|str| Text::raw(format!("{}\n", str)))
+        .collect();
     Paragraph::new(messages.iter())
         .block(standard_block("Debug Prints"))
         .wrap(true)
@@ -98,30 +139,36 @@ fn draw_debug(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State)
 }
 
 /// Draws the register file.
-fn draw_registers(_f: &mut Frame<Backend>, _area: Rect, app: &TuiApp, default: &State) {
-    let _state_prev = app.states.get(app.hist_display + 1).unwrap_or(default);
-    let _state = app.states.get(app.hist_display).unwrap_or(default);
-    // let registers = state.register.iter().enumerate().map(|(name, value)| {
-    //     let reg = Register::from(name as i32);
-    //     Text::styled(
-    //         format!(
-    //             "{n:>#04}-{n:<03} :: {v:08x} - {v}",
-    //             n=reg,
-    //             v=value
-    //         ),
-    //         if reg == Register::PC {
-    //             Style::default().fg(Color::LightBlue).modifier(Modifier::Bold)
-    //         } else if state.register.read_at_name(name).unwrap() != state_prev.register.read_at_name(name).unwrap() {
-    //             Style::default().fg(Color::Black).bg(Color::LightYellow)
-    //         } else {
-    //             Style::default().fg(Color::White)
-    //         }
-    //     )
-    // });
+fn draw_registers(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
+    let state_prev = app.states.get(app.hist_display + 1).unwrap_or(default);
+    let state = app.states.get(app.hist_display).unwrap_or(default);
+    let registers = state.register.arch.iter().enumerate().map(|(name, are)| {
+        let reg = Register::from(name as i32);
+        let val_a = are.data;
+        let val_p = state.register.physical[are.rename-33].data;
+        let val_a_prev = state_prev.register.arch[name].data;
+        let val_p_prev = state_prev.register.physical[are.rename-33].data;
+        Text::styled(
+            format!(
+                "{n:>#04}-{n:<03} {vl} :: {va:08x}|{vp:08x} - {va}/{vp}",
+                n=reg,
+                va=val_a,
+                vp=val_p,
+                vl=if are.valid { "X" } else { "-" }
+            ),
+            if reg == Register::PC {
+                Style::default().fg(Color::LightBlue).modifier(Modifier::Bold)
+            } else if val_a != val_a_prev || val_p != val_p_prev {
+                Style::default().fg(Color::Black).bg(Color::LightYellow)
+            } else {
+                Style::default().fg(Color::White)
+            }
+        )
+    });
 
-    // List::new(registers)
-    //     .block(standard_block("Register File"))
-    //     .render(f, area);
+    List::new(registers)
+        .block(standard_block("Register File"))
+        .render(f, area);
 }
 
 /// Draws a section of the memory around the PC.
