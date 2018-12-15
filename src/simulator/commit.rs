@@ -81,37 +81,35 @@ fn cm_i_type(state: &mut State, rob_entry: &ReorderEntry) {
 /// Commits an S type instruction from a reorder buffer entry to the given
 /// state.
 fn cm_s_type(state: &mut State, rob_entry: &ReorderEntry) {
-    // // let rs1 = match r.rs1 {
-    // //     Left(val)   => val,
-    // //     Right(name) => rf.read_at_name(name)
-    // //         .expect("Execute unit missing rs1!"),
-    // // };
-    // // let rs2 = match r.rs2 {
-    // //     Left(val)   => val,
-    // //     Right(name) => rf.read_at_name(name)
-    // //         .expect("Execute unit missing rs2!"),
-    // // };
-    // // let imm = r.imm.expect("Execute unit missing imm!");
+    let rs1 = match rob_entry.rs1 {
+        Left(val)   => val,
+        Right(name) => {
+            let r = state.register.read_at_name(name).expect("Commit unit missing rs1!");
+            state.register.finished_read(name);
+            r
+        },
+    };
+    let rs2 = match rob_entry.rs2 {
+        Left(val)   => val,
+        Right(name) => {
+            let r = state.register.read_at_name(name).expect("Commit unit missing rs2!");
+            state.register.finished_read(name);
+            r
+        },
+    };
+    let imm = rob_entry.imm.expect("Commit unit missing imm!");
 
-    // match r.op {
-    //     // TODO Move to writeback stage
-    //     // Operation::SB => { m[(rs1 + imm) as usize] = rs2 as u8 },
-    //     // Operation::SH => { m.write_i16((rs1 + imm) as usize, rs2 as i16); () },
-    //     // Operation::SW => { m.write_i32((rs1 + imm) as usize, rs2); () },
-    //     Operation::SB => (),
-    //     Operation::SH => (),
-    //     Operation::SW => (),
-    //     _ => panic!("Unknown s type instruction failed to execute."),
-    // };
-
-    // self.executing.push_back((
-    //     ExecuteResult {
-    //         rob_entry: r.rob_entry,
-    //         pc: rf.read_reg(Register::PC).unwrap() + 4,
-    //         rd: None,
-    //     },
-    //     ExecutionLen::from(r.op),
-    // ))
+    if rob_entry.pc == rob_entry.act_pc {
+        match rob_entry.op {
+            Operation::SB => { state.memory[(rs1 + imm) as usize] = rs2 as u8 },
+            Operation::SH => { state.memory.write_i16((rs1 + imm) as usize, rs2 as i16); () },
+            Operation::SW => { state.memory.write_i32((rs1 + imm) as usize, rs2); () },
+            _ => panic!("Unknown s type instruction failed to commit."),
+        };
+    } else {
+        // Branch prediction failure
+        panic!("Did not expect S type instruction to have mismatching PC!")
+    }
 }
 
 /// Commits an B type instruction from a reorder buffer entry to the given
