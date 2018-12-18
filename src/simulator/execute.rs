@@ -3,7 +3,6 @@ use std::collections::VecDeque;
 use either::{Left, Right};
 
 use crate::isa::op_code::Operation;
-use crate::isa::operand::Register;
 use crate::isa::Format;
 
 use super::register::RegisterFile;
@@ -215,11 +214,6 @@ impl ExecuteUnit {
     /// Returns what type of execution unit this is.
     pub fn get_type(&self) -> UnitType {
         self.unit_type
-    }
-
-    /// Indicates whether or not this Execute Unit is pipelined or not.
-    pub fn is_pipelined(&self) -> bool {
-        self.pipeline_size > 1
     }
 
     /// Indicates whether or not this Execute Unit is free to take on another

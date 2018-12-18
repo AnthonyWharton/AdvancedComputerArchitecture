@@ -4,7 +4,6 @@ use crate::isa::Format;
 use crate::isa::op_code::Operation;
 use crate::isa::operand::Register;
 
-use super::reorder::ReorderEntry;
 use super::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////

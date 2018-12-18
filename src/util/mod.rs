@@ -29,6 +29,7 @@ pub mod panic;
 ///  - `optional`: The optional to be formatted.
 ///  - `fmt_str`: The format string for the contents of the optional.
 ///  - `lhs`/`rhs`: The strings to the left/right hand side of the optional.
+#[allow(unused_macros)]
 macro_rules! format_option {
     ($option:expr) => {
         format!("{:?}", $option)

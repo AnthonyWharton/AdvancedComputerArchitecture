@@ -206,7 +206,7 @@ fn display_thread(tx: Sender<SimulatorEvent>, rx: Receiver<IoEvent>) {
     };
 
     terminal.hide_cursor().unwrap();
-    for i in 0..terminal.size().unwrap().height {
+    for _ in 0..terminal.size().unwrap().height {
         println!("\r");
     }
 
