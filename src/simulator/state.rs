@@ -68,8 +68,11 @@ impl State {
     pub fn new(config: &Config) -> State {
         // Create register file
         let mut register = RegisterFile::new(64);
-        register.write_to_name(Register::X2 as usize, 128);
-        register.write_to_name(Register::X8 as usize, 128);
+        // Initialise return address to -1 (for detecting exit)
+        register.write_to_name(Register::X1 as usize, -1);
+        // Initialise stack pointer to the end of memory.
+        register.write_to_name(Register::X2 as usize, INIT_MEMORY_SIZE as i32);
+        register.write_to_name(Register::X8 as usize, INIT_MEMORY_SIZE as i32);
 
         // Create execution unit(s)
         let execute_units = vec![
@@ -112,8 +115,11 @@ impl State {
 impl Default for State {
     fn default() -> State {
         let mut regs = RegisterFile::new(64);
-        regs.write_to_name(Register::X2 as usize, 128);
-        regs.write_to_name(Register::X8 as usize, 128);
+        // Initialise return address to -1 (for detecting exit)
+        regs.write_to_name(Register::X1 as usize, -1);
+        // Initialise stack pointer to the end of memory.
+        regs.write_to_name(Register::X2 as usize, INIT_MEMORY_SIZE as i32);
+        regs.write_to_name(Register::X8 as usize, INIT_MEMORY_SIZE as i32);
         State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
