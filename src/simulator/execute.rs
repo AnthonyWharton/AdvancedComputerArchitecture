@@ -284,7 +284,7 @@ impl ExecuteUnit {
         if let Some((_, el)) = new_eu.executing.front() {
             if el.steps == 0 {
                 let result: ExecuteResult = new_eu.executing.pop_front().unwrap().0;
-                rob[result.rob_entry].act_pc = result.pc as usize;
+                rob[result.rob_entry].act_pc = result.pc;
                 rob[result.rob_entry].act_rd = result.rd.unwrap_or(0);
                 rob[result.rob_entry].finished = true;
             }
@@ -401,7 +401,11 @@ impl ExecuteUnit {
         };
 
         let pc_val = if r.op == Operation::JALR {
-            (rs1_s + imm_s) & !0b1
+            if rs1_s != -1 {
+                (rs1_s + imm_s) & !0b1
+            } else {
+                -1
+            }
         } else {
             r.pc as i32 + 4
         };
