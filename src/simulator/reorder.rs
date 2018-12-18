@@ -38,7 +38,7 @@ pub struct ReorderEntry {
     pub pc: usize,
     /// The actual value of the Program Counter after execution. Only valid
     /// when finished is `true`.
-    pub act_pc: usize,
+    pub act_pc: i32,
     /// The actual value of the `rd` result register after execution. Only
     /// valid when finished is `true`.
     pub act_rd: i32,
@@ -97,22 +97,17 @@ impl ReorderBuffer {
     pub fn pop_finished_entries(
         &self,
         new_rob: &mut ReorderBuffer,
-        finish_rob_entry: Option<usize>,
-    ) -> (Vec<usize>, bool) {
+    ) -> Vec<usize> {
         if self.count == 0 {
-            return (vec![], false);
+            return vec![]
         }
 
         if self.rob[self.front].finished {
             new_rob.count -= 1;
             new_rob.front = (self.front + 1) % self.capacity;
-
-            (
-                vec![self.front],
-                self.front == finish_rob_entry.unwrap_or(self.capacity + 1)
-            )
+            vec![self.front]
         } else {
-            (vec![], false)
+            vec![]
         }
     }
 

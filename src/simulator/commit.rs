@@ -2,6 +2,7 @@ use either::{Left, Right};
 
 use crate::isa::Format;
 use crate::isa::op_code::Operation;
+use crate::isa::operand::Register;
 
 use super::reorder::ReorderEntry;
 use super::state::State;
@@ -14,12 +15,9 @@ use super::state::State;
 /// ['ReorderBuffer'](../reorder/struct.ReorderBuffer.html), and then commits
 /// them to the new [`State`](../state/struct.State.html).
 pub fn commit_stage(state_p: &State, state: &mut State) -> bool {
-    let (entries, finished) = state_p
+    let entries = state_p
         .reorder_buffer
-        .pop_finished_entries(&mut state.reorder_buffer, state_p.finish_rob_entry);
-    if finished {
-        return finished;
-    }
+        .pop_finished_entries(&mut state.reorder_buffer);
     for entry in entries {
         match Format::from(state_p.reorder_buffer[entry].op) {
             Format::R => cm_r_type(state_p, state, entry),
@@ -31,7 +29,7 @@ pub fn commit_stage(state_p: &State, state: &mut State) -> bool {
         }
         state.stats.executed += 1;
     }
-    finished
+    state.register.read_reg(Register::PC).unwrap() == -1
 }
 
 /// Commits an R type instruction from a reorder buffer entry to the given
