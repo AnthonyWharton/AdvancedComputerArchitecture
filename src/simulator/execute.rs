@@ -496,7 +496,7 @@ impl ExecuteUnit {
         let imm = r.imm.expect("Execute unit missing imm!");
 
         match r.op {
-            Operation::JALR => {
+            Operation::JAL => {
                 let old_pc = r.pc as i32;
                 self.executing.push_back((
                     ExecuteResult {
