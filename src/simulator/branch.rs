@@ -7,10 +7,10 @@
 #[derive(Clone)]
 pub struct BranchPredictor {
     /// The internal load counter as kept track of by the branch predictor.
-    lc: usize,
+    pub lc: usize,
     /// The previous load counter as kept track of by the branch predictor,
     /// used to roll back one step in the event of a stall signal.
-    old_lc: usize,
+    pub old_lc: usize,
     // TODO, add relevant state for more complex Branch Prediction.
 }
 
