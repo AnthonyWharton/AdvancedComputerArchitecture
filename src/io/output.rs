@@ -89,8 +89,6 @@ fn draw_stats(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State)
         Text::raw(format!("bp_fail:  {}\n", state.stats.bp_failure)),
         Text::raw(format!("bp_rate:  {}\n", bpr)),
         Text::raw("\n"),
-        Text::raw(format_option!("FRBE: ", "{}", state.finish_rob_entry)),
-        Text::raw("\n"),
         Text::raw(format!("LF: {:x?}\n", state.latch_fetch)),
         Text::raw("\n"),
         Text::raw("RS:\n"),
@@ -145,16 +143,28 @@ fn draw_registers(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &St
     let registers = state.register.arch.iter().enumerate().map(|(name, are)| {
         let reg = Register::from(name as i32);
         let val_a = are.data;
-        let val_p = state.register.physical[are.rename-33].data;
         let val_a_prev = state_prev.register.arch[name].data;
-        let val_p_prev = state_prev.register.physical[are.rename-33].data;
+        let val_p = if are.rename.is_some() {
+            state.register.physical[are.rename.unwrap() - 33].data
+        } else {
+            0
+        };
+        let val_p_prev = if are.rename.is_some() {
+            state_prev.register.physical[are.rename.unwrap() - 33].data
+        } else {
+            0
+        };
         Text::styled(
             format!(
-                "{n:>#04}-{n:<03} {vl} :: {va:08x}|{vp:08x} - {va}/{vp}",
+                "{n:>#04}-{n:<03} ({rn}) :: {va:08x}|{vp:08x} - {va}/{vp}",
                 n=reg,
                 va=val_a,
                 vp=val_p,
-                vl=if are.valid { "X" } else { "-" }
+                rn=if are.rename.is_none() {
+                    String::from("  ")
+                } else {
+                    format!("{:02}", are.rename.unwrap())
+                },
             ),
             if reg == Register::PC {
                 Style::default().fg(Color::LightBlue).modifier(Modifier::Bold)
@@ -174,7 +184,7 @@ fn draw_registers(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &St
 /// Draws a section of the memory around the PC.
 fn draw_memory(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
-    let pc = state.branch_predictor.get_prediction() as i32;
+    let pc = state.branch_predictor.lc as i32;
     let skip_amount = cmp::max(0, (pc - (i32::from(4 * area.height) / 2)) / 4) as usize;
     let memory = state
         .memory
