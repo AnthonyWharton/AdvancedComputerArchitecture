@@ -5,7 +5,6 @@ use either::{Left, Right};
 use crate::isa::op_code::Operation;
 use crate::isa::Format;
 
-use super::register::RegisterFile;
 use super::reorder::ReorderBuffer;
 use super::reservation::Reservation;
 use super::state::State;
@@ -250,10 +249,10 @@ impl ExecuteUnit {
         }
 
         match Format::from(reservation.op) {
-            Format::R => self.ex_r_type(reservation, &state_p.register),
-            Format::I => self.ex_i_type(reservation, &state_p.register),
+            Format::R => self.ex_r_type(reservation, &state_p.reorder_buffer),
+            Format::I => self.ex_i_type(reservation, &state_p.reorder_buffer),
             Format::S => self.ex_s_type(reservation),
-            Format::B => self.ex_b_type(reservation, &state_p.register),
+            Format::B => self.ex_b_type(reservation, &state_p.reorder_buffer),
             Format::U => self.ex_u_type(reservation),
             Format::J => self.ex_j_type(reservation),
         }
@@ -292,14 +291,14 @@ impl ExecuteUnit {
     }
 
     /// Executes an R type instruction, putting the results in self.
-    fn ex_r_type(&mut self, r: &Reservation, rf: &RegisterFile) {
+    fn ex_r_type(&mut self, r: &Reservation, rob: &ReorderBuffer) {
         let rs1_s = match r.rs1 {
             Left(val) => val,
-            Right(name) => rf.read_at_name(name).expect("Execute unit missing rs1!"),
+            Right(name) => rob[name].act_rd,
         };
         let rs2_s = match r.rs2 {
             Left(val) => val,
-            Right(name) => rf.read_at_name(name).expect("Execute unit missing rs2!"),
+            Right(name) => rob[name].act_rd,
         };
         let rs1_u = rs1_s as u32;
         let rs2_u = rs2_s as u32;
@@ -355,10 +354,10 @@ impl ExecuteUnit {
     }
 
     /// Executes an I type instruction, modifying the borrowed state.
-    fn ex_i_type(&mut self, r: &Reservation, rf: &RegisterFile) {
+    fn ex_i_type(&mut self, r: &Reservation, rob: &ReorderBuffer) {
         let rs1_s = match r.rs1 {
             Left(val) => val,
-            Right(name) => rf.read_at_name(name).expect("Execute unit missing rs1!"),
+            Right(name) => rob[name].act_rd,
         };
         let rs1_u = rs1_s as u32;
         let imm_s = r.imm.expect("Execute unit missing imm!");
@@ -434,14 +433,14 @@ impl ExecuteUnit {
     }
 
     /// Executes an B type instruction, modifying the borrowed state.
-    fn ex_b_type(&mut self, r: &Reservation, rf: &RegisterFile) {
+    fn ex_b_type(&mut self, r: &Reservation, rob: &ReorderBuffer) {
         let rs1_s = match r.rs1 {
             Left(val) => val,
-            Right(name) => rf.read_at_name(name).expect("Execute unit missing rs1!"),
+            Right(name) => rob[name].act_rd,
         };
         let rs2_s = match r.rs2 {
             Left(val) => val,
-            Right(name) => rf.read_at_name(name).expect("Execute unit missing rs2!"),
+            Right(name) => rob[name].act_rd,
         };
         let rs1_u = rs1_s as u32;
         let rs2_u = rs2_s as u32;

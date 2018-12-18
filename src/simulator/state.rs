@@ -67,12 +67,12 @@ impl State {
     /// Creates a new state according to the given config
     pub fn new(config: &Config) -> State {
         // Create register file
-        let mut register = RegisterFile::new(64);
+        let mut register = RegisterFile::default();
         // Initialise return address to -1 (for detecting exit)
-        register.write_to_name(Register::X1 as usize, -1);
+        register[Register::X1].data = -1;
         // Initialise stack pointer to the end of memory.
-        register.write_to_name(Register::X2 as usize, INIT_MEMORY_SIZE as i32);
-        register.write_to_name(Register::X8 as usize, INIT_MEMORY_SIZE as i32);
+        register[Register::X2].data = INIT_MEMORY_SIZE as i32;
+        register[Register::X8].data = INIT_MEMORY_SIZE as i32;
 
         // Create execution unit(s)
         let execute_units = vec![
@@ -99,6 +99,7 @@ impl State {
 
         state
     }
+
     /// Flushes the entire pipeline, restarting from the given Program Counter.
     pub fn flush_pipeline(&mut self, actual_pc: usize) {
         self.register.flush();
@@ -114,17 +115,17 @@ impl State {
 
 impl Default for State {
     fn default() -> State {
-        let mut regs = RegisterFile::new(64);
+        let mut register = RegisterFile::default();
         // Initialise return address to -1 (for detecting exit)
-        regs.write_to_name(Register::X1 as usize, -1);
+        register[Register::X1].data = -1;
         // Initialise stack pointer to the end of memory.
-        regs.write_to_name(Register::X2 as usize, INIT_MEMORY_SIZE as i32);
-        regs.write_to_name(Register::X8 as usize, INIT_MEMORY_SIZE as i32);
+        register[Register::X2].data = INIT_MEMORY_SIZE as i32;
+        register[Register::X8].data = INIT_MEMORY_SIZE as i32;
         State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
-            register: regs,
+            register,
             branch_predictor: BranchPredictor::new(0),
             latch_fetch: LatchFetch::default(),
             resv_station: ResvStation::new(16),

@@ -45,12 +45,8 @@ pub fn load_elf(state: &mut State, config: &Config) {
     }
 
     // Load in initial program counter
-    state
-        .register
-        .write_to_name(Register::PC as usize, file.ehdr.entry as i32);
-    state
-        .branch_predictor
-        .force_update(file.ehdr.entry as usize);
+    state.register[Register::PC].data = file.ehdr.entry as i32;
+    state.branch_predictor.force_update(file.ehdr.entry as usize);
 }
 
 /// Verifies the given ELF file header is compatible with the simulator, and

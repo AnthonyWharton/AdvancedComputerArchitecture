@@ -15,7 +15,7 @@ pub fn dispatch_stage(state_p: &State, state: &mut State) {
             .consume_next(
                 &mut state.resv_station,
                 &eu,
-                &state_p.register,
+                &state_p.reorder_buffer,
                 effective_limit,
             );
         if let Some(r) = next {

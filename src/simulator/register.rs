@@ -1,9 +1,10 @@
 use std::collections::VecDeque;
 use std::default::Default;
-
-use either::{Either, Left, Right};
+use std::ops::{Index, IndexMut};
 
 use crate::isa::operand::Register;
+
+use super::reorder::ReorderBuffer;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
@@ -12,16 +13,10 @@ use crate::isa::operand::Register;
 /// logic for accessing, renaming, etc.
 /// Registers `0..33` are the architectural registers, defined by
 /// `Register as usize`, and `33..` are physical registers.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct RegisterFile {
     /// The architectural register lookup table.
-    pub arch: Vec<ArchRegEntry>,
-    /// The physical registers that hold register data, and a count of how many
-    /// references are making current use of it.
-    pub physical: Vec<PhysicalRegEntry>,
-    /// A queue of registers that are free for rename usage in the physical
-    /// register file.
-    pub free: VecDeque<usize>,
+    pub file: Vec<ArchRegEntry>,
 }
 
 /// The contents of a line in the Architectural Register File.
@@ -37,174 +32,77 @@ pub struct ArchRegEntry {
     pub rename: Option<usize>,
 }
 
-/// The contents of a line in the Phsyical Register File.
-///
-/// Will remain invalid until an execute unit writes into it.
-#[derive(Clone, PartialEq)]
-pub struct PhysicalRegEntry {
-    /// The data stored in the line of the physical register file.
-    pub data: i32,
-    /// The 'valid' bit, i.e. the data is directly usable.
-    pub valid: bool,
-    /// The number of components that have a reference to this physical
-    /// register entry.
-    pub ref_count: u8,
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
 
+impl Index<Register> for RegisterFile {
+    type Output = ArchRegEntry;
+
+    fn index(&self, reg: Register) -> &Self::Output {
+        &self.file[reg as usize]
+    }
+}
+
+impl IndexMut<Register> for RegisterFile {
+    fn index_mut(&mut self, reg: Register) -> &mut Self::Output {
+        &mut self.file[reg as usize]
+    }
+}
+
 impl RegisterFile {
-    /// Creates a new register file with specified amount of physical registers
-    /// in the physical register file.
-    pub fn new(physical_regs: usize) -> RegisterFile {
-        RegisterFile {
-            arch: vec![ArchRegEntry::default(); 33],
-            physical: vec![PhysicalRegEntry::default(); physical_regs],
-            free: (33..physical_regs + 33).collect(),
-        }
-    }
+    // pub fn write_to_name(
+    //     &mut self,
+    //     rob: &mut ReorderBuffer,
+    //     register: Register,
+    //     rob_entry: usize,
+    //     data: i32
+    // ) {
+    //     // Ensure we never write to the zero register.
+    //     if name == 0 {
+    //         return
+    //     } else if name < 33 {
+    //         self.file[name].data = data;
+    //     } else {
 
-    /// Finds the value of a given register name if valid. If an architectural
-    /// register file name is given, this will return the value of the
-    /// architectural file's data regardless of validity. For a method that
-    /// takes architectural register file validity into account use
-    /// [`read_reg()`](#method.reg) instead.
-    pub fn read_at_name(&self, name: usize) -> Option<i32> {
-        if name < 33 {
-            if self.arch[name].rename.is_none() {
-                Some(self.arch[name].data)
-            } else {
-                None
-            }
-        } else if self.physical[name - 33].valid {
-            Some(self.physical[name - 33].data)
-        } else {
-            None
-        }
-    }
+    //         self.rob[name - 33].act_rd = data;
+    //     }
+    // }
 
-    /// Writes the give value to a given register name. If a physical register
-    /// file name is given, the valid bit will be set to `true` upon a write.
-    /// If an architectural register file name is given, the validity bit is
-    /// not touched. To set the architectural register file validity bit,
-    /// initiate a writeback with [`finished_write()`](#method.finished_write)
-    /// instead.
-    pub fn write_to_name(&mut self, name: usize, data: i32) {
-        // Ensure we never write to the zero register.
-        if name == 0 {
-            return
-        } else if name < 33 {
-            self.arch[name].data = data;
-        } else {
-            self.physical[name - 33].data = data;
-            self.physical[name - 33].valid = true;
-        }
-    }
+    // /// Indicate that the given physical register file name with given
+    // /// associated register is no longer needed for write operations, and flush
+    // /// the value back to the architectural register file. If this is the
+    // /// youngest rename of the register, this will reset the validity of the
+    // /// architectural register file to true.
+    // pub fn finished_write(&mut self, register: Register, name: usize) {
+    //     // Register zero special case
+    //     if register == Register::X0 {
+    //         return;
+    //     }
 
-    /// Finds the value of a given register if valid. This will follow the
-    /// latest rename of that register if the valid bit is not set.
-    ///
-    /// Order of checks:
-    ///   1) If, architectural register file entry is valid, return the data.
-    ///   2) Else, follow the architectural register file rename to physical
-    ///      register file.
-    ///   3) If, physical register file entry is valid, return the data/
-    ///   3) Else, no data is available for this name.
-    pub fn read_reg(&self, reg: Register) -> Option<i32> {
-        let name = reg as usize;
-        if self.arch[name].rename.is_none() {
-            Some(self.arch[name].data)
-        } else if self.physical[self.arch[name].rename.unwrap()].valid {
-            Some(self.physical[self.arch[name].rename.unwrap()].data)
-        } else {
-            None
-        }
-    }
-
-    /// If resources are available, will rename a register for future
-    /// writeback. Renamed registers have no guarentee as to what will be
-    /// inside of them when created.
-    ///
-    /// Returns the renamed register reference, if available, otherwise `None`
-    /// is returned.
-    pub fn using_write(&mut self, register: Register) -> Option<usize> {
+    //     let idx = register as usize;
+    //     self.file[idx].data = self.physical[name - 33].data;
+    //     if self.file[idx].rename == Some(name) {
+    //         self.file[idx].rename = None;
+    //     }
+    //     self.remove_ref(name);
+    // }
+    
+    /// _Safely_ renames the given register to the given reorder buffer entry.
+    pub fn rename(&mut self, register: Register, rob_entry: usize) {
         // Register zero and the program counters are special cases
         match register {
-            Register::X0 => return Some(0),
-            // TODO: Consider a more severe error for renaming program counter
-            Register::PC => return None,
-            _ => (),
-        }
-
-        let idx = register as usize;
-        match self.free.pop_front() {
-            Some(name) => {
-                self.physical[name - 33] = PhysicalRegEntry::default();
-                self.arch[idx].rename = Some(name);
-                Some(name)
-            }
-            None => None,
-        }
-    }
-
-    /// Indicate that the caller is intending to keep a reference to the given
-    /// register. If the register is valid, this will have no effect, however
-    /// if invalid (i.e. a renamed register), this will increment the reference
-    /// count to the physical register file.
-    pub fn using_read(&mut self, register: Register) -> Either<i32, usize> {
-        let idx = register as usize;
-        if self.arch[idx].rename.is_none() {
-            Left(self.arch[idx].data)
-        } else {
-            self.physical[self.arch[idx].rename.unwrap() - 33].ref_count += 1;
-            Right(self.arch[idx].rename.unwrap())
-        }
-    }
-
-    /// Indicate that the given physical register file name with given
-    /// associated register is no longer needed for write operations, and flush
-    /// the value back to the architectural register file. If this is the
-    /// youngest rename of the register, this will reset the validity of the
-    /// architectural register file to true.
-    pub fn finished_write(&mut self, register: Register, name: usize) {
-        // Register zero special case
-        if register == Register::X0 {
-            return;
-        }
-
-        let idx = register as usize;
-        self.arch[idx].data = self.physical[name - 33].data;
-        if self.arch[idx].rename == Some(name) {
-            self.arch[idx].rename = None;
-        }
-        self.remove_ref(name);
-    }
-
-    /// Indicate that the given physical register file name is no longer needed
-    /// by something that had it as a read reference.
-    pub fn finished_read(&mut self, name: usize) {
-        self.remove_ref(name);
-    }
-
-    /// Removes a reference from the physical register file, and free's it if
-    /// that was the last reference.
-    fn remove_ref(&mut self, name: usize) {
-        if name >= 33 {
-            self.physical[name - 33].ref_count -= 1;
-            if self.physical[name - 33].ref_count == 0 {
-                self.free.push_back(name)
-            }
+            Register::X0 => return,
+            Register::PC => return,
+            _ => self.file[register as usize].rename = Some(rob_entry),
         }
     }
 
     /// Flushes the register file, this would happen when the pipeline is
     /// invalidated and needs to be restarted from scratch.
     pub fn flush(&mut self) {
-        for arch in self.arch.iter_mut() {
-            arch.rename = None;
+        for reg in self.file.iter_mut() {
+            reg.rename = None;
         }
-        self.free = (33..self.arch.len() + 33).collect();
     }
 }
 
@@ -215,18 +113,6 @@ impl Default for ArchRegEntry {
         ArchRegEntry {
             data: 0,
             rename: None,
-        }
-    }
-}
-
-impl Default for PhysicalRegEntry {
-    /// Returns the default register entry, that is with a valid value of 0
-    /// set.
-    fn default() -> PhysicalRegEntry {
-        PhysicalRegEntry {
-            data: 0,
-            valid: false,
-            ref_count: 1,
         }
     }
 }

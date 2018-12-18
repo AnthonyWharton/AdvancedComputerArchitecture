@@ -8,6 +8,7 @@ use crate::isa::operand::Register;
 
 use super::execute::{ExecuteUnit, ExecutionLen, UnitType};
 use super::register::RegisterFile;
+use super::reorder::ReorderBuffer;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
@@ -35,8 +36,6 @@ pub struct Reservation {
     pub pc: usize,
     /// The pending writeback register.
     pub reg_rd: Option<Register>,
-    /// The pending writeback register name.
-    pub name_rd: Option<usize>,
     /// Either the first source register name, or value. If this argument is
     /// unused, it will be set as 0.
     pub rs1: Either<i32, usize>,
@@ -84,7 +83,7 @@ impl ResvStation {
         &self,
         new_rs: &mut ResvStation,
         eu: &ExecuteUnit,
-        rf: &RegisterFile,
+        rob: &ReorderBuffer,
         limit: usize,
     ) -> Option<Reservation> {
         let act_limit = if limit == 0 {
@@ -109,13 +108,13 @@ impl ResvStation {
                 // Check rs1 is ready
                 match r.rs1 {
                     Left(_)  => true,
-                    Right(n) => rf.read_at_name(n).is_some(),
+                    Right(n) => rob[n].finished,
                 }
                 // Check rs2 is ready
                 &&
                 match r.rs2 {
                     Left(_)  => true,
-                    Right(n) => rf.read_at_name(n).is_some(),
+                    Right(n) => rob[n].finished,
                 }
             });
 

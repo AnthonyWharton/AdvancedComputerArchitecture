@@ -31,6 +31,9 @@ pub struct ReorderEntry {
     /// The 'finished' bit, i.e. the data is directly usable, and the entry is
     /// ready for writeback.
     pub finished: bool,
+    /// The number of components that have a reference to this reorder buffer
+    /// entry.
+    pub ref_count: u8,
     /// The operation that executed
     pub op: Operation,
     /// The program counter for this instruction, indicating the choice that
@@ -44,8 +47,6 @@ pub struct ReorderEntry {
     pub act_rd: i32,
     /// The pre-renamed `rd` result register.
     pub reg_rd: Option<Register>,
-    /// The renamed `rd` result register.
-    pub name_rd: Option<usize>,
     /// Either the first source register name, or value. If this argument is
     /// unused, it will be set as 0.
     pub rs1: Either<i32, usize>,
@@ -143,12 +144,12 @@ impl Default for ReorderEntry {
     fn default() -> ReorderEntry {
         ReorderEntry {
             finished: false,
+            ref_count: 1,
             op: Operation::ADDI,
             pc: 0,
             act_pc: 0,
             act_rd: 0,
             reg_rd: None,
-            name_rd: None,
             rs1: Left(0),
             rs2: Left(0),
             imm: None,
