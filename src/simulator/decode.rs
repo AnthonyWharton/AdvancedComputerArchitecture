@@ -19,14 +19,15 @@ use super::state::State;
 ///
 /// If sanitisation is not possible, this will stall the pipeline.
 pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
-    if state_p.finish_rob_entry.is_some() {
-        return
-    }
-
     if let Some(access) = state_p.latch_fetch.data {
         let instr = match Instruction::decode(access.word) {
             Some(i) => i,
-            None => panic!("Failed to decode instruction."),
+            None => {
+                state.branch_predictor.stall();
+                state.stats.stalls += 1;
+                state.debug_msg.push(String::from("Failed to decode instruction!.. Stalling!"));
+                return
+            },
         };
 
         let resv_result = sanitise_and_reserve(
@@ -101,11 +102,6 @@ fn sanitise_and_reserve(
         Some(entry) => entry,
         None => panic!("ROB was free at start of reservation stage but not at the end!"),
     };
-
-    // Check if the instruction was a finish instruction
-    if instruction.is_ret() {
-        state.finish_rob_entry = Some(rob_entry);
-    }
 
     // Finally, reserve the instruction in the reservation station
     let reservation = Reservation {
