@@ -22,8 +22,6 @@ pub struct State {
     pub stats: Stats,
     /// Used to display debug prints in the debug thread.
     pub debug_msg: Vec<String>,
-    /// The reorder buffer entry of the finish instruction, if seen yet.
-    pub finish_rob_entry: Option<usize>,
     /// The virtual memory module, holding data and instructions in the
     /// simulated machine.
     pub memory: Memory,
@@ -84,7 +82,6 @@ impl State {
         let mut state = State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
-            finish_rob_entry: None,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,
             branch_predictor: BranchPredictor::new(0),
@@ -101,7 +98,6 @@ impl State {
     }
     /// Flushes the entire pipeline, restarting from the given Program Counter.
     pub fn flush_pipeline(&mut self, actual_pc: usize) {
-        self.finish_rob_entry = None;
         self.register.flush();
         self.branch_predictor.force_update(actual_pc);
         self.latch_fetch.data = None;
@@ -120,7 +116,6 @@ impl Default for State {
         regs.write_to_name(Register::X8 as usize, 128);
         State {
             stats: Stats::default(),
-            finish_rob_entry: None,
             debug_msg: Vec::new(),
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register: regs,
