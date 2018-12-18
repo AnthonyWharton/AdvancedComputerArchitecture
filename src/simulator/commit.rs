@@ -36,11 +36,14 @@ pub fn commit_stage(state_p: &State, state: &mut State) -> bool {
 /// state.
 fn cm_r_type(state_p: &State, state: &mut State, entry: usize) {
     let rob_entry = &state_p.reorder_buffer.rob[entry];
-    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         // Write back to register file
         state
             .register
             .write_to_name(rob_entry.name_rd.unwrap(), rob_entry.act_rd);
+        state
+            .register
+            .write_to_name(Register::PC as usize, rob_entry.act_pc);
         state
             .register
             .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
@@ -76,32 +79,38 @@ fn cm_i_type(state_p: &State, state: &mut State, entry: usize) {
     };
     let imm_s = rob_entry.imm.expect("Commit unit missing imm!");
 
-    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
-        #[rustfmt::skip]
-        let rd_val = match rob_entry.op {
-            Operation::LB  => state.memory[(rs1_s + imm_s) as usize] as i8 as i32,
-            Operation::LH  => state.memory.read_i16((rs1_s + imm_s) as usize).word as i32,
-            Operation::LW  => state.memory.read_i32((rs1_s + imm_s) as usize).word,
-            Operation::LBU => state.memory[(rs1_s + imm_s) as usize] as i32,
-            Operation::LHU => state.memory.read_u16((rs1_s + imm_s) as usize).word as i32,
-            _ => rob_entry.act_rd
-        };
+    #[rustfmt::skip]
+    let rd_val = match rob_entry.op {
+        Operation::LB  => state.memory[(rs1_s + imm_s) as usize] as i8 as i32,
+        Operation::LH  => state.memory.read_i16((rs1_s + imm_s) as usize).word as i32,
+        Operation::LW  => state.memory.read_i32((rs1_s + imm_s) as usize).word,
+        Operation::LBU => state.memory[(rs1_s + imm_s) as usize] as i32,
+        Operation::LHU => state.memory.read_u16((rs1_s + imm_s) as usize).word as i32,
+        _ => rob_entry.act_rd
+    };
 
-        // Write back to register file
-        state
-            .register
-            .write_to_name(rob_entry.name_rd.unwrap(), rd_val);
-        state
-            .register
-            .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
-        // rs1 finished_read() above
-        if let Right(name) = rob_entry.rs2 {
-            state.register.finished_read(name);
-        }
+    // Write back to register file
+    state
+        .register
+        .write_to_name(rob_entry.name_rd.unwrap(), rd_val);
+    state
+        .register
+        .write_to_name(Register::PC as usize, rob_entry.act_pc);
+    state
+        .register
+        .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+    // rs1 finished_read() above
+    if let Right(name) = rob_entry.rs2 {
+        state.register.finished_read(name);
+    }
+
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
-        state.flush_pipeline(rob_entry.act_pc);
+        if rob_entry.act_pc != -1 {
+            state.flush_pipeline(rob_entry.act_pc as usize);
+        }
         state.debug_msg.push(format!("BP FAIL, Flush {:?}", rob_entry));
     }
 }
@@ -134,20 +143,24 @@ fn cm_s_type(state_p: &State, state: &mut State, entry: usize) {
     };
     let imm = rob_entry.imm.expect("Commit unit missing imm!");
 
-    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
-        // Write back value to memory
-        match rob_entry.op {
-            Operation::SB => state.memory[(rs1 + imm) as usize] = rs2 as u8,
-            Operation::SH => {
-                state.memory.write_i16((rs1 + imm) as usize, rs2 as i16);
-                ()
-            }
-            Operation::SW => {
-                state.memory.write_i32((rs1 + imm) as usize, rs2);
-                ()
-            }
-            _ => panic!("Unknown s type instruction failed to commit."),
-        };
+    // Write back value to memory
+    match rob_entry.op {
+        Operation::SB => state.memory[(rs1 + imm) as usize] = rs2 as u8,
+        Operation::SH => {
+            state.memory.write_i16((rs1 + imm) as usize, rs2 as i16);
+            ()
+        }
+        Operation::SW => {
+            state.memory.write_i32((rs1 + imm) as usize, rs2);
+            ()
+        }
+        _ => panic!("Unknown s type instruction failed to commit."),
+    };
+
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
+        state
+            .register
+            .write_to_name(Register::PC as usize, rob_entry.act_pc);
         state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
@@ -161,18 +174,24 @@ fn cm_s_type(state_p: &State, state: &mut State, entry: usize) {
 /// state.
 fn cm_b_type(state_p: &State, state: &mut State, entry: usize) {
     let rob_entry = &state_p.reorder_buffer.rob[entry];
-    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
-        // Nothing to write back, just free resources
-        if let Right(name) = rob_entry.rs1 {
-            state.register.finished_read(name);
-        }
-        if let Right(name) = rob_entry.rs2 {
-            state.register.finished_read(name);
-        }
+    // Nothing to write back, just free resources
+    if let Right(name) = rob_entry.rs1 {
+        state.register.finished_read(name);
+    }
+    if let Right(name) = rob_entry.rs2 {
+        state.register.finished_read(name);
+    }
+
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
+        state
+            .register
+            .write_to_name(Register::PC as usize, rob_entry.act_pc);
         state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
-        state.flush_pipeline(rob_entry.act_pc);
+        if rob_entry.act_pc != -1 {
+            state.flush_pipeline(rob_entry.act_pc as usize);
+        }
         state.debug_msg.push(format!("BP FAIL, Flush {:?}", rob_entry));
     }
 }
@@ -181,14 +200,18 @@ fn cm_b_type(state_p: &State, state: &mut State, entry: usize) {
 /// state.
 fn cm_u_type(state_p: &State, state: &mut State, entry: usize) {
     let rob_entry = &state_p.reorder_buffer.rob[entry];
-    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
-        // Write back to register file
-        state
-            .register
-            .write_to_name(rob_entry.name_rd.unwrap(), rob_entry.act_rd);
-        state
-            .register
-            .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+    // Write back to register file
+    state
+        .register
+        .write_to_name(rob_entry.name_rd.unwrap(), rob_entry.act_rd);
+    state
+        .register
+        .write_to_name(Register::PC as usize, rob_entry.act_pc);
+    state
+        .register
+        .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
@@ -202,18 +225,24 @@ fn cm_u_type(state_p: &State, state: &mut State, entry: usize) {
 /// state.
 fn cm_j_type(state_p: &State, state: &mut State, entry: usize) {
     let rob_entry = &state_p.reorder_buffer.rob[entry];
-    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc {
-        // Write back to register file
-        state
-            .register
-            .write_to_name(rob_entry.name_rd.unwrap(), rob_entry.act_rd);
-        state
-            .register
-            .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+    // Write back to register file
+    state
+        .register
+        .write_to_name(rob_entry.name_rd.unwrap(), rob_entry.act_rd);
+    state
+        .register
+        .write_to_name(Register::PC as usize, rob_entry.act_pc);
+    state
+        .register
+        .finished_write(rob_entry.reg_rd.unwrap(), rob_entry.name_rd.unwrap());
+
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
+        if rob_entry.act_pc != -1 {
+            state.flush_pipeline(rob_entry.act_pc as usize);
+        }
         state.debug_msg.push(format!("BP FAIL, Flush {:?}", rob_entry));
-        state.flush_pipeline(rob_entry.act_pc);
     }
 }
