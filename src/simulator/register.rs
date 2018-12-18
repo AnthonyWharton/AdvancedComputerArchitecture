@@ -26,17 +26,15 @@ pub struct RegisterFile {
 
 /// The contents of a line in the Architectural Register File.
 ///
-/// If the valid bit is not set, more up to date information may be in the
-/// physical register file.
+/// If the valid bit is not set (i.e. there is a valid rename), more up to date
+/// information may be in the physical register file.
 #[derive(Clone)]
 pub struct ArchRegEntry {
     /// The latest committed value of the register.
     pub data: i32,
-    /// The 'valid' bit, i.e. the data is directly usable.
-    pub valid: bool,
-    /// The renamed name of the register in the physical register file, used
-    /// when the valid bit is not set.
-    pub rename: usize,
+    /// The renamed name of the register in the physical register file. If this
+    /// is not `None` then the architectural register entry is valid.
+    pub rename: Option<usize>,
 }
 
 /// The contents of a line in the Phsyical Register File.
@@ -74,7 +72,7 @@ impl RegisterFile {
     /// [`read_reg()`](#method.reg) instead.
     pub fn read_at_name(&self, name: usize) -> Option<i32> {
         if name < 33 {
-            if self.arch[name].valid {
+            if self.arch[name].rename.is_none() {
                 Some(self.arch[name].data)
             } else {
                 None
@@ -94,7 +92,9 @@ impl RegisterFile {
     /// instead.
     pub fn write_to_name(&mut self, name: usize, data: i32) {
         // Ensure we never write to the zero register.
-        if 0 < name && name < 33 {
+        if name == 0 {
+            return
+        } else if name < 33 {
             self.arch[name].data = data;
         } else {
             self.physical[name - 33].data = data;
@@ -113,10 +113,10 @@ impl RegisterFile {
     ///   3) Else, no data is available for this name.
     pub fn read_reg(&self, reg: Register) -> Option<i32> {
         let name = reg as usize;
-        if self.arch[name].valid {
+        if self.arch[name].rename.is_none() {
             Some(self.arch[name].data)
-        } else if self.physical[self.arch[name].rename].valid {
-            Some(self.physical[self.arch[name].rename].data)
+        } else if self.physical[self.arch[name].rename.unwrap()].valid {
+            Some(self.physical[self.arch[name].rename.unwrap()].data)
         } else {
             None
         }
@@ -138,11 +138,10 @@ impl RegisterFile {
         }
 
         let idx = register as usize;
-        self.arch[idx].valid = false;
         match self.free.pop_front() {
             Some(name) => {
                 self.physical[name - 33] = PhysicalRegEntry::default();
-                self.arch[idx].rename = name;
+                self.arch[idx].rename = Some(name);
                 Some(name)
             }
             None => None,
@@ -155,11 +154,11 @@ impl RegisterFile {
     /// count to the physical register file.
     pub fn using_read(&mut self, register: Register) -> Either<i32, usize> {
         let idx = register as usize;
-        if self.arch[idx].valid {
+        if self.arch[idx].rename.is_none() {
             Left(self.arch[idx].data)
         } else {
-            self.physical[self.arch[idx].rename - 33].ref_count += 1;
-            Right(self.arch[idx].rename)
+            self.physical[self.arch[idx].rename.unwrap() - 33].ref_count += 1;
+            Right(self.arch[idx].rename.unwrap())
         }
     }
 
@@ -176,8 +175,8 @@ impl RegisterFile {
 
         let idx = register as usize;
         self.arch[idx].data = self.physical[name - 33].data;
-        if self.arch[idx].rename == name {
-            self.arch[idx].valid = true;
+        if self.arch[idx].rename == Some(name) {
+            self.arch[idx].rename = None;
         }
         self.remove_ref(name);
     }
@@ -203,7 +202,7 @@ impl RegisterFile {
     /// invalidated and needs to be restarted from scratch.
     pub fn flush(&mut self) {
         for arch in self.arch.iter_mut() {
-            arch.valid = true;
+            arch.rename = None;
         }
         self.free = (33..self.arch.len() + 33).collect();
     }
@@ -215,8 +214,7 @@ impl Default for ArchRegEntry {
     fn default() -> ArchRegEntry {
         ArchRegEntry {
             data: 0,
-            valid: true,
-            rename: 33,
+            rename: None,
         }
     }
 }
