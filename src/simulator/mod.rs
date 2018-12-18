@@ -106,7 +106,7 @@ pub fn run_simulator(io: IoThread, config: &Config) {
             io.tx.send(IoEvent::Finish).unwrap();
             break;
         }
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(25));
     }
 
     #[allow(unused_must_use)]
