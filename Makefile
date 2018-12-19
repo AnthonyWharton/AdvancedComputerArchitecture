@@ -29,12 +29,12 @@ default:
 	echo "  - https://github.com/rust-lang-nursery/rustup.rs"
 
 build:
+	$(MAKE) --no-print-directory -C ./resources/programs/ all:build
 	echo "================================ simulator"
 	cargo build
-	$(MAKE) --no-print-directory -C ./resources/programs/ all:build
 
 run: build
-	./target/debug/simulator ./resources/programs/add_10/a.out
+	./target/debug/daybreak ./resources/programs/fib_non_recursive/a.out
 
 clean:
 	$(MAKE) --no-print-directory -C ./resources/programs all:clean
