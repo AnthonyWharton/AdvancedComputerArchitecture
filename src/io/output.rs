@@ -57,16 +57,15 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
             .direction(Direction::Vertical)
             .constraints(
                 [
-                    Constraint::Length(9),
-                    Constraint::Length(6),
+                    Constraint::Length(16),
                     Constraint::Min(33),
                 ]
                 .as_ref()
             )
             .split(horz_chunks[0]);
         draw_stats(&mut f, left_col[0], &app, &default);
-        draw_latch_fetch(&mut f, left_col[1], &app, &default);
-        draw_registers(&mut f, left_col[2], &app, &default);
+        // draw_latch_fetch(&mut f, left_col[1], &app, &default);
+        draw_registers(&mut f, left_col[1], &app, &default);
 
         ///////////////////////////////////////////////////////// CENTRE COLUMN
         let centre_col = Layout::default()
@@ -109,34 +108,21 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
     })
 }
 
+
 /// Draws the TuiApp state statistics on screen.
 fn draw_stats(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
-    let epc = if state.stats.cycles == 0 {
-        0f32
-    } else {
-        state.stats.executed as f32 / state.stats.cycles as f32
-    };
-    let bpr = if state.stats.bp_success + state.stats.bp_failure == 0 {
-        0f32
-    } else {
-        state.stats.bp_success as f32 / (state.stats.bp_success + state.stats.bp_failure) as f32
-    };
-    let mut tmp: Vec<Text> = vec![
+    let tmp: Vec<Text> = vec![
         Text::raw(format!("executed: {}\n", state.stats.executed)),
         Text::raw(format!("cycles:   {}\n", state.stats.cycles)),
-        Text::raw(format!("avg. executions/cycle: {:.3}\n", epc)),
+        Text::raw(format!("ex/cycle: {:.3}\n", state.stats.executed as f32 / state.stats.cycles as f32)),
         Text::raw(format!("stalls:   {}\n", state.stats.stalls)),
+        Text::raw(format!("st/cycle: {:.4}\n", state.stats.stalls as f32 / state.stats.cycles as f32)),
         Text::raw(format!("bp_succ:  {}\n", state.stats.bp_success)),
         Text::raw(format!("bp_fail:  {}\n", state.stats.bp_failure)),
-        Text::raw(format!("bp_rate:  {}\n", bpr)),
+        Text::raw(format!("bp_rate:  {:.3}\n", state.stats.bp_success as f32 / (state.stats.bp_success + state.stats.bp_failure) as f32)),
         Text::raw("\n"),
     ];
-    tmp.push(Text::raw("EU's\n"));
-    for eu in state.execute_units.iter() {
-        tmp.push(Text::raw(format!("{:?}: {:?}\n", eu.unit_type, eu.executing)));
-    }
-    tmp.push(Text::raw("\n"));
     Paragraph::new(tmp.iter())
         .block(standard_block("Statistics"))
         .wrap(true)
@@ -238,12 +224,25 @@ fn draw_reservation_station(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, de
 fn draw_reorder_buffer(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
     let rob = &state.reorder_buffer;
+    let eus = &state.execute_units;
     let len = rob.rob.len();
     let list = rob.rob.iter().enumerate().map(|(n, e)| {
         let nc = (n + len) % len;
+        let unit = eus
+            .iter()
+
+            .map(|eu| (eu, eu.executing.iter().find(|(r, _)| r.rob_entry == n)))
+            .find(|(_, r)| r.is_some());
+        let unit_str = if let Some((eu, Some(_))) = unit {
+            format!("{:#}", eu.unit_type)
+        } else {
+            String::from(" ")
+        };
         Text::styled(
-            format!("{:02}: {}", n, e),
-            if (rob.front_fin + len) % len <= nc && nc < (rob.back + len) % len {
+            format!("{} {:02}: {}", unit_str, n, e),
+            if unit_str != " " {
+                Style::default().fg(Color::LightMagenta)
+            } else if (rob.front_fin + len) % len <= nc && nc < (rob.back + len) % len {
                 Style::default().fg(Color::White)
             } else if (rob.front + len) % len <= nc && nc < (rob.back + len) % len {
                 Style::default().fg(Color::Green)
