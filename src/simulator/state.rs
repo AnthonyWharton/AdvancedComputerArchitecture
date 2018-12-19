@@ -71,12 +71,14 @@ impl State {
         // Initialise return address to -1 (for detecting exit)
         register[Register::X1].data = -1;
         // Initialise stack pointer to the end of memory.
-        register[Register::X2].data = 900_000i32;
-        register[Register::X8].data = 900_000i32;
+        register[Register::X2].data = INIT_MEMORY_SIZE as i32 - 4;
+        register[Register::X8].data = INIT_MEMORY_SIZE as i32 - 4;
 
         // Create execution unit(s)
         let execute_units = vec![
             Box::new(ExecuteUnit::new(UnitType::MCU, 1)),
+            Box::new(ExecuteUnit::new(UnitType::ALU, 1)),
+            Box::new(ExecuteUnit::new(UnitType::ALU, 1)),
             Box::new(ExecuteUnit::new(UnitType::ALU, 1)),
             Box::new(ExecuteUnit::new(UnitType::BLU, 1)),
         ];
@@ -102,6 +104,7 @@ impl State {
 
     /// Flushes the entire pipeline, restarting from the given Program Counter.
     pub fn flush_pipeline(&mut self, actual_pc: usize) {
+        self.stats.bp_failure += 1;
         self.register.flush();
         self.branch_predictor.force_update(actual_pc);
         self.latch_fetch.data = None;
@@ -119,8 +122,8 @@ impl Default for State {
         // Initialise return address to -1 (for detecting exit)
         register[Register::X1].data = -1;
         // Initialise stack pointer to the end of memory.
-        register[Register::X2].data = 900_000i32;
-        register[Register::X8].data = 900_000i32;
+        register[Register::X2].data = INIT_MEMORY_SIZE as i32 - 4;
+        register[Register::X8].data = INIT_MEMORY_SIZE as i32 - 4;
         State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
