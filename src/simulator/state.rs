@@ -22,6 +22,10 @@ pub struct State {
     pub stats: Stats,
     /// Used to display debug prints in the debug thread.
     pub debug_msg: Vec<String>,
+    /// The _n-way-ness_ of the superscalar _fetch_, _decode_ and _commit_
+    /// stages in the pipeline. (Note: _dispatch_ and _execute_ are always
+    /// `exec_units.len()`-way superscalar.
+    pub n_way: usize,
     /// The virtual memory module, holding data and instructions in the
     /// simulated machine.
     pub memory: Memory,
@@ -87,6 +91,7 @@ impl State {
         let mut state = State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
+            n_way: 4,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,
             branch_predictor: BranchPredictor::new(0),
@@ -107,7 +112,7 @@ impl State {
         self.stats.bp_failure += 1;
         self.register.flush();
         self.branch_predictor.force_update(actual_pc);
-        self.latch_fetch.data = None;
+        self.latch_fetch.data = vec![];
         self.resv_station.flush();
         self.reorder_buffer.flush();
         for eu in self.execute_units.iter_mut() {
@@ -127,6 +132,7 @@ impl Default for State {
         State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
+            n_way: 1,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,
             branch_predictor: BranchPredictor::new(0),

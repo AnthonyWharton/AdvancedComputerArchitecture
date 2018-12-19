@@ -143,11 +143,13 @@ fn draw_stats(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State)
 /// Draws the TuiApp state statistics on screen.
 fn draw_debug(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
-    let messages: Vec<Text> = state
+    let mut messages: Vec<Text> = state
         .debug_msg
         .iter()
         .map(|str| Text::raw(format!("{}\n", str)))
         .collect();
+    let rob = &state.reorder_buffer;
+    messages.push(Text::raw(format!("f:{} ff:{}, b:{}, c:{}\n", rob.front, rob.front_fin, rob.back, rob.count)));
     Paragraph::new(messages.iter())
         .block(standard_block("Debug Prints"))
         .wrap(true)
@@ -192,12 +194,11 @@ fn draw_registers(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &St
 fn draw_latch_fetch(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
     let lf = &state.latch_fetch;
-    let messages: Vec<Text> = vec![
-        Text::raw(format!("{:08x}: {}", lf.pc, format_option!("{}", lf.data))),
-    ];
-    Paragraph::new(messages.iter())
+    let messages = lf.data.iter().enumerate().map(|(n, access)| {
+        Text::raw(format!("{:08x}: {}", lf.pc + (4 * n), access))
+    });
+    List::new(messages)
         .block(standard_block("Fetch Latch"))
-        .wrap(true)
         .render(f, area);
 }
 
@@ -236,12 +237,11 @@ fn draw_reorder_buffer(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default
     let state = app.states.get(app.hist_display).unwrap_or(default);
     let rob = &state.reorder_buffer;
     let eus = &state.execute_units;
-    let len = rob.rob.len();
+    let len = rob.capacity;
     let list = rob.rob.iter().enumerate().map(|(n, e)| {
-        let nc = (n + len) % len;
+        // Find if any execute unit has this entry in it
         let unit = eus
             .iter()
-
             .map(|eu| (eu, eu.executing.iter().find(|(r, _)| r.rob_entry == n)))
             .find(|(_, r)| r.is_some());
         let unit_str = if let Some((eu, Some(_))) = unit {
@@ -249,13 +249,22 @@ fn draw_reorder_buffer(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default
         } else {
             String::from(" ")
         };
+
+        // Move about pointers for the colour range checks below (cases where
+        // n or back are smaller than front/front_fin)
+        let o = rob.count != 0;
+        let front_n = if o && n < rob.front { n + len } else { n };
+        let front_b = if o && rob.back < rob.front { rob.back + len } else { rob.back };
+        let front_fin_n = if o && n < rob.front_fin { n + len } else { n };
+        let front_fin_b = if o && rob.back < rob.front_fin { rob.back + len } else { rob.back };
+
         Text::styled(
             format!("{} {:02}: {}", unit_str, n, e),
             if unit_str != " " {
                 Style::default().fg(Color::LightMagenta)
-            } else if (rob.front_fin + len) % len <= nc && nc < (rob.back + len) % len {
+            } else if rob.front_fin <= front_fin_n && front_fin_n < front_fin_b {
                 Style::default().fg(Color::White)
-            } else if (rob.front + len) % len <= nc && nc < (rob.back + len) % len {
+            } else if rob.front <= front_n && front_n < front_b {
                 Style::default().fg(Color::Green)
             } else {
                 Style::default().fg(Color::DarkGray)

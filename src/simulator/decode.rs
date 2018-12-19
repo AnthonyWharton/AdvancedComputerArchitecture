@@ -1,3 +1,5 @@
+use std::cmp::min;
+
 use either::{Either, Left, Right};
 
 use crate::isa::Instruction;
@@ -20,25 +22,31 @@ use super::state::State;
 ///
 /// If sanitisation is not possible, this will stall the pipeline.
 pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
-    if let Some(access) = state_p.latch_fetch.data {
-        let instr = match Instruction::decode(access.word) {
+    for i in 0..min(state_p.latch_fetch.data.len(), state_p.n_way) {
+        let word = state_p.latch_fetch.data[i].word;
+        let instr = match Instruction::decode(word) {
             Some(i) => i,
             None => {
-                state.branch_predictor.stall();
+                state.branch_predictor.force_update(state_p.latch_fetch.pc + (4 * i));
                 state.stats.stalls += 1;
-                return
+                break;
             },
         };
 
         let resv_result = sanitise_and_reserve(
             instr,
-            state_p.latch_fetch.pc,
+            state_p.latch_fetch.pc + (4 * i),
             state,
         );
 
         if resv_result.is_err() {
-            state.branch_predictor.stall();
+            state.branch_predictor.force_update(state_p.latch_fetch.pc + (4 * i));
             state.stats.stalls += 1;
+            break;
+        } else {
+            if state.branch_predictor.should_halt_decode(instr.op) {
+                break;
+            }
         }
     }
 }
