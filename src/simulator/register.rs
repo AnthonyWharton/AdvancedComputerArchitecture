@@ -1,10 +1,7 @@
-use std::collections::VecDeque;
 use std::default::Default;
 use std::ops::{Index, IndexMut};
 
 use crate::isa::operand::Register;
-
-use super::reorder::ReorderBuffer;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
