@@ -78,7 +78,7 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
                 .as_ref()
             )
             .split(horz_chunks[1]);
-        let rsv_rob_split = Layout::default()
+        let centre_horz_split = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(
                 [
@@ -88,8 +88,19 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
                 .as_ref()
             )
             .split(centre_col[0]);
-        draw_reservation_station(&mut f, rsv_rob_split[0], &app, &default);
-        draw_reorder_buffer(&mut f, rsv_rob_split[1], &app, &default);
+        let fet_rsv_split = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(
+                [
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(80),
+                ]
+                .as_ref()
+            )
+            .split(centre_horz_split[0]);
+        draw_latch_fetch(&mut f, fet_rsv_split[0], &app, &default);
+        draw_reservation_station(&mut f, fet_rsv_split[1], &app, &default);
+        draw_reorder_buffer(&mut f, centre_horz_split[1], &app, &default);
         draw_debug(&mut f, centre_col[1], &app, &default);
 
         ////////////////////////////////////////////////////////// RIGHT COLUMN
