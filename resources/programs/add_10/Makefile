@@ -18,15 +18,32 @@ DISABLE_C_OPTIMISATIONS=$(shell                                           \
 			  grep -v 'no-no\|rtti'                          |\
 			  tr '\n' ' '                                    )
 
+CHECK_CC:=$(shell $(CC) --version 2> /dev/null)
+CHECK_OBJDUMP:=$(shell $(OBJDUMP) --version 2> /dev/null)
+
 # Builds the program
 build: main.c
+ifdef CHECK_CC
 	$(CC) $(CFLAGS) $(LFLAGS) main.c
+else
+	echo -e "\e[31mIt looks like this machine doesn't have riscv64-linux-gnu-gcc"
+	echo -e "Either install this, or use the pre-compiled binary.\e[0m"
+endif
 
 # Disassembles the output file
 disassemble: *.out
+ifdef CHECK_OBJDUMP
 	${OBJDUMP} -D -M no-aliases -z $?
+else
+	echo -e "\e[31mIt looks like this machine doesn't have riscv64-linux-gnu-objdump"
+	echo -e "Unable to disassemble the binary.\e[0m"
+endif
 
 # Cleans the output files
 clean: *.out
+ifdef CHECK_CC
 	rm -rf $?
-
+else
+	echo -e "\e[31mIt looks like this machine doesn't have riscv64-linux-gnu-gcc"
+	echo -e "Aborting cleanup, you won't be able to recompile this binary!\e[0m"
+endif
