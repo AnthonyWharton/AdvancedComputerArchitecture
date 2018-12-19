@@ -1,6 +1,7 @@
+use std::fmt::{Display, Formatter, Result};
 use std::ops::{Index, IndexMut};
 
-use either::{Either, Left};
+use either::{Either, Left, Right};
 
 use crate::isa::op_code::Operation;
 use crate::isa::operand::Register;
@@ -168,5 +169,27 @@ impl Default for ReorderEntry {
             rs2: Left(0),
             imm: None,
         }
+    }
+}
+
+impl Display for ReorderEntry {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "{}", if self.finished { "✓" } else { "×" })?;
+        write!(f, " {:2}", self.ref_count)?;
+        write!(f, " {:>6}", self.op)?;
+        write!(f, " {:08x}", self.pc)?;
+        write!(f, " {:08x}", self.act_pc)?;
+        write!(f, " {}", format_option!("{}", self.act_rd))?;
+        write!(f, " {}", format_option!("{:#}", self.reg_rd))?;
+        match self.rs1 {
+            Left(val) => write!(f, " v{}", val)?,
+            Right(rob) => write!(f, " r{}", rob)?,
+        }
+        match self.rs2 {
+            Left(val) => write!(f, " v{}", val)?,
+            Right(rob) => write!(f, " r{}", rob)?,
+        }
+        write!(f, " {}", format_option!("{}", self.imm))?;
+        Ok(())
     }
 }
