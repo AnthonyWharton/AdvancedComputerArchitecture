@@ -27,7 +27,7 @@ pub mod output;
 
 /// The number of states to keep in memory.
 /// Each state uses approximately O(sim_mem_size) RAM, which is typically 1mb.
-pub const KEPT_STATES: usize = 100;
+pub const KEPT_STATES: usize = 250;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// ENUMS
