@@ -159,7 +159,7 @@ impl Default for ReorderEntry {
     fn default() -> ReorderEntry {
         ReorderEntry {
             finished: false,
-            ref_count: 1,
+            ref_count: 0,
             op: Operation::ADDI,
             pc: 0,
             act_pc: 0,
