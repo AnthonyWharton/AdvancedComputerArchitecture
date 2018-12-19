@@ -26,7 +26,6 @@ pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
             None => {
                 state.branch_predictor.stall();
                 state.stats.stalls += 1;
-                state.debug_msg.push(String::from("Failed to decode instruction!.. Stalling!"));
                 return
             },
         };

@@ -1,4 +1,4 @@
-use either::{Either, Left, Right};
+use either::{Left, Right};
 
 use crate::isa::Format;
 use crate::isa::op_code::Operation;
@@ -50,7 +50,6 @@ fn cm_r_type(state_p: &State, state: &mut State, entry: usize) {
         // Write back to register file
         state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rob_entry.act_rd.unwrap());
         state.register[Register::PC].data = rob_entry.act_pc;
-        state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
         panic!(
@@ -87,14 +86,10 @@ fn cm_i_type(state_p: &State, state: &mut State, entry: usize) {
     state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rd_val);
     state.register[Register::PC].data = rob_entry.act_pc;
 
-    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
-        state.debug_msg.push(format!("Committed {:?}", rob_entry));
-    } else {
-        // Branch prediction failure
-        if rob_entry.act_pc != -1 {
-            state.flush_pipeline(rob_entry.act_pc as usize);
-        }
-        state.debug_msg.push(format!("BP FAIL, Flush {:?}", rob_entry));
+    // Branch prediction failure
+    if rob_entry.act_pc != state_p.reorder_buffer.rob[entry + 1].pc as i32 &&
+       rob_entry.act_pc != -1 {
+        state.flush_pipeline(rob_entry.act_pc as usize);
     }
 }
 
@@ -134,7 +129,6 @@ fn cm_s_type(state_p: &State, state: &mut State, entry: usize) {
 
     if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         state.register[Register::PC].data = rob_entry.act_pc;
-        state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
         panic!(
@@ -150,13 +144,11 @@ fn cm_b_type(state_p: &State, state: &mut State, entry: usize) {
 
     if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         state.register[Register::PC].data = rob_entry.act_pc;
-        state.debug_msg.push(format!("Committed {:?}", rob_entry));
     } else {
         // Branch prediction failure
         if rob_entry.act_pc != -1 {
             state.flush_pipeline(rob_entry.act_pc as usize);
         }
-        state.debug_msg.push(format!("BP FAIL, Flush {:?}", rob_entry));
     }
 }
 
@@ -168,10 +160,8 @@ fn cm_u_type(state_p: &State, state: &mut State, entry: usize) {
     state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rob_entry.act_rd.unwrap());
     state.register[Register::PC].data = rob_entry.act_pc;
 
-    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
-        state.debug_msg.push(format!("Committed {:?}", rob_entry));
-    } else {
-        // Branch prediction failure
+    // Branch prediction failure
+    if rob_entry.act_pc != state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         panic!(
             format!("Did not expect U type instruction to have mismatching PC! - {:?}", rob_entry)
         )
@@ -186,13 +176,9 @@ fn cm_j_type(state_p: &State, state: &mut State, entry: usize) {
     state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rob_entry.act_rd.unwrap());
     state.register[Register::PC].data = rob_entry.act_pc;
 
-    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
-        state.debug_msg.push(format!("Committed {:?}", rob_entry));
-    } else {
-        // Branch prediction failure
-        if rob_entry.act_pc != -1 {
-            state.flush_pipeline(rob_entry.act_pc as usize);
-        }
-        state.debug_msg.push(format!("BP FAIL, Flush {:?}", rob_entry));
+    // Branch prediction failure
+    if rob_entry.act_pc != state_p.reorder_buffer.rob[entry + 1].pc as i32 &&
+       rob_entry.act_pc != -1 {
+        state.flush_pipeline(rob_entry.act_pc as usize);
     }
 }
