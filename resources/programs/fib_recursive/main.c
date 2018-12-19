@@ -10,7 +10,7 @@ unsigned int fib(unsigned int n) {
 
 void _start()
 {
-	volatile unsigned int result = fib(7);
+	volatile unsigned int result = fib(9);
 	result += 0;
 }
 
