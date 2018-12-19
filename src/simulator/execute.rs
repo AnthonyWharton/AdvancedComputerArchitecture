@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::fmt::{Display, Formatter, Result};
 
 use either::{Left, Right};
 
@@ -515,6 +516,20 @@ impl ExecuteUnit {
                 ))
             }
             _ => panic!("Unknown J-type instruction failed to execute."),
+        }
+    }
+}
+
+impl Display for UnitType {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        if f.alternate() {
+            match self {
+                UnitType::ALU => f.pad("A"),
+                UnitType::BLU => f.pad("B"),
+                UnitType::MCU => f.pad("M"),
+            }
+        } else {
+            f.pad(&format!("{:?}", self))
         }
     }
 }
