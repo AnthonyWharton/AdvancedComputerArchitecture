@@ -163,8 +163,8 @@ impl TuiApp {
             self.toggle_pause();
         }
         self.hist_display = cmp::min(
-            cmp::min(self.hist_display + 1, KEPT_STATES),
-            self.states.len(),
+            cmp::min(self.hist_display + 1, KEPT_STATES - 1),
+            self.states.len() - 1,
         );
     }
 
