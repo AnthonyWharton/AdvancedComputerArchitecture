@@ -254,7 +254,7 @@ fn draw_reorder_buffer(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default
         // n or back are smaller than front/front_fin)
         let o = rob.count != 0;
         let front_n = if o && n < rob.front { n + len } else { n };
-        let front_b = if o && rob.back < rob.front { rob.back + len } else { rob.back };
+        let front_b = if o && rob.back <= rob.front { rob.back + len } else { rob.back };
         let front_fin_n = if o && n < rob.front_fin { n + len } else { n };
         let front_fin_b = if o && rob.back < rob.front_fin { rob.back + len } else { rob.back };
 
