@@ -46,12 +46,12 @@ pub fn commit_stage(state_p: &State, state: &mut State) -> bool {
 /// state.
 fn cm_r_type(state_p: &State, state: &mut State, entry: usize) {
     let rob_entry = &state_p.reorder_buffer[entry];
+    // Branch prediction failure check
     if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         // Write back to register file
         state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rob_entry.act_rd.unwrap());
         state.register[Register::PC].data = rob_entry.act_pc;
     } else {
-        // Branch prediction failure
         panic!(
             format!("Did not expect R type instruction to have mismatching PC! - {:?}", rob_entry)
         )
@@ -86,10 +86,14 @@ fn cm_i_type(state_p: &State, state: &mut State, entry: usize) {
     state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rd_val);
     state.register[Register::PC].data = rob_entry.act_pc;
 
-    // Branch prediction failure
+    // Branch prediction failure check
     if rob_entry.act_pc != state_p.reorder_buffer.rob[entry + 1].pc as i32 &&
        rob_entry.act_pc != -1 {
         state.flush_pipeline(rob_entry.act_pc as usize);
+    } else {
+        if rob_entry.op == Operation::JALR {
+            state.stats.bp_success += 1;
+        }
     }
 }
 
@@ -127,10 +131,10 @@ fn cm_s_type(state_p: &State, state: &mut State, entry: usize) {
         _ => panic!("Unknown s type instruction failed to commit."),
     };
 
+    // Branch prediction failure check
     if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         state.register[Register::PC].data = rob_entry.act_pc;
     } else {
-        // Branch prediction failure
         panic!(
             format!("Did not expect S type instruction to have mismatching PC! - {:?}", rob_entry)
         )
@@ -142,13 +146,13 @@ fn cm_s_type(state_p: &State, state: &mut State, entry: usize) {
 fn cm_b_type(state_p: &State, state: &mut State, entry: usize) {
     let rob_entry = &state_p.reorder_buffer.rob[entry];
 
-    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
-        state.register[Register::PC].data = rob_entry.act_pc;
+    // Branch prediction failure check
+    if rob_entry.act_pc != state_p.reorder_buffer.rob[entry + 1].pc as i32 &&
+       rob_entry.act_pc != -1 {
+        state.flush_pipeline(rob_entry.act_pc as usize);
     } else {
-        // Branch prediction failure
-        if rob_entry.act_pc != -1 {
-            state.flush_pipeline(rob_entry.act_pc as usize);
-        }
+        state.register[Register::PC].data = rob_entry.act_pc;
+        state.stats.bp_success += 1;
     }
 }
 
@@ -161,7 +165,9 @@ fn cm_u_type(state_p: &State, state: &mut State, entry: usize) {
     state.register[Register::PC].data = rob_entry.act_pc;
 
     // Branch prediction failure
-    if rob_entry.act_pc != state_p.reorder_buffer.rob[entry + 1].pc as i32 {
+    if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
+        state.stats.bp_success += 1;
+    } else {
         panic!(
             format!("Did not expect U type instruction to have mismatching PC! - {:?}", rob_entry)
         )
@@ -176,9 +182,11 @@ fn cm_j_type(state_p: &State, state: &mut State, entry: usize) {
     state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rob_entry.act_rd.unwrap());
     state.register[Register::PC].data = rob_entry.act_pc;
 
-    // Branch prediction failure
+    // Branch prediction failure check
     if rob_entry.act_pc != state_p.reorder_buffer.rob[entry + 1].pc as i32 &&
        rob_entry.act_pc != -1 {
         state.flush_pipeline(rob_entry.act_pc as usize);
+    } else {
+        state.stats.bp_success += 1;
     }
 }
