@@ -1,5 +1,6 @@
 use std::cmp::min;
 use std::collections::VecDeque;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use either::{Either, Left, Right};
 
@@ -7,7 +8,6 @@ use crate::isa::op_code::Operation;
 use crate::isa::operand::Register;
 
 use super::execute::{ExecuteUnit, ExecutionLen, UnitType};
-use super::register::RegisterFile;
 use super::reorder::ReorderBuffer;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -129,5 +129,24 @@ impl ResvStation {
     /// invalidated and needs to be restarted from scratch.
     pub fn flush(&mut self) {
         self.contents.clear()
+    }
+}
+
+impl Display for Reservation {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        write!(f, "{:2}", self.rob_entry)?;
+        write!(f, " {:>6}", self.op)?;
+        write!(f, " {:08x}", self.pc)?;
+        write!(f, " {}", format_option!("{:#}", self.reg_rd))?;
+        match self.rs1 {
+            Left(val) => write!(f, " v{}", val)?,
+            Right(rob) => write!(f, " r{}", rob)?,
+        }
+        match self.rs2 {
+            Left(val) => write!(f, " v{}", val)?,
+            Right(rob) => write!(f, " r{}", rob)?,
+        }
+        write!(f, " {}", format_option!("{}", self.imm))?;
+        Ok(())
     }
 }
