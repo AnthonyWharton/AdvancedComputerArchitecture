@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::fmt::{Display, Formatter, Result};
 use std::ops::{Index, IndexMut};
 
@@ -102,19 +103,30 @@ impl ReorderBuffer {
     pub fn pop_finished_entries(
         &self,
         new_rob: &mut ReorderBuffer,
+        n_way: usize,
     ) -> Vec<usize> {
         if self.count == 0 {
             return vec![]
         }
 
-        if self.rob[self.front_fin].finished {
-            new_rob.front_fin = (self.front_fin + 1) % self.capacity;
-            new_rob.cleanup();
-            vec![self.front_fin]
+        let mut popped = vec![];
+        let unfinished_count = if self.back < self.front_fin {
+            self.back + self.capacity - self.front_fin
         } else {
-            new_rob.cleanup();
-            vec![]
+            self.back - self.front_fin
+        };
+        for i in 0..min(n_way, unfinished_count) {
+            if self.rob[self.front_fin + i].finished {
+                new_rob.front_fin = (new_rob.front_fin + 1) % new_rob.capacity;
+                new_rob.cleanup();
+                popped.push(self.front_fin + i)
+            } else {
+                new_rob.cleanup();
+                break;
+            }
         }
+
+        popped
     }
 
     /// Cleans up any straggling entries that are finished _and_ have a zero

@@ -16,15 +16,23 @@ use super::state::State;
 pub fn commit_stage(state_p: &State, state: &mut State) -> bool {
     let entries = state_p
         .reorder_buffer
-        .pop_finished_entries(&mut state.reorder_buffer);
+        .pop_finished_entries(&mut state.reorder_buffer, state_p.n_way);
     for entry in entries {
-        match Format::from(state_p.reorder_buffer[entry].op) {
+        let flushed = match Format::from(state_p.reorder_buffer[entry].op) {
             Format::R => cm_r_type(state_p, state, entry),
             Format::I => cm_i_type(state_p, state, entry),
             Format::S => cm_s_type(state_p, state, entry),
             Format::B => cm_b_type(state_p, state, entry),
             Format::U => cm_u_type(state_p, state, entry),
             Format::J => cm_j_type(state_p, state, entry),
+        };
+
+        // Housekeeping
+        state.stats.executed += 1;
+
+        // Early exit if finished execution or pipeline flush
+        if flushed || state.register[Register::PC].data == -1 {
+            break;
         }
 
         // Ensure reference counts are deducted and that the entry is marked as
@@ -35,22 +43,20 @@ pub fn commit_stage(state_p: &State, state: &mut State) -> bool {
         if let Right(name) = state_p.reorder_buffer[entry].rs2 {
             state.reorder_buffer[name].ref_count -= 1;
         }
-
-        // Housekeeping
-        state.stats.executed += 1;
     }
     state.register[Register::PC].data == -1
 }
 
 /// Commits an R type instruction from a reorder buffer entry to the given
-/// state.
-fn cm_r_type(state_p: &State, state: &mut State, entry: usize) {
+/// state. Returns whether a full pipeline flush occured.
+fn cm_r_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     let rob_entry = &state_p.reorder_buffer[entry];
     // Branch prediction failure check
     if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         // Write back to register file
         state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rob_entry.act_rd.unwrap());
         state.register[Register::PC].data = rob_entry.act_pc;
+        false
     } else {
         panic!(
             format!("Did not expect R type instruction to have mismatching PC! - {:?}", rob_entry)
@@ -59,8 +65,8 @@ fn cm_r_type(state_p: &State, state: &mut State, entry: usize) {
 }
 
 /// Commits an I type instruction from a reorder buffer entry to the given
-/// state.
-fn cm_i_type(state_p: &State, state: &mut State, entry: usize) {
+/// state. Returns whether a full pipeline flush occured.
+fn cm_i_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     let rob_entry = &state_p.reorder_buffer[entry];
     let rs1_s = match rob_entry.rs1 {
         Left(val) => val,
@@ -90,16 +96,18 @@ fn cm_i_type(state_p: &State, state: &mut State, entry: usize) {
     if rob_entry.act_pc != state_p.reorder_buffer.rob[entry + 1].pc as i32 &&
        rob_entry.act_pc != -1 {
         state.flush_pipeline(rob_entry.act_pc as usize);
+        true
     } else {
         if rob_entry.op == Operation::JALR {
             state.stats.bp_success += 1;
         }
+        false
     }
 }
 
 /// Commits an S type instruction from a reorder buffer entry to the given
-/// state.
-fn cm_s_type(state_p: &State, state: &mut State, entry: usize) {
+/// state. Returns whether a full pipeline flush occured.
+fn cm_s_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     let rob_entry = &state_p.reorder_buffer.rob[entry];
     let rs1 = match rob_entry.rs1 {
         Left(val) => val,
@@ -134,6 +142,7 @@ fn cm_s_type(state_p: &State, state: &mut State, entry: usize) {
     // Branch prediction failure check
     if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         state.register[Register::PC].data = rob_entry.act_pc;
+        false
     } else {
         panic!(
             format!("Did not expect S type instruction to have mismatching PC! - {:?}", rob_entry)
@@ -142,23 +151,25 @@ fn cm_s_type(state_p: &State, state: &mut State, entry: usize) {
 }
 
 /// Commits an B type instruction from a reorder buffer entry to the given
-/// state.
-fn cm_b_type(state_p: &State, state: &mut State, entry: usize) {
+/// state. Returns whether a full pipeline flush occured.
+fn cm_b_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     let rob_entry = &state_p.reorder_buffer.rob[entry];
 
     // Branch prediction failure check
     if rob_entry.act_pc != state_p.reorder_buffer.rob[entry + 1].pc as i32 &&
        rob_entry.act_pc != -1 {
         state.flush_pipeline(rob_entry.act_pc as usize);
+        true
     } else {
         state.register[Register::PC].data = rob_entry.act_pc;
         state.stats.bp_success += 1;
+        false
     }
 }
 
 /// Commits an U type instruction from a reorder buffer entry to the given
-/// state.
-fn cm_u_type(state_p: &State, state: &mut State, entry: usize) {
+/// state. Returns whether a full pipeline flush occured.
+fn cm_u_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     let rob_entry = &state_p.reorder_buffer.rob[entry];
     // Write back to register file
     state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rob_entry.act_rd.unwrap());
@@ -167,6 +178,7 @@ fn cm_u_type(state_p: &State, state: &mut State, entry: usize) {
     // Branch prediction failure
     if rob_entry.act_pc == state_p.reorder_buffer.rob[entry + 1].pc as i32 {
         state.stats.bp_success += 1;
+        false
     } else {
         panic!(
             format!("Did not expect U type instruction to have mismatching PC! - {:?}", rob_entry)
@@ -175,8 +187,8 @@ fn cm_u_type(state_p: &State, state: &mut State, entry: usize) {
 }
 
 /// Commits an J type instruction from a reorder buffer entry to the given
-/// state.
-fn cm_j_type(state_p: &State, state: &mut State, entry: usize) {
+/// state. Returns whether a full pipeline flush occured.
+fn cm_j_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     let rob_entry = &state_p.reorder_buffer.rob[entry];
     // Write back to register file
     state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rob_entry.act_rd.unwrap());
@@ -186,7 +198,9 @@ fn cm_j_type(state_p: &State, state: &mut State, entry: usize) {
     if rob_entry.act_pc != state_p.reorder_buffer.rob[entry + 1].pc as i32 &&
        rob_entry.act_pc != -1 {
         state.flush_pipeline(rob_entry.act_pc as usize);
+        true
     } else {
         state.stats.bp_success += 1;
+        false
     }
 }
