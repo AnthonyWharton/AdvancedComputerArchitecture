@@ -15,6 +15,8 @@ use crate::isa::operand::Register;
 pub struct ReorderBuffer {
     /// All the reorder buffer entries.
     pub rob: Vec<ReorderEntry>,
+    /// A pointer to the start of unfinished entries in the circular buffer.
+    pub front_fin: usize,
     /// A pointer to the start of the circular buffer.
     pub front: usize,
     /// A pointer to the end of the circular buffer.
@@ -44,7 +46,7 @@ pub struct ReorderEntry {
     pub act_pc: i32,
     /// The actual value of the `rd` result register after execution. Only
     /// valid when finished is `true`.
-    pub act_rd: i32,
+    pub act_rd: Option<i32>,
     /// The pre-renamed `rd` result register.
     pub reg_rd: Option<Register>,
     /// Either the first source register name, or value. If this argument is
@@ -65,6 +67,7 @@ impl ReorderBuffer {
     pub fn new(capacity: usize) -> ReorderBuffer {
         ReorderBuffer {
             rob: vec![ReorderEntry::default(); capacity],
+            front_fin: 0,
             front: 0,
             back: 0,
             count: 0,
@@ -103,18 +106,29 @@ impl ReorderBuffer {
             return vec![]
         }
 
-        if self.rob[self.front].finished {
-            new_rob.count -= 1;
-            new_rob.front = (self.front + 1) % self.capacity;
-            vec![self.front]
+        if self.rob[self.front_fin].finished {
+            new_rob.front_fin = (self.front_fin + 1) % self.capacity;
+            new_rob.cleanup();
+            vec![self.front_fin]
         } else {
+            new_rob.cleanup();
             vec![]
+        }
+    }
+
+    /// Cleans up any straggling entries that are finished _and_ have a zero
+    /// reference count.
+    fn cleanup(&mut self) {
+        if self.rob[self.front].finished && self.rob[self.front].ref_count == 0 {
+            self.count -= 1;
+            self.front = (self.front + 1) % self.capacity;
         }
     }
 
     /// Flushes the reorder buffer, this would happen when the pipeline is
     /// invalidated and needs to be restarted from scratch.
     pub fn flush(&mut self) {
+        self.front_fin = 0;
         self.front = 0;
         self.back = 0;
         self.count = 0;
@@ -148,7 +162,7 @@ impl Default for ReorderEntry {
             op: Operation::ADDI,
             pc: 0,
             act_pc: 0,
-            act_rd: 0,
+            act_rd: None,
             reg_rd: None,
             rs1: Left(0),
             rs2: Left(0),

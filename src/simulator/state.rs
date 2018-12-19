@@ -71,8 +71,8 @@ impl State {
         // Initialise return address to -1 (for detecting exit)
         register[Register::X1].data = -1;
         // Initialise stack pointer to the end of memory.
-        register[Register::X2].data = INIT_MEMORY_SIZE as i32;
-        register[Register::X8].data = INIT_MEMORY_SIZE as i32;
+        register[Register::X2].data = 900_000i32;
+        register[Register::X8].data = 900_000i32;
 
         // Create execution unit(s)
         let execute_units = vec![
@@ -119,8 +119,8 @@ impl Default for State {
         // Initialise return address to -1 (for detecting exit)
         register[Register::X1].data = -1;
         // Initialise stack pointer to the end of memory.
-        register[Register::X2].data = INIT_MEMORY_SIZE as i32;
-        register[Register::X8].data = INIT_MEMORY_SIZE as i32;
+        register[Register::X2].data = 900_000i32;
+        register[Register::X8].data = 900_000i32;
         State {
             stats: Stats::default(),
             debug_msg: Vec::new(),

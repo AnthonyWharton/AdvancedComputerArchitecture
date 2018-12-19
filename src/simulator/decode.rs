@@ -77,11 +77,11 @@ fn sanitise_and_reserve(
     // Reserve a reorder buffer entry
     let reorder_entry = ReorderEntry {
         finished: false,
-        ref_count: 1,
+        ref_count: 0,
         op: instruction.op,
         pc,
         act_pc: 0,
-        act_rd: 0,
+        act_rd: None,
         reg_rd: instruction.rd,
         rs1,
         rs2,
@@ -121,10 +121,6 @@ fn get_read(state: &mut State, register: Register) -> Either<i32, usize> {
     } else {
         let rename = state.register[register].rename.unwrap();
         state.reorder_buffer[rename].ref_count += 1;
-        if state.reorder_buffer[rename].finished {
-            Left(state.reorder_buffer[rename].act_rd)
-        } else {
-            Right(rename)
-        }
+        Right(rename)
     }
 }

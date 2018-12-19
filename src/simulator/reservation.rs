@@ -108,13 +108,13 @@ impl ResvStation {
                 // Check rs1 is ready
                 match r.rs1 {
                     Left(_)  => true,
-                    Right(n) => rob[n].finished,
+                    Right(n) => rob[n].act_rd.is_some(),
                 }
                 // Check rs2 is ready
                 &&
                 match r.rs2 {
                     Left(_)  => true,
-                    Right(n) => rob[n].finished,
+                    Right(n) => rob[n].act_rd.is_some(),
                 }
             });
 

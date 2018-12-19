@@ -278,7 +278,7 @@ impl ExecuteUnit {
             if el.steps == 0 {
                 let result: ExecuteResult = new_eu.executing.pop_front().unwrap().0;
                 rob[result.rob_entry].act_pc = result.pc;
-                rob[result.rob_entry].act_rd = result.rd.unwrap_or(0);
+                rob[result.rob_entry].act_rd = result.rd;
                 rob[result.rob_entry].finished = true;
             }
         }
@@ -294,11 +294,15 @@ impl ExecuteUnit {
     fn ex_r_type(&mut self, r: &Reservation, rob: &ReorderBuffer) {
         let rs1_s = match r.rs1 {
             Left(val) => val,
-            Right(name) => rob[name].act_rd,
+            Right(name) => rob[name]
+                .act_rd
+                .expect("Execute unit ({:?}) R-type expected rs1!"),
         };
         let rs2_s = match r.rs2 {
             Left(val) => val,
-            Right(name) => rob[name].act_rd,
+            Right(name) => rob[name]
+                .act_rd
+                .expect("Execute unit ({:?}) R-type expected rs2!"),
         };
         let rs1_u = rs1_s as u32;
         let rs2_u = rs2_s as u32;
@@ -340,7 +344,7 @@ impl ExecuteUnit {
                                      0 => rs1_s,
                                      _ => (rs1_u % rs2_u) as i32,
                                  },
-            _ => panic!("Unknown R type instruction failed to execute.")
+            _ => panic!("Unknown R-type instruction failed to execute.")
         };
 
         self.executing.push_back((
@@ -357,10 +361,12 @@ impl ExecuteUnit {
     fn ex_i_type(&mut self, r: &Reservation, rob: &ReorderBuffer) {
         let rs1_s = match r.rs1 {
             Left(val) => val,
-            Right(name) => rob[name].act_rd,
+            Right(name) => rob[name]
+                .act_rd
+                .expect("Execute unit ({:?}) I-type expected rs1!"),
         };
         let rs1_u = rs1_s as u32;
-        let imm_s = r.imm.expect("Execute unit missing imm!");
+        let imm_s = r.imm.expect("Execute unit I-type missing imm!");
         let imm_u = imm_s as u32;
 
         #[rustfmt::skip]
@@ -390,7 +396,7 @@ impl ExecuteUnit {
             Operation::CSRRWI => unimplemented!(),
             Operation::CSRRSI => unimplemented!(),
             Operation::CSRRCI => unimplemented!(),
-            _ => panic!("Unknown I type instruction failed to execute.")
+            _ => panic!("Unknown I-type instruction failed to execute.")
         };
 
         let pc_val = if r.op == Operation::JALR {
@@ -419,7 +425,7 @@ impl ExecuteUnit {
             Operation::SB => (), //
             Operation::SH => (), // All done in commit stage
             Operation::SW => (), //
-            _ => panic!("Unknown s type instruction failed to execute."),
+            _ => panic!("Unknown S-type instruction failed to execute."),
         };
 
         self.executing.push_back((
@@ -436,15 +442,19 @@ impl ExecuteUnit {
     fn ex_b_type(&mut self, r: &Reservation, rob: &ReorderBuffer) {
         let rs1_s = match r.rs1 {
             Left(val) => val,
-            Right(name) => rob[name].act_rd,
+            Right(name) => rob[name]
+                .act_rd
+                .expect("Execute unit ({:?}) B-type expected rs1!"),
         };
         let rs2_s = match r.rs2 {
             Left(val) => val,
-            Right(name) => rob[name].act_rd,
+            Right(name) => rob[name]
+                .act_rd
+                .expect("Execute unit ({:?}) B-type expected rs2!"),
         };
         let rs1_u = rs1_s as u32;
         let rs2_u = rs2_s as u32;
-        let imm = r.imm.expect("Execute unit missing imm!");
+        let imm = r.imm.expect("Execute unit B-type missing imm!");
 
         #[rustfmt::skip]
         let pc_val = r.pc as i32 + match r.op {
@@ -454,7 +464,7 @@ impl ExecuteUnit {
             Operation::BGE  => if rs1_s >= rs2_s { imm } else { 4 },
             Operation::BLTU => if rs1_u <  rs2_u { imm } else { 4 },
             Operation::BGEU => if rs1_u >= rs2_u { imm } else { 4 },
-            _ => panic!("Unknown B type instruction failed to execute.")
+            _ => panic!("Unknown B-type instruction failed to execute.")
         };
 
         self.executing.push_back((
@@ -470,19 +480,19 @@ impl ExecuteUnit {
     /// Executes an U type instruction, modifying the borrowed state.
     fn ex_u_type(&mut self, r: &Reservation) {
         let pc = r.pc as i32;
-        let imm = r.imm.expect("Execute unit missing imm!");
+        let imm = r.imm.expect("Execute unit U-type missing imm!");
 
         let rd_val = match r.op {
-            Operation::LUI => Some(imm),
-            Operation::AUIPC => Some(pc + imm),
-            _ => panic!("Unknown U type instruction failed to execute."),
+            Operation::LUI => imm,
+            Operation::AUIPC => pc + imm,
+            _ => panic!("Unknown U-type instruction failed to execute."),
         };
 
         self.executing.push_back((
             ExecuteResult {
                 rob_entry: r.rob_entry,
                 pc: pc + 4,
-                rd: rd_val,
+                rd: Some(rd_val),
             },
             ExecutionLen::from(r.op),
         ))
@@ -490,7 +500,7 @@ impl ExecuteUnit {
 
     /// Executes an J type instruction, modifying the borrowed state.
     fn ex_j_type(&mut self, r: &Reservation) {
-        let imm = r.imm.expect("Execute unit missing imm!");
+        let imm = r.imm.expect("Execute unit J-type missing imm!");
 
         match r.op {
             Operation::JAL => {
@@ -504,7 +514,7 @@ impl ExecuteUnit {
                     ExecutionLen::from(r.op),
                 ))
             }
-            _ => panic!("Unknown J type instruction failed to execute."),
+            _ => panic!("Unknown J-type instruction failed to execute."),
         }
     }
 }

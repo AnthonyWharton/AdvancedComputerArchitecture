@@ -13,7 +13,7 @@ use super::reorder::ReorderBuffer;
 /// logic for accessing, renaming, etc.
 /// Registers `0..33` are the architectural registers, defined by
 /// `Register as usize`, and `33..` are physical registers.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct RegisterFile {
     /// The architectural register lookup table.
     pub file: Vec<ArchRegEntry>,
@@ -35,6 +35,14 @@ pub struct ArchRegEntry {
 ///////////////////////////////////////////////////////////////////////////////
 //// IMPLEMENTATIONS
 
+impl Default for RegisterFile {
+    fn default() -> RegisterFile {
+        RegisterFile {
+            file: vec![ArchRegEntry::default(); 33],
+        }
+    }
+}
+
 impl Index<Register> for RegisterFile {
     type Output = ArchRegEntry;
 
@@ -50,43 +58,6 @@ impl IndexMut<Register> for RegisterFile {
 }
 
 impl RegisterFile {
-    // pub fn write_to_name(
-    //     &mut self,
-    //     rob: &mut ReorderBuffer,
-    //     register: Register,
-    //     rob_entry: usize,
-    //     data: i32
-    // ) {
-    //     // Ensure we never write to the zero register.
-    //     if name == 0 {
-    //         return
-    //     } else if name < 33 {
-    //         self.file[name].data = data;
-    //     } else {
-
-    //         self.rob[name - 33].act_rd = data;
-    //     }
-    // }
-
-    // /// Indicate that the given physical register file name with given
-    // /// associated register is no longer needed for write operations, and flush
-    // /// the value back to the architectural register file. If this is the
-    // /// youngest rename of the register, this will reset the validity of the
-    // /// architectural register file to true.
-    // pub fn finished_write(&mut self, register: Register, name: usize) {
-    //     // Register zero special case
-    //     if register == Register::X0 {
-    //         return;
-    //     }
-
-    //     let idx = register as usize;
-    //     self.file[idx].data = self.physical[name - 33].data;
-    //     if self.file[idx].rename == Some(name) {
-    //         self.file[idx].rename = None;
-    //     }
-    //     self.remove_ref(name);
-    // }
-    
     /// _Safely_ renames the given register to the given reorder buffer entry.
     pub fn rename(&mut self, register: Register, rob_entry: usize) {
         // Register zero and the program counters are special cases
@@ -94,6 +65,20 @@ impl RegisterFile {
             Register::X0 => return,
             Register::PC => return,
             _ => self.file[register as usize].rename = Some(rob_entry),
+        }
+    }
+
+    /// Writes back some data to a register entry, updating the rename/valid
+    /// bit if applicable.
+    pub fn writeback(&mut self, register: Register, rob_entry: usize, data: i32) {
+        // Register zero special case
+        if register == Register::X0 {
+            return;
+        }
+
+        self[register].data = data;
+        if Some(rob_entry) == self[register].rename {
+            self[register].rename = None;
         }
     }
 
