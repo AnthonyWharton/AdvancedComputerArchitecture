@@ -6,8 +6,6 @@
 //!
 //! ![Project Daybreak Simulator Diagram](https://github.com/AnthonyWharton/AdvancedComputerArchitecture/raw/master/resources/diagram.png)
 
-use std::env;
-
 use crate::io::IoThread;
 use crate::util::config::Config;
 use crate::util::exit::Exit;
@@ -34,11 +32,8 @@ mod simulator;
 /// Main entry point, not much else to say.
 fn main() {
     util::panic::set_panic_hook();
+    let config = Config::create_from_args();
     let io = IoThread::new();
-    let config = match Config::create(env::args()) {
-        Ok(c) => c,
-        Err(e) => Exit::ArgumentError.exit(Some(e)),
-    };
     simulator::run_simulator(io, &config);
     println!("Goodbye!\r");
 }
