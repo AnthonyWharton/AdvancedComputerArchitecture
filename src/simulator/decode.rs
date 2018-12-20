@@ -22,26 +22,26 @@ use super::state::State;
 ///
 /// If sanitisation is not possible, this will stall the pipeline.
 pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
-    for i in 0..min(state_p.latch_fetch.data.len(), state_p.n_way) {
+    state.decode_halt = false;
+    let limit = min(
+        state_p.latch_fetch.data.len(),
+        if state_p.decode_halt { 0 } else { state_p.n_way },
+    );
+    for i in 0..limit {
         let word = state_p.latch_fetch.data[i].word;
+        let pc = state_p.latch_fetch.pc + (4 * i);
         let instr = match Instruction::decode(word) {
             Some(i) => i,
             None => {
-                state.branch_predictor.force_update(state_p.latch_fetch.pc + (4 * i));
-                state.stats.stalls += 1;
+                state.stall(pc);
                 break;
             },
         };
 
-        let resv_result = sanitise_and_reserve(
-            instr,
-            state_p.latch_fetch.pc + (4 * i),
-            state,
-        );
+        let resv_result = sanitise_and_reserve(instr, pc, state);
 
         if resv_result.is_err() {
-            state.branch_predictor.force_update(state_p.latch_fetch.pc + (4 * i));
-            state.stats.stalls += 1;
+            state.stall(pc);
             break;
         } else {
             if state.branch_predictor.should_halt_decode(instr.op) {
