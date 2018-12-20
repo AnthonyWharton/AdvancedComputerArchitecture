@@ -132,6 +132,8 @@ fn draw_stats(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State)
         Text::raw(format!("bp_succ:  {}\n", state.stats.bp_success)),
         Text::raw(format!("bp_fail:  {}\n", state.stats.bp_failure)),
         Text::raw(format!("bp_rate:  {:.3}\n", state.stats.bp_success as f32 / (state.stats.bp_success + state.stats.bp_failure) as f32)),
+        Text::raw(format!("bp_state: {:?}\n", state.branch_predictor.global_prediction)),
+        Text::raw(format!("bp_stack: {:?}\n", state.branch_predictor.return_stack)),
         Text::raw("\n"),
     ];
     Paragraph::new(tmp.iter())
