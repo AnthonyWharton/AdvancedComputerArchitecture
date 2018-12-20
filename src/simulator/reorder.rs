@@ -112,8 +112,10 @@ impl ReorderBuffer {
         let mut popped = vec![];
         let unfinished_count = if self.back < self.front_fin {
             self.back + self.capacity - self.front_fin
-        } else {
+        } else if self.front_fin < self.back {
             self.back - self.front_fin
+        } else { // self.front_fin == self.back
+            self.count
         };
         for i in 0..min(n_way, unfinished_count) {
             if self.rob[(self.front_fin + i) % self.capacity].finished {
@@ -121,7 +123,6 @@ impl ReorderBuffer {
                 new_rob.cleanup();
                 popped.push(self.front_fin + i)
             } else {
-                new_rob.cleanup();
                 break;
             }
         }
