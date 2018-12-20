@@ -85,7 +85,7 @@ impl ResvStation {
         eu: &ExecuteUnit,
         rob: &ReorderBuffer,
         limit: usize,
-    ) -> Option<Reservation> {
+    ) -> (Option<Reservation>, usize) {
         let act_limit = if limit == 0 {
             self.contents.len()
         } else {
@@ -120,8 +120,8 @@ impl ResvStation {
 
         // Consume the reservation, if a valid one was found.
         match next_valid {
-            Some((idx, _)) => new_rs.contents.remove(idx),
-            None => None,
+            Some((idx, _)) => (new_rs.contents.remove(idx), act_limit - 1),
+            None => (None, act_limit),
         }
     }
 

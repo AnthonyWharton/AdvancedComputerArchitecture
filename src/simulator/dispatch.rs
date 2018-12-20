@@ -10,7 +10,7 @@ use super::state::State;
 pub fn dispatch_stage(state_p: &State, state: &mut State) {
     let mut effective_limit = state_p.execute_units.len();
     for eu in state.execute_units.iter_mut() {
-        let next = state_p
+        let (next, new_limit) = state_p
             .resv_station
             .consume_next(
                 &mut state.resv_station,
@@ -18,9 +18,9 @@ pub fn dispatch_stage(state_p: &State, state: &mut State) {
                 &state_p.reorder_buffer,
                 effective_limit,
             );
+        effective_limit = new_limit;
         if let Some(r) = next {
             eu.handle_dispatch(state_p, &r);
-            effective_limit -= 1;
             if effective_limit == 0 {
                 break;
             }
