@@ -26,6 +26,8 @@ pub struct State {
     /// stages in the pipeline. (Note: _dispatch_ and _execute_ are always
     /// `exec_units.len()`-way superscalar.
     pub n_way: usize,
+    /// The limit to the number of instructions that can be dispatched at once.
+    pub dispatch_limit: usize,
     /// The virtual memory module, holding data and instructions in the
     /// simulated machine.
     pub memory: Memory,
@@ -79,19 +81,21 @@ impl State {
         register[Register::X8].data = INIT_MEMORY_SIZE as i32 - 4;
 
         // Create execution unit(s)
-        let execute_units = vec![
-            Box::new(ExecuteUnit::new(UnitType::MCU, 1)),
-            Box::new(ExecuteUnit::new(UnitType::ALU, 1)),
-            Box::new(ExecuteUnit::new(UnitType::ALU, 1)),
-            Box::new(ExecuteUnit::new(UnitType::ALU, 1)),
-            Box::new(ExecuteUnit::new(UnitType::BLU, 1)),
+        let mut execute_units = vec![
+            Box::new(ExecuteUnit::new(UnitType::ALU, 3));
+            config.alu_units
         ];
+        execute_units
+            .append(&mut vec![Box::new(ExecuteUnit::new(UnitType::BLU, 1)); config.blu_units]);
+        execute_units
+            .append(&mut vec![Box::new(ExecuteUnit::new(UnitType::MCU, 3)); config.mcu_units]);
 
         // Create state
         let mut state = State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
             n_way: 4,
+            dispatch_limit: config.dispatch_limit,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,
             branch_predictor: BranchPredictor::new(config),
@@ -133,6 +137,7 @@ impl Default for State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
             n_way: 1,
+            dispatch_limit: 1,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,
             branch_predictor: BranchPredictor::default(),
