@@ -8,7 +8,6 @@ use tui::layout::Rect;
 
 use crate::simulator::state::State;
 use crate::simulator::INITIALLY_PAUSED;
-use crate::util::exit::Exit;
 
 use self::input::spawn_input_thread;
 use self::output::{draw_state, new_terminal};
@@ -114,14 +113,14 @@ impl TuiApp {
             match self.rx.recv() {
                 Ok(e) => self.process_event(e),
                 Err(_) => {
-                    Exit::IoThreadError.exit(Some("Input Thread stopped communicating properly."))
+                    error!("Input Thread stopped communicating properly.")
                 }
             }
         } else {
             match self.rx.try_recv() {
                 Ok(e) => self.process_event(e),
                 Err(TryRecvError::Disconnected) => {
-                    Exit::IoThreadError.exit(Some("Input Thread went missing, assumed dead."))
+                    error!("Input Thread went missing, assumed dead.")
                 }
                 _ => true,
             }
@@ -220,7 +219,7 @@ fn display_thread(tx: Sender<SimulatorEvent>, rx: Receiver<IoEvent>) {
         // Draw output
         match draw_state(&mut terminal, &app) {
             Ok(()) => (),
-            Err(_) => Exit::IoThreadError.exit(Some("Error when drawing simulation state. {:?}")),
+            Err(_) => panic!("Error when drawing simulation state. {:?}"),
         }
 
         if !app.handle_event() {

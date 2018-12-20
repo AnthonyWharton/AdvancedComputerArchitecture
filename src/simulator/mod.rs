@@ -4,7 +4,6 @@ use std::time::Duration;
 
 use crate::io::{IoEvent, IoThread, SimulatorEvent};
 use crate::util::config::Config;
-use crate::util::exit::Exit;
 
 use self::commit::commit_stage;
 use self::decode::decode_and_rename_stage;
@@ -122,17 +121,13 @@ fn handle_io_and_continue(paused: &mut bool, io: &IoThread) -> bool {
         loop {
             match io.rx.recv() {
                 Ok(e) => return handle_message(e, paused),
-                Err(_) => {
-                    Exit::IoThreadError.exit(Some("IO Thread stopped communication properly."))
-                }
+                Err(_) => error!("IO Thread stopped communication properly."),
             };
         }
     } else {
         match io.rx.try_recv() {
             Ok(e) => handle_message(e, paused),
-            Err(TryRecvError::Disconnected) => {
-                Exit::IoThreadError.exit(Some("IO Thread missing, assumed dead."))
-            }
+            Err(TryRecvError::Disconnected) => error!("IO Thread missing, assumed dead."),
             _ => true,
         }
     }

@@ -1,20 +1,31 @@
 ///////////////////////////////////////////////////////////////////////////////
-//// EXTERNAL MODULES
-
-/// Command line config parsing and option structs.
-pub mod config;
-
-/// Exit helper functions for successful exits and error exits.
-pub mod exit;
-
-/// The ELF file loader and utilities.
-pub mod loader;
-
-/// Helper functions for a panic that deals better with raw terminals.
-pub mod panic;
-
-///////////////////////////////////////////////////////////////////////////////
 //// MACROS
+
+macro_rules! error {
+    () => {
+        error!(1, "no message given")
+    };
+    ($message:expr) => {
+        error!(1, $message)
+    };
+    ($code:expr, $message:expr) => {
+        {
+            if $code != 0 {
+                println!(
+                    "{}{}error: {}{}{}",
+                    termion::style::Bold,
+                    termion::color::Fg(termion::color::LightRed),
+                    termion::style::Reset,
+                    termion::color::Fg(termion::color::Reset),
+                    $message
+                );
+            } else {
+                println!("{}", $message);
+            }
+            std::process::exit($code);
+        }
+    };
+}
 
 /// Formats the contents of an Option if possible, and prints with the given
 /// format specifier. Otherwise formats as "None".
@@ -29,7 +40,6 @@ pub mod panic;
 ///  - `optional`: The optional to be formatted.
 ///  - `fmt_str`: The format string for the contents of the optional.
 ///  - `lhs`/`rhs`: The strings to the left/right hand side of the optional.
-#[allow(unused_macros)]
 macro_rules! format_option {
     ($option:expr) => {
         format!("{:?}", $option)
@@ -56,3 +66,15 @@ macro_rules! format_option {
         }
     };
 }
+
+///////////////////////////////////////////////////////////////////////////////
+//// EXTERNAL MODULES
+
+/// Command line config parsing and option structs.
+pub mod config;
+
+/// The ELF file loader and utilities.
+pub mod loader;
+
+/// Helper functions for a panic that deals better with raw terminals.
+pub mod panic;

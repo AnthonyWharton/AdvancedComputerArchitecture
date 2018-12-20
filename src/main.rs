@@ -8,7 +8,6 @@
 
 use crate::io::IoThread;
 use crate::util::config::Config;
-use crate::util::exit::Exit;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// EXTERNAL MODULES
