@@ -94,7 +94,11 @@ fn cm_i_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rd_val);
     state.register[Register::PC].data = rob_entry.act_pc;
 
-    // Branch prediction failure check
+
+    // Branch prediction update and failure check
+    if rob_entry.op == Operation::JALR {
+        state.branch_predictor.commit_feedback(rob_entry);
+    }
     if rob_entry.act_pc != rob[(entry + 1) % rob.capacity].pc as i32 &&
        rob_entry.act_pc != -1 {
         state.flush_pipeline(rob_entry.act_pc as usize);
@@ -159,7 +163,8 @@ fn cm_b_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     let rob = &state_p.reorder_buffer;
     let rob_entry = &rob[entry];
 
-    // Branch prediction failure check
+    // Branch prediction update and failure check
+    state.branch_predictor.commit_feedback(rob_entry);
     if rob_entry.act_pc != rob[(entry + 1) % rob.capacity].pc as i32 &&
        rob_entry.act_pc != -1 {
         state.flush_pipeline(rob_entry.act_pc as usize);
@@ -196,11 +201,13 @@ fn cm_u_type(state_p: &State, state: &mut State, entry: usize) -> bool {
 fn cm_j_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     let rob = &state_p.reorder_buffer;
     let rob_entry = &rob[entry];
+
     // Write back to register file
     state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rob_entry.act_rd.unwrap());
     state.register[Register::PC].data = rob_entry.act_pc;
 
-    // Branch prediction failure check
+    // Branch prediction update and failure check
+    state.branch_predictor.commit_feedback(rob_entry);
     if rob_entry.act_pc != rob[(entry + 1) % rob.capacity].pc as i32 &&
        rob_entry.act_pc != -1 {
         state.flush_pipeline(rob_entry.act_pc as usize);

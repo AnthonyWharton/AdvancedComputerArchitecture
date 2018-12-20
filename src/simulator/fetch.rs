@@ -28,6 +28,6 @@ pub fn fetch_stage(state_p: &State, state: &mut State) {
     for offset in 0..state_p.n_way {
         data.push(state_p.memory.read_i32(lc + (4 * offset)))
     }
-    state.branch_predictor.predict(state_p.n_way, &data);
+    state.branch_predictor.predict(state_p.n_way, &data, &state_p.register);
     state.latch_fetch = LatchFetch { data, pc: lc };
 }
