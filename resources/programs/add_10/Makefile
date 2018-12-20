@@ -14,7 +14,7 @@ LFLAGS=-Wl,--build-id=none
 DISABLE_C_OPTIMISATIONS=$(shell                                           \
 			  $(CC) $(CFLAGS) $(LFLAGS) -Q --help=optimizers |\
 			  grep enabled                                   |\
-			  sed -r 's/ *-f([a-zA-Z-]*) .*/-fno-\1/'        |\
+			  sed -r 's/ *-f([a-zA-Z0-9-]*) .*/-fno-\1/'     |\
 			  grep -v 'no-no\|rtti'                          |\
 			  tr '\n' ' '                                    )
 
