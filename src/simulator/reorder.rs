@@ -116,7 +116,7 @@ impl ReorderBuffer {
             self.back - self.front_fin
         };
         for i in 0..min(n_way, unfinished_count) {
-            if self.rob[self.front_fin + i].finished {
+            if self.rob[(self.front_fin + i) % self.capacity].finished {
                 new_rob.front_fin = (new_rob.front_fin + 1) % new_rob.capacity;
                 new_rob.cleanup();
                 popped.push(self.front_fin + i)
