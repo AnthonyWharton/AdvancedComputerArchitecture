@@ -28,6 +28,9 @@ pub struct State {
     pub n_way: usize,
     /// The limit to the number of instructions that can be dispatched at once.
     pub dispatch_limit: usize,
+    /// Flag to halt decoding of the instructions in the reservation station.
+    /// This would be caused by a pipeline stall due to lack of resources.
+    pub decode_halt: bool,
     /// The virtual memory module, holding data and instructions in the
     /// simulated machine.
     pub memory: Memory,
@@ -96,6 +99,7 @@ impl State {
             debug_msg: Vec::new(),
             n_way: 4,
             dispatch_limit: config.dispatch_limit,
+            decode_halt: false,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,
             branch_predictor: BranchPredictor::new(config),
@@ -123,6 +127,15 @@ impl State {
             eu.flush();
         }
     }
+
+    /// Stalls the _fetch_ stage of the pipeline to the given Program Counter.
+    pub fn stall(&mut self, pc: usize) {
+        self.debug_msg.push(format!("Could not reserve, reset: {:x}", pc));
+        self.branch_predictor.force_update(pc);
+        self.decode_halt = true;
+        self.stats.stalls += 1;
+    }
+
 }
 
 impl Default for State {
@@ -138,6 +151,7 @@ impl Default for State {
             debug_msg: Vec::new(),
             n_way: 1,
             dispatch_limit: 1,
+            decode_halt: false,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,
             branch_predictor: BranchPredictor::default(),
