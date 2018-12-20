@@ -82,6 +82,8 @@ pub fn run_simulator(io: IoThread, config: &Config) {
     let mut state = State::new(&config);
     let mut paused = INITIALLY_PAUSED;
 
+    state.debug_msg.push(format!("Loaded Config: {:?}", config));
+
     // Send the initial state to the UI to be displayed
     io.tx.send(IoEvent::UpdateState(state.clone())).unwrap();
 
