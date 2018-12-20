@@ -1,4 +1,3 @@
-use std::cmp;
 use std::io::{stdout, Error, Stdout};
 
 use byteorder::{LittleEndian, ReadBytesExt};
@@ -178,7 +177,7 @@ fn draw_registers(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &St
                 },
             ),
             if reg == Register::PC {
-                Style::default().fg(Color::LightBlue).modifier(Modifier::Bold)
+                Style::default().fg(Color::LightBlue)
             } else if val != val_prev {
                 Style::default().fg(Color::Black).bg(Color::LightYellow)
             } else {
@@ -282,8 +281,10 @@ fn draw_reorder_buffer(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default
 /// Draws a section of the memory around the Load Counter.
 fn draw_instr_memory(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
-    let pc = state.branch_predictor.lc as i32;
-    let skip_amount = cmp::max(0, (pc - (i32::from(4 * area.height) / 2)) / 4) as usize + 1;
+    let pc = if state.latch_fetch.data.is_empty() { 0 } else { state.latch_fetch.pc };
+    let lc = state.branch_predictor.lc;
+    let skip_amount = (lc.checked_sub((4 * area.height as usize) / 2).unwrap_or(0) / 4)
+        + ((state.n_way + 1) / 2);
     let memory = state
         .memory
         .chunks(4)
@@ -297,10 +298,12 @@ fn draw_instr_memory(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: 
                     Some(i) => format!("{a:08x} :: {v:08x} - {i}", a = addr, v = word, i = i,),
                     None => format!("{a:08x} :: {v:08x} - {v}", a = addr, v = word,),
                 },
-                if addr as i32 == pc {
+                if lc <= addr && addr < lc + (4 * state.n_way) {
                     Style::default()
                         .fg(Color::LightBlue)
-                        .modifier(Modifier::Bold)
+                } else if pc <= addr && addr < pc + (4 * state.n_way) {
+                    Style::default()
+                        .fg(Color::LightCyan)
                 } else {
                     Style::default().fg(Color::White)
                 },
