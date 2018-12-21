@@ -74,7 +74,12 @@ fn cm_r_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     let rob = &state_p.reorder_buffer;
     let rob_entry = &rob[entry];
     // Branch prediction failure check
-    if rob_entry.act_pc == rob[(entry + 1) % rob.capacity].pc as i32 {
+    let next_pc = if (entry + 1) % rob.capacity != rob.back {
+        rob[(entry + 1) % rob.capacity].pc as i32
+    } else {
+        -1
+    };
+    if rob_entry.act_pc == next_pc {
         // Write back to register file
         state.register.writeback(rob_entry.reg_rd.unwrap(), entry, rob_entry.act_rd.unwrap());
         state.register[Register::PC].data = rob_entry.act_pc;
@@ -131,8 +136,12 @@ fn cm_i_type(state_p: &State, state: &mut State, entry: usize) -> bool {
 
 
     // Branch prediction update and failure check
-    if rob_entry.act_pc != rob[(entry + 1) % rob.capacity].pc as i32 &&
-       rob_entry.act_pc != -1 {
+    let next_pc = if (entry + 1) % rob.capacity != rob.back {
+        rob[(entry + 1) % rob.capacity].pc as i32
+    } else {
+        -1
+    };
+    if rob_entry.act_pc != next_pc && rob_entry.act_pc != -1 {
         if rob_entry.op == Operation::JALR {
             state.branch_predictor.commit_feedback(rob_entry, true);
         }
@@ -183,7 +192,12 @@ fn cm_s_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     };
 
     // Branch prediction failure check
-    if rob_entry.act_pc == rob[(entry + 1) % rob.capacity].pc as i32 {
+    let next_pc = if (entry + 1) % rob.capacity != rob.back {
+        rob[(entry + 1) % rob.capacity].pc as i32
+    } else {
+        -1
+    };
+    if rob_entry.act_pc == next_pc {
         state.register[Register::PC].data = rob_entry.act_pc;
         false
     } else {
@@ -200,8 +214,12 @@ fn cm_b_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     let rob_entry = &rob[entry];
 
     // Branch prediction update and failure check
-    if rob_entry.act_pc != rob[(entry + 1) % rob.capacity].pc as i32 &&
-       rob_entry.act_pc != -1 {
+    let next_pc = if (entry + 1) % rob.capacity != rob.back {
+        rob[(entry + 1) % rob.capacity].pc as i32
+    } else {
+        -1
+    };
+    if rob_entry.act_pc != next_pc && rob_entry.act_pc != -1 {
         state.branch_predictor.commit_feedback(rob_entry, true);
         state.flush_pipeline(rob_entry.act_pc as usize);
         true
@@ -223,7 +241,12 @@ fn cm_u_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     state.register[Register::PC].data = rob_entry.act_pc;
 
     // Branch prediction failure
-    if rob_entry.act_pc == rob[(entry + 1) % rob.capacity].pc as i32 {
+    let next_pc = if (entry + 1) % rob.capacity != rob.back {
+        rob[(entry + 1) % rob.capacity].pc as i32
+    } else {
+        -1
+    };
+    if rob_entry.act_pc == next_pc {
         state.stats.bp_success += 1;
         false
     } else {
@@ -244,8 +267,12 @@ fn cm_j_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     state.register[Register::PC].data = rob_entry.act_pc;
 
     // Branch prediction update and failure check
-    if rob_entry.act_pc != rob[(entry + 1) % rob.capacity].pc as i32 &&
-       rob_entry.act_pc != -1 {
+    let next_pc = if (entry + 1) % rob.capacity != rob.back {
+        rob[(entry + 1) % rob.capacity].pc as i32
+    } else {
+        -1
+    };
+    if rob_entry.act_pc != next_pc && rob_entry.act_pc != -1 {
         state.branch_predictor.commit_feedback(rob_entry, true);
         state.flush_pipeline(rob_entry.act_pc as usize);
         true
