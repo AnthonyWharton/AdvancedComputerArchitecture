@@ -16,6 +16,7 @@ default:
 	echo "PROJECT MANAGEMENT:"
 	echo "    make build        - Builds the project."
 	echo "    make run          - Runs the simulator."
+	echo "    make doc          - Builds and opens the documentation."
 	echo "    make clean        - Cleans the project directory."
 	echo
 	echo "RUST INSTALLATION:"
@@ -31,10 +32,14 @@ default:
 build:
 	$(MAKE) --no-print-directory -C ./resources/programs/ all:build
 	echo "================================ simulator"
-	cargo build
+	cargo build --release
 
 run: build
-	./target/debug/daybreak ./resources/programs/fib_non_recursive/a.out
+	./target/release/daybreak --alu=4 --blu=1 --mcu=4 --rsv=32 --rob=64 -n=4 -i=6 -br \
+		./resources/programs/fib_non_recursive/a.out
+
+doc:
+	cargo doc --document-private-items --open
 
 clean:
 	$(MAKE) --no-print-directory -C ./resources/programs all:clean
@@ -48,6 +53,6 @@ rust-remove: env
 	rustup self uninstall -y
 
 env:
-	echo "Sorry this cannot be done automatically, PLEASE RUN:"
-	echo "source ~/.cargo/env"
+	echo -e "\e[31mSorry this cannot be done automatically, PLEASE RUN:"
+	echo -e "\e[1;37msource ~/.cargo/env\e[0m"
 
