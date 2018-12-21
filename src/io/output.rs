@@ -73,8 +73,8 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
             .direction(Direction::Vertical)
             .constraints(
                 [
-                    Constraint::Percentage(70),
-                    Constraint::Percentage(30),
+                    Constraint::Percentage(75),
+                    Constraint::Percentage(25),
                 ]
                 .as_ref()
             )
@@ -102,7 +102,7 @@ pub fn draw_state(terminal: &mut Terminal, app: &TuiApp) -> std::io::Result<()> 
         draw_latch_fetch(&mut f, fet_rsv_split[0], &app, &default);
         draw_reservation_station(&mut f, fet_rsv_split[1], &app, &default);
         draw_reorder_buffer(&mut f, centre_horz_split[1], &app, &default);
-        draw_debug(&mut f, centre_col[1], &app, &default);
+        draw_output(&mut f, centre_col[1], &app, &default);
 
         ////////////////////////////////////////////////////////// RIGHT COLUMN
         let right_col = Layout::default()
@@ -147,18 +147,15 @@ fn draw_stats(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State)
 }
 
 /// Draws the TuiApp state statistics on screen.
-fn draw_debug(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
+fn draw_output(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
-    let messages: Vec<Text> = state
-        .debug_msg
+    let lines: Vec<Text> = state
+        .out
         .iter()
         .map(|str| Text::raw(format!("{}\n", str)))
         .collect();
-    // let rob = &state.reorder_buffer;
-    // messages.push(Text::raw(format!("f:{} ff:{}, b:{}, c:{}\n", rob.front, rob.front_fin, rob.back, rob.count)));
-    // messages.push(Text::raw(format!("h:{}", state.decode_halt)));
-    Paragraph::new(messages.iter())
-        .block(standard_block("Debug Prints"))
+    Paragraph::new(lines.iter())
+        .block(standard_block("Console Output"))
         .wrap(true)
         .render(f, area);
 }

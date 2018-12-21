@@ -20,8 +20,8 @@ use super::reservation::ResvStation;
 pub struct State {
     /// Statistics collected over the simulator's lifetime.
     pub stats: Stats,
-    /// Used to display debug prints in the debug thread.
-    pub debug_msg: Vec<String>,
+    /// Program out, essentially a virtual UART but with output only.
+    pub out: Vec<String>,
     /// The _n-way-ness_ of the superscalar _fetch_, _decode_ and _commit_
     /// stages in the pipeline. (Note: _execute_ is always
     /// `exec_units.len()`-way superscalar.
@@ -96,7 +96,7 @@ impl State {
         // Create state
         let mut state = State {
             stats: Stats::default(),
-            debug_msg: Vec::new(),
+            out: vec![String::new()],
             n_way: config.n_way,
             issue_limit: config.issue_limit,
             decode_halt: false,
@@ -147,7 +147,7 @@ impl Default for State {
         register[Register::X8].data = INIT_MEMORY_SIZE as i32 - 4;
         State {
             stats: Stats::default(),
-            debug_msg: Vec::new(),
+            out: vec![String::new()],
             n_way: 1,
             issue_limit: 1,
             decode_halt: false,

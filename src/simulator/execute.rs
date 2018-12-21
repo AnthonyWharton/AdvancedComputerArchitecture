@@ -241,7 +241,11 @@ impl ExecuteUnit {
     /// [`Operation`](../../isa/op_code/enum.Operation.html) that this
     /// execution unit is responsible for. If the execute unit is pipelined,
     /// this will add the execution to the pipeline.
-    pub fn handle_issue(&mut self, state_p: &State, reservation: &Reservation) {
+    pub fn handle_issue(
+        &mut self,
+        state_p: &State,
+        reservation: &Reservation,
+    ) {
         if self.unit_type != UnitType::from(reservation.op) {
             panic!(format!(
                 "Execute Unit ({:?}) was given Operation ({:?}) that it is incapable of processing",
@@ -423,7 +427,7 @@ impl ExecuteUnit {
             Operation::SRAI   => Some( rs1_s >> (imm_s & 0b11111)),
             Operation::FENCE  => unimplemented!(),
             Operation::FENCEI => unimplemented!(),
-            Operation::ECALL  => unimplemented!(),
+            Operation::ECALL  => None, // Done in commit stage
             Operation::EBREAK => unimplemented!(),
             Operation::CSRRW  => unimplemented!(),
             Operation::CSRRS  => unimplemented!(),

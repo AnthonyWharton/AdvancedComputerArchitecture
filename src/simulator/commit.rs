@@ -108,6 +108,19 @@ fn cm_i_type(state_p: &State, state: &mut State, entry: usize) -> bool {
         Operation::LW  => state.memory.read_i32((rs1_s + imm_s) as usize).word,
         Operation::LBU => state.memory[(rs1_s + imm_s) as usize] as i32,
         Operation::LHU => state.memory.read_u16((rs1_s + imm_s) as usize).word as i32,
+        Operation::ECALL => {
+            match (state.register[Register::X10].data as u8) as char {
+                '\n' => {
+                    state.out.push(String::new())
+                }
+                a if a.is_ascii_graphic() || a.is_ascii_whitespace() => {
+                    let last = state.out.len() - 1;
+                    state.out[last].push(a)
+                }
+                _ => ()
+            }
+            0
+        }
         _ => rob_entry.act_rd.unwrap()
     };
 
