@@ -7,7 +7,7 @@ use crate::util::config::Config;
 
 use self::commit::commit_stage;
 use self::decode::decode_and_rename_stage;
-use self::dispatch::dispatch_stage;
+use self::issue::issue_stage;
 use self::execute::execute_and_writeback_stage;
 use self::fetch::fetch_stage;
 use self::state::State;
@@ -25,10 +25,10 @@ mod fetch;
 /// dependencies when moving down the pipeline,
 mod decode;
 
-/// Logic regarding the _dispatch_ stage in the pipeline. This is responsible
+/// Logic regarding the _issue_ stage in the pipeline. This is responsible
 /// for consuming 'ready' instructions from the reservation station, and
 /// assigning them to execute units for the future _execute_ stage.
-mod dispatch;
+mod issue;
 
 /// All of the execute units, which are responsible for the _execute_ stage in
 /// the pipeline, as well as the logic for what should happen at writeback for
@@ -94,7 +94,7 @@ pub fn run_simulator(io: IoThread, config: &Config) {
 
         fetch_stage(&state_p, &mut state);
         decode_and_rename_stage(&state_p, &mut state);
-        dispatch_stage(&state_p, &mut state);
+        issue_stage(&state_p, &mut state);
         execute_and_writeback_stage(&state_p, &mut state);
         let finished = commit_stage(&state_p, &mut state);
 

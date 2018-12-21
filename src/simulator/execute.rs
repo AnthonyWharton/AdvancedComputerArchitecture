@@ -222,7 +222,7 @@ impl ExecuteUnit {
         if el.blocking {
             return self.executing.is_empty();
         }
-        // Note: Dispatch is run before the execute/writeback stage, so we need
+        // Note: Issue is run before the execute/writeback stage, so we need
         // to take into account that even if the pipeline is full, if the front
         // instruction is about to be popped off, the EU is actually free.
         match self.executing.front() {
@@ -241,7 +241,7 @@ impl ExecuteUnit {
     /// [`Operation`](../../isa/op_code/enum.Operation.html) that this
     /// execution unit is responsible for. If the execute unit is pipelined,
     /// this will add the execution to the pipeline.
-    pub fn handle_dispatch(&mut self, state_p: &State, reservation: &Reservation) {
+    pub fn handle_issue(&mut self, state_p: &State, reservation: &Reservation) {
         if self.unit_type != UnitType::from(reservation.op) {
             panic!(format!(
                 "Execute Unit ({:?}) was given Operation ({:?}) that it is incapable of processing",
@@ -264,7 +264,7 @@ impl ExecuteUnit {
     /// to the reorder buffer, also setting the finished bit.
     pub fn advance_pipeline(&self, new_eu: &mut ExecuteUnit, rob: &mut ReorderBuffer) {
         // Ensure we do not minus 1 from an execution added to the new state in
-        // the dispatch stage (which may have touched the execute unit already)
+        // the issue stage (which may have touched the execute unit already)
         let iter = new_eu.executing.iter_mut().take(self.executing.len());
 
         // Progress all executions in pipeline

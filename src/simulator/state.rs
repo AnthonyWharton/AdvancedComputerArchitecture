@@ -23,11 +23,11 @@ pub struct State {
     /// Used to display debug prints in the debug thread.
     pub debug_msg: Vec<String>,
     /// The _n-way-ness_ of the superscalar _fetch_, _decode_ and _commit_
-    /// stages in the pipeline. (Note: _dispatch_ and _execute_ are always
+    /// stages in the pipeline. (Note: _execute_ is always 
     /// `exec_units.len()`-way superscalar.
     pub n_way: usize,
-    /// The limit to the number of instructions that can be dispatched at once.
-    pub dispatch_limit: usize,
+    /// The limit to the number of instructions that can be issueed at once.
+    pub issue_limit: usize,
     /// Flag to halt decoding of the instructions in the reservation station.
     /// This would be caused by a pipeline stall due to lack of resources.
     pub decode_halt: bool,
@@ -98,7 +98,7 @@ impl State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
             n_way: 4,
-            dispatch_limit: config.dispatch_limit,
+            issue_limit: config.issue_limit,
             decode_halt: false,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,
@@ -150,7 +150,7 @@ impl Default for State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
             n_way: 1,
-            dispatch_limit: 1,
+            issue_limit: 1,
             decode_halt: false,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,

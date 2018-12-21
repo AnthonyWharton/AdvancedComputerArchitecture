@@ -8,10 +8,10 @@ pub struct Config {
     /// The _n-way-ness_ of the _fetch_, _decode_ and _commit_ stages in the
     /// processor pipeline.
     pub n_way: usize,
-    /// The amount of instructions that can be dispatched every cycle. If this
+    /// The amount of instructions that can be issued every cycle. If this
     /// is 0, it will be assumed to be the number of execute units in the
     /// simulator.
-    pub dispatch_limit: usize,
+    pub issue_limit: usize,
     /// The number of Arithmetic Logic Units the simulator should have.
     pub alu_units: usize,
     /// The number of Branch Logic Units the simulator should have.
@@ -29,7 +29,7 @@ impl Default for Config {
         Config {
             elf_file: String::from(""),
             n_way: 1,
-            dispatch_limit: 1,
+            issue_limit: 1,
             alu_units: 1,
             blu_units: 1,
             mcu_units: 1,
@@ -64,9 +64,9 @@ impl Config {
                                })
                                .required(false)
                                .help("Sets the 'n-way-ness' of the fetch, decode and commit stages."))
-                          .arg(Arg::with_name("dispatch-limit")
-                               .short("d")
-                               .long("dispatch-limit")
+                          .arg(Arg::with_name("issue-limit")
+                               .short("i")
+                               .long("issue-limit")
                                .takes_value(true)
                                .value_name("N")
                                .default_value("1")
@@ -75,7 +75,7 @@ impl Config {
                                    Err(_) => Err(String::from("Not a valid number!"))
                                })
                                .required(false)
-                               .help("Sets a limit to the number of instructions dispatched per cycle. Setting this to 0 is interpreted as the number of execute units."))
+                               .help("Sets a limit to the number of instructions issued per cycle. Setting this to 0 is interpreted as the number of execute units."))
                           .arg(Arg::with_name("alu-units")
                                .long("alu")
                                .takes_value(true)
@@ -127,8 +127,8 @@ impl Config {
         if let Some(s) = matches.value_of("n-way") {
             config.n_way = s.parse::<usize>().unwrap();
         }
-        if let Some(s) = matches.value_of("dispatch-limit") {
-            config.dispatch_limit= s.parse::<usize>().unwrap();
+        if let Some(s) = matches.value_of("issue-limit") {
+            config.issue_limit= s.parse::<usize>().unwrap();
         }
         if let Some(s) = matches.value_of("alu-units") {
             config.alu_units = s.parse::<usize>().unwrap();
