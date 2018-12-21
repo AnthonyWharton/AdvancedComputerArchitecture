@@ -15,7 +15,7 @@ pub fn issue_stage(state_p: &State, state: &mut State) {
             .consume_next(
                 &mut state.resv_station,
                 &eu,
-                &state_p.reorder_buffer,
+                &state.reorder_buffer,
                 effective_limit,
             );
         effective_limit = new_limit;

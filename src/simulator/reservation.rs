@@ -86,10 +86,19 @@ impl ResvStation {
         rob: &ReorderBuffer,
         limit: usize,
     ) -> (Option<Reservation>, usize) {
-        let act_limit = if limit == 0 {
-            self.contents.len()
+        let act_limit = if self.contents.len() != 0 {
+            if limit == 0 {
+                self.contents.len()
+            } else {
+                min(limit, self.contents.len())
+            }
         } else {
-            min(limit, self.contents.len())
+            // Enable bypassing of reservation station if empty
+            if limit == 0 {
+                new_rs.contents.len()
+            } else {
+                min(limit, new_rs.contents.len())
+            }
         };
         let unit_type = eu.get_type();
         let next_valid = new_rs
