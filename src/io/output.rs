@@ -11,6 +11,7 @@ use tui::{Frame, Terminal as TuiTerminal};
 
 use crate::isa::Instruction;
 use crate::isa::operand::Register;
+use crate::simulator::branch::ReturnStackOp;
 use crate::simulator::state::State;
 
 use super::TuiApp;
@@ -132,7 +133,8 @@ fn draw_stats(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State)
         Text::raw(format!("bp_fail:  {}\n", state.stats.bp_failure)),
         Text::raw(format!("bp_rate:  {:.3}\n", state.stats.bp_success as f32 / (state.stats.bp_success + state.stats.bp_failure) as f32)),
         Text::raw(format!("bp_state: {:?}\n", state.branch_predictor.global_prediction)),
-        Text::raw(format!("bp_stack: {:?}\n", state.branch_predictor.return_stack)),
+        Text::raw(format!("bp_stack_d: {:x?}\n", state.branch_predictor.return_stack_d)),
+        Text::raw(format!("bp_stack_c: {:x?}\n", state.branch_predictor.return_stack_c)),
         Text::raw("\n"),
     ];
     Paragraph::new(tmp.iter())
@@ -144,13 +146,14 @@ fn draw_stats(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State)
 /// Draws the TuiApp state statistics on screen.
 fn draw_debug(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State) {
     let state = app.states.get(app.hist_display).unwrap_or(default);
-    let mut messages: Vec<Text> = state
+    let messages: Vec<Text> = state
         .debug_msg
         .iter()
         .map(|str| Text::raw(format!("{}\n", str)))
         .collect();
-    let rob = &state.reorder_buffer;
-    messages.push(Text::raw(format!("f:{} ff:{}, b:{}, c:{}\n", rob.front, rob.front_fin, rob.back, rob.count)));
+    // let rob = &state.reorder_buffer;
+    // messages.push(Text::raw(format!("f:{} ff:{}, b:{}, c:{}\n", rob.front, rob.front_fin, rob.back, rob.count)));
+    // messages.push(Text::raw(format!("h:{}", state.decode_halt)));
     Paragraph::new(messages.iter())
         .block(standard_block("Debug Prints"))
         .wrap(true)
@@ -196,7 +199,12 @@ fn draw_latch_fetch(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &
     let state = app.states.get(app.hist_display).unwrap_or(default);
     let lf = &state.latch_fetch;
     let messages = lf.data.iter().enumerate().map(|(n, access)| {
-        Text::raw(format!("{:08x}: {}", lf.pc + (4 * n), access))
+        let rs_op = if n < lf.rs_ops.len() {
+            lf.rs_ops[n]
+        } else {
+            ReturnStackOp::None
+        };
+        Text::raw(format!("{:08x}: {} - {:?}", lf.pc + (4 * n), access, rs_op))
     });
     List::new(messages)
         .block(standard_block("Fetch Latch"))
