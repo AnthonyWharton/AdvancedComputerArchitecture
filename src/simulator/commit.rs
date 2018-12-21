@@ -35,13 +35,34 @@ pub fn commit_stage(state_p: &State, state: &mut State) -> bool {
             break;
         }
 
-        // Ensure reference counts are deducted and that the entry is marked as
-        // finished (Load/Stores will not be finished until they are committed)
-        if let Right(name) = state_p.reorder_buffer[entry].rs1 {
-            state.reorder_buffer[name].ref_count -= 1;
-        }
-        if let Right(name) = state_p.reorder_buffer[entry].rs2 {
-            state.reorder_buffer[name].ref_count -= 1;
+        // Remove reference counts and bypass results from loads/stores.
+        match state.reorder_buffer[entry].op {
+            Operation::LB  |
+            Operation::LH  |
+            Operation::LW  |
+            Operation::LBU |
+            Operation::LHU |
+            Operation::SB  |
+            Operation::SH  |
+            Operation::SW  => {
+                // Bypass, let everyone that is waiting for this
+                // register know it's value. (Lower down values).
+                if let Some(rd) = state.reorder_buffer[entry].act_rd {
+                    state.resv_station.execute_bypass(entry, rd);
+                    state.reorder_buffer.execute_bypass(entry, rd);
+                }
+                // Finish with the dependencies that this was using.
+                // (Higher up values).
+                if let Right(name) = state.reorder_buffer[entry].rs1 {
+                    state.reorder_buffer[name].ref_count -= 1;
+                    state.reorder_buffer[entry].rs1 = Left(0);
+                }
+                if let Right(name) = state.reorder_buffer[entry].rs2 {
+                    state.reorder_buffer[name].ref_count -= 1;
+                    state.reorder_buffer[entry].rs2 = Left(0);
+                }
+            }
+            _ => ()
         }
     }
     state.register[Register::PC].data == -1
@@ -75,9 +96,10 @@ fn cm_i_type(state_p: &State, state: &mut State, entry: usize) -> bool {
         Right(name) => state
             .reorder_buffer[name]
             .act_rd
-            .expect("Commit I-type expected rs1!"),
+            .unwrap_or(0) // Some instructions may not require this - namely
+                          // those that are not loads, so fail quietly
     };
-    let imm_s = rob_entry.imm.expect("Commit unit missing imm!");
+    let imm_s = rob_entry.imm.unwrap_or(0);
 
     #[rustfmt::skip]
     let rd_val = match rob_entry.op {
@@ -144,7 +166,7 @@ fn cm_s_type(state_p: &State, state: &mut State, entry: usize) -> bool {
             state.memory.write_i32((rs1 + imm) as usize, rs2);
             ()
         }
-        _ => panic!("Unknown s type instruction failed to commit."),
+        _ => panic!("Unknown S-type instruction failed to commit."),
     };
 
     // Branch prediction failure check
@@ -153,7 +175,7 @@ fn cm_s_type(state_p: &State, state: &mut State, entry: usize) -> bool {
         false
     } else {
         panic!(
-            format!("Did not expect S type instruction to have mismatching PC! - {:?}", rob_entry)
+            format!("Did not expect S-type instruction to have mismatching PC! - {:?}", rob_entry)
         )
     }
 }

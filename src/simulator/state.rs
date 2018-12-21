@@ -95,7 +95,7 @@ impl State {
         let mut state = State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
-            n_way: 4,
+            n_way: config.n_way,
             decode_halt: false,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,

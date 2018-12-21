@@ -102,6 +102,30 @@ impl ReorderBuffer {
         Some(e)
     }
 
+    /// Recieves a bypass result from an execute unit and then adds it to the
+    /// relevant reorder entries.
+    pub fn execute_bypass(&mut self, entry: usize, result: i32) {
+        if entry == 32 {
+            panic!("WOAH");
+        }
+        let mut i = entry;
+        while i != self.back {
+            if let Right(n) = self[i].rs1 {
+                if n == entry {
+                    self[i].rs1 = Left(result);
+                    self[entry].ref_count -= 1;
+                }
+            }
+            if let Right(n) = self[i].rs2 {
+                if n == entry {
+                    self[i].rs2 = Left(result);
+                    self[entry].ref_count -= 1;
+                }
+            }
+            i = (i + 1) % self.capacity;
+        }
+    }
+
     /// If finished, pops the front ready entries off of the reorder buffer. If
     /// an empty Vec is returned, no entries have finished execution.
     /// Modifications are only made to the new reorder buffer.
@@ -126,9 +150,11 @@ impl ReorderBuffer {
             if self.rob[(self.front_fin + i) % self.capacity].finished {
                 new_rob.front_fin = (new_rob.front_fin + 1) % new_rob.capacity;
                 new_rob.cleanup();
-                popped.push(self.front_fin + i)
+                popped.push((self.front_fin + i) % self.capacity)
             } else {
-                new_rob.cleanup();
+                for _ in i .. min(n_way, unfinished_count) {
+                    new_rob.cleanup();
+                }
                 break;
             }
         }
@@ -140,9 +166,13 @@ impl ReorderBuffer {
     /// reference count.
     fn cleanup(&mut self) {
         if self.rob[self.front].finished && self.rob[self.front].ref_count == 0 {
-            self.count -= 1;
-            let new_front = (self.front + 1) % self.capacity;
+            let new_front = if self.front != self.front_fin {
+                (self.front + 1) % self.capacity
+            } else {
+                self.front_fin
+            };
             if new_front != self.front_fin {
+                self.count -= 1;
                 self.front = new_front;
             }
         }

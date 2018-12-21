@@ -135,7 +135,11 @@ fn get_read(state: &mut State, register: Register) -> Either<i32, usize> {
         Left(state.register[register].data)
     } else {
         let rename = state.register[register].rename.unwrap();
-        state.reorder_buffer[rename].ref_count += 1;
-        Right(rename)
+        if state.reorder_buffer[rename].finished {
+            Left(state.reorder_buffer[rename].act_rd.unwrap_or(0))
+        } else {
+            state.reorder_buffer[rename].ref_count += 1;
+            Right(rename)
+        }
     }
 }

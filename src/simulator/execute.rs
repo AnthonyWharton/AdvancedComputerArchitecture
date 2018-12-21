@@ -7,7 +7,7 @@ use crate::isa::op_code::Operation;
 use crate::isa::Format;
 
 use super::reorder::ReorderBuffer;
-use super::reservation::Reservation;
+use super::reservation::{ResvStation, Reservation};
 use super::state::State;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -262,7 +262,12 @@ impl ExecuteUnit {
     /// Triggers an exection step, only modifying the given new execution unit.
     /// Will advance the exectuion pipeline, writing any completed executions
     /// to the reorder buffer, also setting the finished bit.
-    pub fn advance_pipeline(&self, new_eu: &mut ExecuteUnit, rob: &mut ReorderBuffer) {
+    pub fn advance_pipeline(
+        &self,
+        new_eu: &mut ExecuteUnit,
+        rob: &mut ReorderBuffer,
+        rs: &mut ResvStation
+    ) {
         // Ensure we do not minus 1 from an execution added to the new state in
         // the issue stage (which may have touched the execute unit already)
         let iter = new_eu.executing.iter_mut().take(self.executing.len());
@@ -281,6 +286,35 @@ impl ExecuteUnit {
                 rob[result.rob_entry].act_pc = result.pc;
                 rob[result.rob_entry].act_rd = result.rd;
                 rob[result.rob_entry].finished = true;
+
+                match rob[result.rob_entry].op {
+                    Operation::LB  |
+                    Operation::LH  |
+                    Operation::LW  |
+                    Operation::LBU |
+                    Operation::LHU |
+                    Operation::SB  |
+                    Operation::SH  |
+                    Operation::SW  => (),
+                    _ => {
+                        // Bypass, let everyone that is waiting for this
+                        // register know it's value. (Lower down values).
+                        if let Some(rd) = result.rd {
+                            rs.execute_bypass(result.rob_entry, rd);
+                            rob.execute_bypass(result.rob_entry, rd);
+                        }
+                        // Finish with the dependencies that this was using.
+                        // (Higher up values).
+                        if let Right(name) = rob[result.rob_entry].rs1 {
+                            rob[name].ref_count -= 1;
+                            rob[result.rob_entry].rs1 = Left(0);
+                        }
+                        if let Right(name) = rob[result.rob_entry].rs2 {
+                            rob[name].ref_count -= 1;
+                            rob[result.rob_entry].rs2 = Left(0);
+                        }
+                    }
+                }
             }
         }
     }
@@ -546,6 +580,6 @@ pub fn execute_and_writeback_stage(state_p: &State, state: &mut State) {
     let iter = state.execute_units.iter_mut();
     // Loop over both past and current execute units at the same time
     for (eu_p, mut eu) in iter_p.zip(iter) {
-        eu_p.advance_pipeline(&mut eu, &mut state.reorder_buffer)
+        eu_p.advance_pipeline(&mut eu, &mut state.reorder_buffer, &mut state.resv_station)
     }
 }

@@ -134,6 +134,23 @@ impl ResvStation {
         }
     }
 
+    /// Recieves a bypass result from an execute unit and then adds it to the
+    /// relevant reservation station entries.
+    pub fn execute_bypass(&mut self, entry: usize, result: i32) {
+        for r in self.contents.iter_mut() {
+            if let Right(n) = r.rs1 {
+                if n == entry {
+                    r.rs1 = Left(result);
+                }
+            }
+            if let Right(n) = r.rs2 {
+                if n == entry {
+                    r.rs2 = Left(result);
+                }
+            }
+        }
+    }
+
     /// Flushes the reservation station, this would happen when the pipeline is
     /// invalidated and needs to be restarted from scratch.
     pub fn flush(&mut self) {
