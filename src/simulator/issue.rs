@@ -8,7 +8,7 @@ use super::state::State;
 /// [`ResvStation`](../reservation/struct.ResvStation.html) to free
 /// [`ExecuteUnit`s](../execute/struct.ExecuteUnit.html).
 pub fn issue_stage(state_p: &State, state: &mut State) {
-    let mut effective_limit = state.issue_limit;
+    let mut effective_limit = state.n_way;
     for eu in state.execute_units.iter_mut() {
         let (next, new_limit) = state_p
             .resv_station
