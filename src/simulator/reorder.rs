@@ -105,9 +105,6 @@ impl ReorderBuffer {
     /// Recieves a bypass result from an execute unit and then adds it to the
     /// relevant reorder entries.
     pub fn execute_bypass(&mut self, entry: usize, result: i32) {
-        if entry == 32 {
-            panic!("WOAH");
-        }
         let mut i = entry;
         while i != self.back {
             if let Right(n) = self[i].rs1 {
