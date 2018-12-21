@@ -16,7 +16,7 @@ use super::state::State;
 pub fn commit_stage(state_p: &State, state: &mut State) -> bool {
     let entries = state_p
         .reorder_buffer
-        .pop_finished_entries(&mut state.reorder_buffer, state_p.n_way);
+        .pop_finished_entries(&mut state.reorder_buffer, state_p.issue_limit);
     for entry in entries {
         let flushed = match Format::from(state_p.reorder_buffer[entry].op) {
             Format::R => cm_r_type(state_p, state, entry),

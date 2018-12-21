@@ -247,7 +247,8 @@ fn draw_reorder_buffer(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default
     let rob = &state.reorder_buffer;
     let eus = &state.execute_units;
     let len = rob.capacity;
-    let list = rob.rob.iter().enumerate().map(|(n, e)| {
+    let skip_amount = rob.front_fin.checked_sub((area.height as usize) / 4).unwrap_or(0);
+    let list = rob.rob.iter().enumerate().skip(skip_amount).map(|(n, e)| {
         // Find if any execute unit has this entry in it
         let unit = eus
             .iter()

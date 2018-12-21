@@ -26,6 +26,8 @@ pub struct State {
     /// stages in the pipeline. (Note: _execute_ is always
     /// `exec_units.len()`-way superscalar.
     pub n_way: usize,
+    /// The limit to the number of instructions that can be issueed at once.
+    pub issue_limit: usize,
     /// Flag to halt decoding of the instructions in the reservation station.
     /// This would be caused by a pipeline stall due to lack of resources.
     pub decode_halt: bool,
@@ -96,13 +98,14 @@ impl State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
             n_way: config.n_way,
+            issue_limit: config.issue_limit,
             decode_halt: false,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,
             branch_predictor: BranchPredictor::new(config),
             latch_fetch: LatchFetch::default(),
-            resv_station: ResvStation::new(16),
-            reorder_buffer: ReorderBuffer::new(32),
+            resv_station: ResvStation::new(config.rsv_size),
+            reorder_buffer: ReorderBuffer::new(config.rob_size),
             execute_units,
         };
 
@@ -146,6 +149,7 @@ impl Default for State {
             stats: Stats::default(),
             debug_msg: Vec::new(),
             n_way: 1,
+            issue_limit: 1,
             decode_halt: false,
             memory: Memory::create_empty(INIT_MEMORY_SIZE),
             register,
