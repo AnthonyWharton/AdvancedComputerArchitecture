@@ -12,7 +12,7 @@ use super::reorder::ReorderEntry;
 
 /// Number of levels to use for two level adaptive prediction.
 /// *MUST* be a power of two.
-const TWO_LEVEL: u8 = 1 << 4;
+const TWO_LEVEL: u8 = 1 << 3;
 
 ///////////////////////////////////////////////////////////////////////////////
 //// ENUMS
@@ -26,7 +26,7 @@ pub enum BranchPredictorMode {
     OneBit,
     /// Two bit saturating counter prediction enabled.
     TwoBit,
-    /// Two Level adaptive 4 bit predictor enabled.
+    /// Two Level adaptive 3 bit predictor enabled.
     TwoLevel,
 }
 
