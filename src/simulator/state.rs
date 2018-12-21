@@ -127,7 +127,6 @@ impl State {
 
     /// Stalls the _fetch_ stage of the pipeline to the given Program Counter.
     pub fn stall(&mut self, pc: usize) {
-        self.debug_msg.push(format!("Could not reserve, reset: {:x}", pc));
         self.branch_predictor.force_update(pc);
         self.decode_halt = true;
         self.stats.stalls += 1;
