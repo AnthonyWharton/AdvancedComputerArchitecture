@@ -1,5 +1,7 @@
 use clap::{App, Arg};
 
+use crate::simulator::branch::BranchPredictorMode;
+
 /// Encapsulates the settings for the simulator to run with.
 #[derive(Debug)]
 pub struct Config {
@@ -23,7 +25,7 @@ pub struct Config {
     /// The number of entries in the reorder buffer.
     pub rob_size: usize,
     /// Whether or not branch prediction is enabled.
-    pub branch_prediction: bool,
+    pub branch_prediction: BranchPredictorMode,
     /// Whether or not a return address stack is being used.
     pub return_address_stack: bool,
 }
@@ -39,7 +41,7 @@ impl Default for Config {
             mcu_units: 1,
             rsv_size: 16,
             rob_size: 32,
-            branch_prediction: false,
+            branch_prediction: BranchPredictorMode::default(),
             return_address_stack: false,
         }
     }
@@ -140,8 +142,12 @@ impl Config {
                           .arg(Arg::with_name("branch-prediction")
                                .short("b")
                                .long("branch-prediction")
+                               .takes_value(true)
+                               .possible_values(&["off", "onebit", "twobit", "twolevel"])
+                               .default_value("twobit")
+                               .case_insensitive(true)
                                .required(false)
-                               .help("Enables Branch Prediction. Default: false"))
+                               .help("Sets the branch prediction mode."))
                           .arg(Arg::with_name("return-stack")
                                .short("r")
                                .long("return-stack")
@@ -173,8 +179,14 @@ impl Config {
         if let Some(s) = matches.value_of("rob-size") {
             config.rob_size = s.parse::<usize>().unwrap();
         }
-        if matches.is_present("branch-prediction") {
-            config.branch_prediction = true;
+        if let Some(s) = matches.value_of("branch-prediction") {
+            match s.to_lowercase().as_str() {
+                "off" => config.branch_prediction = BranchPredictorMode::Off,
+                "onebit" => config.branch_prediction = BranchPredictorMode::OneBit,
+                "twobit" => config.branch_prediction = BranchPredictorMode::TwoBit,
+                "twolevel" => config.branch_prediction = BranchPredictorMode::TwoLevel,
+                _ => (),
+            }
         }
         if matches.is_present("return-stack") {
             config.return_address_stack = true;

@@ -40,9 +40,9 @@ pub struct ReorderEntry {
     /// The number of components that have a reference to this reorder buffer
     /// entry.
     pub ref_count: u8,
-    /// What this instruction has done to the return stack (used as feedback
-    /// for the branch predictor).
-    pub rs_operation: ReturnStackOp,
+    /// Data for the branch predictor feedback, contains the return stack
+    /// operation, and branch history.
+    pub bp_data: (ReturnStackOp, u8),
     /// The operation that executed
     pub op: Operation,
     /// The program counter for this instruction, indicating the choice that
@@ -209,7 +209,7 @@ impl Default for ReorderEntry {
         ReorderEntry {
             finished: false,
             ref_count: 0,
-            rs_operation: ReturnStackOp::None,
+            bp_data: (ReturnStackOp::None, 0),
             op: Operation::ADDI,
             pc: 0,
             act_pc: 0,
@@ -225,12 +225,12 @@ impl Default for ReorderEntry {
 impl Display for ReorderEntry {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "{}", if self.finished { "✓" } else { "×" })?;
-        write!(f, " {}", match self.rs_operation {
+        write!(f, " {}{:03b}", match self.bp_data.0 {
             ReturnStackOp::None => "N",
             ReturnStackOp::Pushed(_) => "U",
             ReturnStackOp::Popped => "O",
             ReturnStackOp::PushPop(_) => "B"
-        })?;
+        }, self.bp_data.1)?;
         write!(f, " {:2}", self.ref_count)?;
         write!(f, " {:>6}", self.op)?;
         write!(f, " {:08x}", self.pc)?;

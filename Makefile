@@ -35,7 +35,7 @@ build:
 	cargo build --release
 
 run: build
-	./target/release/daybreak --alu=4 --blu=1 --mcu=4 --rsv=32 --rob=64 -n=4 -i=6 -br \
+	./target/release/daybreak --alu=4 --blu=1 --mcu=4 --rsv=32 --rob=64 -n=4 -i=6 -b=twobit -r\
 		./resources/programs/fib_non_recursive/a.out
 
 doc:

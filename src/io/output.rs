@@ -12,6 +12,7 @@ use tui::{Frame, Terminal as TuiTerminal};
 use crate::isa::Instruction;
 use crate::isa::operand::Register;
 use crate::simulator::branch::ReturnStackOp;
+use crate::simulator::execute::UnitType;
 use crate::simulator::state::State;
 
 use super::TuiApp;
@@ -132,10 +133,12 @@ fn draw_stats(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &State)
         Text::raw(format!("bp_succ:  {}\n", state.stats.bp_success)),
         Text::raw(format!("bp_fail:  {}\n", state.stats.bp_failure)),
         Text::raw(format!("bp_rate:  {:.3}\n", state.stats.bp_success as f32 / (state.stats.bp_success + state.stats.bp_failure) as f32)),
-        Text::raw(format!("bp_state: {:?}\n", state.branch_predictor.global_prediction)),
-        Text::raw(format!("bp_stack_d: {:x?}\n", state.branch_predictor.return_stack_d)),
-        Text::raw(format!("bp_stack_c: {:x?}\n", state.branch_predictor.return_stack_c)),
-        Text::raw("\n"),
+        Text::raw(String::from("\n")),
+        Text::raw(format!("bp_mode:  {:?}\n", state.branch_predictor.mode)),
+        Text::raw(format!("bp_stack: {}\n", state.branch_predictor.return_stack_c.is_some())),
+        Text::raw(format!("alu_cnt:  {}\n", state.execute_units.iter().filter(|e| e.unit_type == UnitType::ALU).count())),
+        Text::raw(format!("blu_cnt:  {}\n", state.execute_units.iter().filter(|e| e.unit_type == UnitType::BLU).count())),
+        Text::raw(format!("mcu_cnt:  {}\n", state.execute_units.iter().filter(|e| e.unit_type == UnitType::MCU).count())),
     ];
     Paragraph::new(tmp.iter())
         .block(standard_block("Statistics"))
@@ -199,12 +202,12 @@ fn draw_latch_fetch(f: &mut Frame<Backend>, area: Rect, app: &TuiApp, default: &
     let state = app.states.get(app.hist_display).unwrap_or(default);
     let lf = &state.latch_fetch;
     let messages = lf.data.iter().enumerate().map(|(n, access)| {
-        let rs_op = if n < lf.rs_ops.len() {
-            lf.rs_ops[n]
+        let (rs_op, hist) = if n < lf.bp_data.len() {
+            lf.bp_data[n]
         } else {
-            ReturnStackOp::None
+            (ReturnStackOp::None, 0)
         };
-        Text::raw(format!("{:08x}: {} - {:?}", lf.pc + (4 * n), access, rs_op))
+        Text::raw(format!("{:08x}: {} - {:?} {:03b}", lf.pc + (4 * n), access, rs_op, hist))
     });
     List::new(messages)
         .block(standard_block("Fetch Latch"))

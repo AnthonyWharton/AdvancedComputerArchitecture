@@ -18,22 +18,22 @@ use self::state::State;
 /// Logic and data structures regarding the _fetch_ state of the pipeline. This
 /// is responsible for coordinating the retrieval (or fetching) of instructions
 /// from memory.
-mod fetch;
+pub mod fetch;
 
 /// Logic regarding the _decode/rename_ stage of the pipeline. This is
 /// responsible for decoding instructions and ensuring they have no
 /// dependencies when moving down the pipeline,
-mod decode;
+pub mod decode;
 
 /// Logic regarding the _issue_ stage in the pipeline. This is responsible
 /// for consuming 'ready' instructions from the reservation station, and
 /// assigning them to execute units for the future _execute_ stage.
-mod issue;
+pub mod issue;
 
 /// All of the execute units, which are responsible for the _execute_ stage in
 /// the pipeline, as well as the logic for what should happen at writeback for
 /// a particular instruction.
-mod execute;
+pub mod execute;
 
 /// Logic recarding the _commit_ stage in the pipeline. This is responsible
 /// for committing the results of instructions that have finished execution.
@@ -81,8 +81,6 @@ pub const INITIALLY_PAUSED: bool = true;
 pub fn run_simulator(io: IoThread, config: &Config) {
     let mut state = State::new(&config);
     let mut paused = INITIALLY_PAUSED;
-
-    state.debug_msg.push(format!("Loaded Config: {:?}", config));
 
     // Send the initial state to the UI to be displayed
     io.tx.send(IoEvent::UpdateState(state.clone())).unwrap();
