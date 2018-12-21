@@ -91,7 +91,7 @@ impl State {
         execute_units
             .append(&mut vec![Box::new(ExecuteUnit::new(UnitType::BLU, 1)); config.blu_units]);
         execute_units
-            .append(&mut vec![Box::new(ExecuteUnit::new(UnitType::MCU, 3)); config.mcu_units]);
+            .append(&mut vec![Box::new(ExecuteUnit::new(UnitType::MCU, 1)); config.mcu_units]);
 
         // Create state
         let mut state = State {

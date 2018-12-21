@@ -96,15 +96,16 @@ fn cm_i_type(state_p: &State, state: &mut State, entry: usize) -> bool {
 
 
     // Branch prediction update and failure check
-    if rob_entry.op == Operation::JALR {
-        state.branch_predictor.commit_feedback(rob_entry);
-    }
     if rob_entry.act_pc != rob[(entry + 1) % rob.capacity].pc as i32 &&
        rob_entry.act_pc != -1 {
+        if rob_entry.op == Operation::JALR {
+            state.branch_predictor.commit_feedback(rob_entry, true);
+        }
         state.flush_pipeline(rob_entry.act_pc as usize);
         true
     } else {
         if rob_entry.op == Operation::JALR {
+            state.branch_predictor.commit_feedback(rob_entry, false);
             state.stats.bp_success += 1;
         }
         false
@@ -164,12 +165,13 @@ fn cm_b_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     let rob_entry = &rob[entry];
 
     // Branch prediction update and failure check
-    state.branch_predictor.commit_feedback(rob_entry);
     if rob_entry.act_pc != rob[(entry + 1) % rob.capacity].pc as i32 &&
        rob_entry.act_pc != -1 {
+        state.branch_predictor.commit_feedback(rob_entry, true);
         state.flush_pipeline(rob_entry.act_pc as usize);
         true
     } else {
+        state.branch_predictor.commit_feedback(rob_entry, false);
         state.register[Register::PC].data = rob_entry.act_pc;
         state.stats.bp_success += 1;
         false
@@ -207,12 +209,13 @@ fn cm_j_type(state_p: &State, state: &mut State, entry: usize) -> bool {
     state.register[Register::PC].data = rob_entry.act_pc;
 
     // Branch prediction update and failure check
-    state.branch_predictor.commit_feedback(rob_entry);
     if rob_entry.act_pc != rob[(entry + 1) % rob.capacity].pc as i32 &&
        rob_entry.act_pc != -1 {
+        state.branch_predictor.commit_feedback(rob_entry, true);
         state.flush_pipeline(rob_entry.act_pc as usize);
         true
     } else {
+        state.branch_predictor.commit_feedback(rob_entry, false);
         state.stats.bp_success += 1;
         false
     }

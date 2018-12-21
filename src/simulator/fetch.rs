@@ -1,3 +1,4 @@
+use super::branch::ReturnStackOp;
 use super::memory::Access;
 use super::state::State;
 
@@ -7,9 +8,11 @@ use super::state::State;
 /// The contents of the latch that the fetch stage feeds into.
 #[derive(Clone, Debug, Default)]
 pub struct LatchFetch {
-    /// The n pieces of data fetched (determined by the
+    /// The `n` pieces of data fetched (determined by the
     /// [State's](../state/struct.State.html) `n_way` settings).
     pub data: Vec<Access<i32>>,
+    /// The `n` associated return stack operations for the data fetched.
+    pub rs_ops: Vec<ReturnStackOp>,
     /// The program counter value for the _first_ instruction fetched,
     /// indicating the choice the branch predictor made.
     pub pc: usize,
@@ -28,6 +31,6 @@ pub fn fetch_stage(state_p: &State, state: &mut State) {
     for offset in 0..state_p.n_way {
         data.push(state_p.memory.read_i32(lc + (4 * offset)))
     }
-    state.branch_predictor.predict(state_p.n_way, &data, &state_p.register);
-    state.latch_fetch = LatchFetch { data, pc: lc };
+    let rs_ops = state.branch_predictor.predict(state_p.n_way, &data, &state_p.register);
+    state.latch_fetch = LatchFetch { data, rs_ops, pc: lc };
 }

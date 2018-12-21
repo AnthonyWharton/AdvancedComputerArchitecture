@@ -5,6 +5,7 @@ use either::{Either, Left, Right};
 use crate::isa::Instruction;
 use crate::isa::operand::Register;
 
+use super::branch::ReturnStackOp;
 use super::reorder::ReorderEntry;
 use super::reservation::Reservation;
 use super::state::State;
@@ -29,6 +30,11 @@ pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
     );
     for i in 0..limit {
         let word = state_p.latch_fetch.data[i].word;
+        let rs_op = if i < state_p.latch_fetch.rs_ops.len() {
+            state_p.latch_fetch.rs_ops[i]
+        } else {
+            ReturnStackOp::None
+        };
         let pc = state_p.latch_fetch.pc + (4 * i);
         let instr = match Instruction::decode(word) {
             Some(i) => i,
@@ -38,7 +44,7 @@ pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
             },
         };
 
-        let resv_result = sanitise_and_reserve(instr, pc, state);
+        let resv_result = sanitise_and_reserve(instr, rs_op, pc, state);
 
         if resv_result.is_err() {
             state.stall(pc);
@@ -63,6 +69,7 @@ pub fn decode_and_rename_stage(state_p: &State, state: &mut State) {
 /// Returns whether or not all reservations were made succesffully.
 fn sanitise_and_reserve(
     instruction: Instruction,
+    rs_op: ReturnStackOp,
     pc: usize,
     state: &mut State,
 ) -> Result<(), ()> {
@@ -85,6 +92,7 @@ fn sanitise_and_reserve(
     let reorder_entry = ReorderEntry {
         finished: false,
         ref_count: 0,
+        rs_operation: rs_op,
         op: instruction.op,
         pc,
         act_pc: 0,

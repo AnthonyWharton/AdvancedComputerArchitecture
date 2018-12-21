@@ -7,6 +7,8 @@ use either::{Either, Left, Right};
 use crate::isa::op_code::Operation;
 use crate::isa::operand::Register;
 
+use super::branch::ReturnStackOp;
+
 ///////////////////////////////////////////////////////////////////////////////
 //// STRUCTS
 
@@ -38,6 +40,9 @@ pub struct ReorderEntry {
     /// The number of components that have a reference to this reorder buffer
     /// entry.
     pub ref_count: u8,
+    /// What this instruction has done to the return stack (used as feedback
+    /// for the branch predictor).
+    pub rs_operation: ReturnStackOp,
     /// The operation that executed
     pub op: Operation,
     /// The program counter for this instruction, indicating the choice that
@@ -123,6 +128,7 @@ impl ReorderBuffer {
                 new_rob.cleanup();
                 popped.push(self.front_fin + i)
             } else {
+                new_rob.cleanup();
                 break;
             }
         }
@@ -135,7 +141,10 @@ impl ReorderBuffer {
     fn cleanup(&mut self) {
         if self.rob[self.front].finished && self.rob[self.front].ref_count == 0 {
             self.count -= 1;
-            self.front = (self.front + 1) % self.capacity;
+            let new_front = (self.front + 1) % self.capacity;
+            if new_front != self.front_fin {
+                self.front = new_front;
+            }
         }
     }
 
@@ -173,6 +182,7 @@ impl Default for ReorderEntry {
         ReorderEntry {
             finished: false,
             ref_count: 0,
+            rs_operation: ReturnStackOp::None,
             op: Operation::ADDI,
             pc: 0,
             act_pc: 0,
@@ -188,6 +198,12 @@ impl Default for ReorderEntry {
 impl Display for ReorderEntry {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "{}", if self.finished { "✓" } else { "×" })?;
+        write!(f, " {}", match self.rs_operation {
+            ReturnStackOp::None => "N",
+            ReturnStackOp::Pushed(_) => "U",
+            ReturnStackOp::Popped => "O",
+            ReturnStackOp::PushPop(_) => "B"
+        })?;
         write!(f, " {:2}", self.ref_count)?;
         write!(f, " {:>6}", self.op)?;
         write!(f, " {:08x}", self.pc)?;

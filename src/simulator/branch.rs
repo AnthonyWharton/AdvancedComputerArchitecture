@@ -10,12 +10,22 @@ use super::reorder::ReorderEntry;
 ///////////////////////////////////////////////////////////////////////////////
 //// ENUMS
 
+/// The branch prediction FSM state.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BranchState {
     StronglyNotTaken,
     WeaklyNotTaken,
     WeaklyTaken,
     StronglyTaken,
+}
+
+/// An operation to the return stack.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum ReturnStackOp {
+    None,
+    Pushed(usize),
+    Popped,
+    PushPop(usize),
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -30,8 +40,10 @@ pub struct BranchPredictor {
     pub lc: usize,
     /// Whether or not non-trivial branch prediction is enabled.
     pub enabled: bool,
-    /// The return address stack.
-    pub return_stack: Option<Vec<usize>>,
+    /// The dirty return address stack.
+    pub return_stack_d: Option<Vec<usize>>,
+    /// The clean return address stack.
+    pub return_stack_c: Option<Vec<usize>>,
     /// The global finite state machine for branch prediction choices.
     pub global_prediction: BranchState,
 }
@@ -46,7 +58,12 @@ impl BranchPredictor {
         BranchPredictor {
             lc: 0,
             enabled: config.branch_prediction,
-            return_stack: if config.return_address_stack {
+            return_stack_d: if config.return_address_stack {
+                Some(vec![])
+            } else {
+                None
+            },
+            return_stack_c: if config.return_address_stack {
                 Some(vec![])
             } else {
                 None
@@ -56,16 +73,23 @@ impl BranchPredictor {
     }
 
     /// Predicts the next program counter for the _fetch_ stage to fetch to
-    /// fetch the next instruction from.
+    /// fetch the next instruction from, along with a guarenteed `n_way` number
+    /// of return stack operations to go with those instructions.
     pub fn get_prediction(&self) -> usize {
         self.lc
     }
 
-    /// The feedback from the _fetch_ stage as to last instruction that was
-    /// loaded from memory, used to make the next prediction. Returns the next
-    /// prediction to allow for easy implementation of the forward bypass.
-    pub fn predict(&mut self, n_way: usize, next_instrs: &Vec<Access<i32>>, rf: &RegisterFile) {
+    /// The feedback from the _fetch_ stage as to last instructions that were
+    /// loaded from memory, used to make the next prediction. Returns the
+    /// return address stack operations for the instructions that were fetched.
+    pub fn predict(
+        &mut self,
+        n_way: usize,
+        next_instrs: &Vec<Access<i32>>,
+        rf: &RegisterFile,
+    ) -> Vec<ReturnStackOp>{
         if self.enabled {
+            let mut rs_ops = vec![];
             for raw in next_instrs.iter() {
                 let instr = match Instruction::decode(raw.word) {
                     Some(instr) => instr,
@@ -75,8 +99,10 @@ impl BranchPredictor {
                 };
 
                 // If return stack optimisation is used and provides a
-                // prediction, use it. Side effect of updating return stack.
-                if let Some(pc) = self.process_return_address(instr, self.lc) {
+                // prediction, use it.
+                let (rs_op, rs_pred) = self.process_return_address(instr, self.lc);
+                rs_ops.push(rs_op);
+                if let Some(pc) = rs_pred {
                     self.lc = pc;
                     break;
                 }
@@ -95,7 +121,7 @@ impl BranchPredictor {
                         }
                         self.lc += 4;
                         break; // TODO consider removing this?
-                               // Requires updateing should_halt_decode()
+                               // Requires updating should_halt_decode()
                     }
                     Operation::JAL  |
                     Operation::BEQ  |
@@ -110,23 +136,34 @@ impl BranchPredictor {
                         } else {
                             self.lc += 4;
                             break; // TODO consider removing this?
-                                   // Requires updateing should_halt_decode()
+                                   // Requires updating should_halt_decode()
                         }
                     }
                     _ => self.lc += 4,
                 }
             }
+            rs_ops.resize(n_way, ReturnStackOp::None);
+            rs_ops
         } else {
             self.lc += 4 * n_way;
+            vec![ReturnStackOp::None; 4]
         }
     }
 
-    /// Feedback on how the branch actually went from the _commit_ stage.
-    pub fn commit_feedback(&mut self, rob_entry: &ReorderEntry) {
+    /// Feedback on how the branch actually went from the _commit_ stage, where
+    /// `mismatch` is set when the branch prediction failed.
+    pub fn commit_feedback(&mut self, rob_entry: &ReorderEntry, mismatch: bool) {
+        // Sort out global FSM prediction
         if rob_entry.pc + 4 == rob_entry.act_pc as usize {
             self.global_prediction = BranchState::not_taken(self.global_prediction);
         } else {
             self.global_prediction = BranchState::taken(self.global_prediction);
+        }
+
+        // Sort out return stack
+        self.apply_stack_operation(rob_entry.rs_operation);
+        if mismatch {
+            self.return_stack_d = self.return_stack_c.clone();
         }
     }
 
@@ -157,14 +194,21 @@ impl BranchPredictor {
     /// Process an instruction for the return address stack optimisation.
     /// Returns a popped return address program counter prediction if one is
     /// available.
-    fn process_return_address(&mut self, instr: Instruction, pc: usize) -> Option<usize> {
-        if let Some(stack) = &mut self.return_stack {
+    fn process_return_address(
+        &mut self,
+        instr: Instruction,
+        pc: usize,
+    ) -> (ReturnStackOp, Option<usize>) {
+        if let Some(stack) = &mut self.return_stack_d {
             match instr.op {
                 Operation::JAL => {
-                    if instr.rd == Some(Register::X1) || instr.rd == Some(Register::X5) {
-                        stack.push(pc + 4)
+                    if let Some(rd) = instr.rd {
+                        if rd == Register::X1 || rd == Register::X5 {
+                            stack.push(pc + 4);
+                            return (ReturnStackOp::Pushed(pc + 4), None)
+                        }
                     }
-                    None
+                    (ReturnStackOp::None, None)
                 }
                 Operation::JALR => {
                     let rd = instr.rd == Some(Register::X1) || instr.rd == Some(Register::X5);
@@ -172,25 +216,41 @@ impl BranchPredictor {
                     let eq = instr.rd == instr.rs1;
 
                     if !rd && !rs1 {
-                        None
+                        (ReturnStackOp::None, None)
                     } else if !rd && rs1 {
-                        stack.pop()
+                        (ReturnStackOp::Popped, stack.pop())
                     } else if rd && !rs1 {
                         stack.push(pc + 4);
-                        None
+                        (ReturnStackOp::Pushed(pc + 4), None)
                     } else if rd && rs1 && !eq {
                         let ret = stack.pop();
                         stack.push(pc + 4);
-                        ret
+                        (ReturnStackOp::PushPop(pc + 4), ret)
                     } else {
                         stack.push(pc + 4);
-                        None
+                        (ReturnStackOp::Pushed(pc + 4), None)
                     }
                 }
-                _ => None
+                _ => (ReturnStackOp::None, None)
             }
         } else {
-            None
+            (ReturnStackOp::None, None)
+        }
+    }
+
+    /// Applies a `ReturnStackOp` to the return stack in the branch predictor,
+    /// this will apply to the clean return stack.
+    fn apply_stack_operation(&mut self, op: ReturnStackOp) {
+        if let Some(stack) = &mut self.return_stack_c {
+            match op {
+                ReturnStackOp::None => (),
+                ReturnStackOp::Popped => { stack.pop(); },
+                ReturnStackOp::Pushed(pc) => stack.push(pc),
+                ReturnStackOp::PushPop(pc) => {
+                    stack.pop();
+                    stack.push(pc)
+                }
+            }
         }
     }
 }
