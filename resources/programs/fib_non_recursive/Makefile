@@ -24,7 +24,7 @@ CHECK_OBJDUMP:=$(shell $(OBJDUMP) --version 2> /dev/null)
 # Builds the program
 build: main.c
 ifdef CHECK_CC
-	$(CC) $(CFLAGS) $(LFLAGS) main.c
+	$(CC) $(DISABLE_C_OPTIMISATIONS) $(CFLAGS) $(LFLAGS) main.c
 else
 	echo -e "\e[31mIt looks like this machine doesn't have riscv64-linux-gnu-gcc"
 	echo -e "Either install this, or use the pre-compiled binary.\e[0m"

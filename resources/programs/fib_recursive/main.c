@@ -10,5 +10,6 @@ unsigned int fib(unsigned int n) {
 
 void _start()
 {
-	unsigned int result = fib(9);
+	// Should return 34
+	volatile unsigned int result = fib(9);
 }
