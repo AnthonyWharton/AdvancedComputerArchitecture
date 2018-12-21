@@ -5,7 +5,7 @@ CC=riscv64-linux-gnu-gcc
 # Program used for RISC V object dumps
 OBJDUMP=riscv64-linux-gnu-objdump
 # Standard C Flags, including those to force the ABI/ISA specification
-CFLAGS=-mabi=ilp32 -march=rv32im -nostdlib -s -static -O0
+CFLAGS=-mabi=ilp32 -march=rv32im -nostdlib -s -static -O3
 # Flags for the linker to not include the build ID binary
 LFLAGS=-Wl,--build-id=none
 # Dynamically works out the enabled optimisations for our C environment and
@@ -24,7 +24,7 @@ CHECK_OBJDUMP:=$(shell $(OBJDUMP) --version 2> /dev/null)
 # Builds the program
 build: main.c
 ifdef CHECK_CC
-	$(CC) $(CFLAGS) $(LFLAGS) main.c
+	$(CC) $(DISABLE_C_OPTIMISATIONS) $(CFLAGS) $(LFLAGS) main.c
 else
 	echo -e "\e[31mIt looks like this machine doesn't have riscv64-linux-gnu-gcc"
 	echo -e "Either install this, or use the pre-compiled binary.\e[0m"
