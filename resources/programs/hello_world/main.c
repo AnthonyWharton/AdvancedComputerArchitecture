@@ -1,18 +1,10 @@
-void print(const char c) {
-	asm("add a1,%0,0;"
-		"ecall"
-		:
-		: "r" (c)
-		:
-	);
-}
+#include "../lib.h"
 
-const int len = 14;
-const char *hello = "hello\n  world!";
+const int len = 12;
+const char *hello = "hello world!";
 
 void _start() {
-	// print('y');
 	for (int i = 0; i < len; i++) {
-		print(hello[i]);
+		print_char(hello[i]);
 	}
 }

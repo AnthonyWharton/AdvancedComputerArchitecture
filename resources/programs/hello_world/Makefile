@@ -22,9 +22,9 @@ CHECK_CC:=$(shell $(CC) --version 2> /dev/null)
 CHECK_OBJDUMP:=$(shell $(OBJDUMP) --version 2> /dev/null)
 
 # Builds the program
-build: main.c
+build: main.c ../lib.h ../lib.c
 ifdef CHECK_CC
-	$(CC) $(DISABLE_C_OPTIMISATIONS) $(CFLAGS) $(LFLAGS) main.c
+	$(CC) $(DISABLE_C_OPTIMISATIONS) $(CFLAGS) $(LFLAGS) $?
 else
 	echo -e "\e[31mIt looks like this machine doesn't have riscv64-linux-gnu-gcc"
 	echo -e "Either install this, or use the pre-compiled binary.\e[0m"
@@ -43,6 +43,7 @@ endif
 clean: *.out
 ifdef CHECK_CC
 	rm -rf $?
+	rm -f ../lib.h.gch
 else
 	echo -e "\e[31mIt looks like this machine doesn't have riscv64-linux-gnu-gcc"
 	echo -e "Aborting cleanup, you won't be able to recompile this binary!\e[0m"
